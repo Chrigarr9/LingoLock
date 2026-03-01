@@ -15,21 +15,17 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 - [ ] **DECK-04**: User can view list of imported decks
 - [ ] **DECK-05**: User can select which deck is currently active for learning
 
-### App Blocking
+### App Blocking (via iOS Shortcuts)
 
-- [ ] **BLCK-01**: User can select apps to block using iOS FamilyControls picker
-- [ ] **BLCK-02**: User can add apps to whitelist (never blocked, e.g., Phone, Banking)
-- [ ] **BLCK-03**: When user opens blocked app, system shows fullscreen vocabulary challenge
-- [ ] **BLCK-04**: System prevents app from opening until vocabulary challenge is completed successfully
-- [ ] **BLCK-05**: User can configure number of vocabulary questions per app-open (default: 3)
+- [ ] **BLCK-01**: User can configure which apps trigger vocabulary challenges (via Shortcuts automation setup tutorial)
+- [ ] **BLCK-02**: User can add apps to whitelist (never trigger challenges, e.g., Phone, Banking)
+- [ ] **BLCK-03**: When Shortcut automation triggers, app opens and shows fullscreen vocabulary challenge
+- [ ] **BLCK-04**: System intercepts app opening via Shortcuts automation and deep-links to Vokabeltrainer app
+- [ ] **BLCK-05**: User can configure number of vocabulary questions per app automation (default: 3)
 
 ### Interruption Timer
 
-- [ ] **INTR-01**: User can enable timer-based interruptions during app usage
-- [ ] **INTR-02**: User can configure interruption interval (3 min, 5 min, 10 min options)
-- [ ] **INTR-03**: System shows fullscreen vocabulary challenge after timer expires during app usage
-- [ ] **INTR-04**: After completing vocabulary challenge, user sees "Back to App" button to resume
-- [ ] **INTR-05**: User can configure number of vocabulary questions per interruption (default: 3)
+**Note:** Removed from v1 - not feasible with Shortcuts approach (requires background execution, only possible with Screen Time API). Moved to Out of Scope.
 
 ### Per-App Configuration
 
@@ -107,12 +103,13 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
+| Timer-based interruptions during app usage (INTR-01 to INTR-05) | Requires background execution, only possible with Screen Time API (FamilyControls). Shortcuts approach cannot interrupt apps mid-usage. |
 | Android V1 | iOS focus, no Android test device available |
 | Cross-device sync | Complexity, offline-first simplicity preferred |
 | KI-generated vocabulary lists | Focus on Anki import, content creation later |
 | Pre-installed vocabulary decks | Licensing unclear, user brings own content |
 | Cloud backend | Offline-first, no server infrastructure costs |
-| Web version | Mobile-native experience required for Screen Time API |
+| Web version | Mobile-native experience required for Shortcuts integration |
 | Breathing exercises | Nice-to-have, defer to v2 |
 | Scheduled blocking (time windows) | Complexity, defer to v2 |
 | XP/Levels/Achievements | Gamification can distract, defer to v2 |
@@ -126,13 +123,48 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (To be populated by roadmapper) | - | - |
+| BLCK-01 | Phase 4 | Pending |
+| BLCK-02 | Phase 4 | Pending |
+| BLCK-03 | Phase 1 | Pending |
+| BLCK-04 | Phase 1 | Pending |
+| BLCK-05 | Phase 4 | Pending |
+| CONF-01 | Phase 4 | Pending |
+| CONF-02 | Phase 4 | Pending |
+| CONF-03 | Phase 4 | Pending |
+| CONF-04 | Phase 4 | Pending |
+| CARD-01 | Phase 2 | Pending |
+| CARD-02 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-03 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-04 | Phase 4 | Pending |
+| CARD-05 | Phase 4 | Pending |
+| CARD-06 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-07 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-08 | Phase 2 | Pending |
+| CARD-09 | Phase 2 | Pending |
+| CARD-10 | Phase 2 | Pending |
+| CARD-11 | Phase 2 | Pending |
+| PROG-01 | Phase 2 | Pending |
+| PROG-02 | Phase 2 | Pending |
+| PROG-03 | Phase 2 | Pending |
+| PROG-04 | Phase 2 | Pending |
+| PROG-05 | Phase 2 | Pending |
+| PROG-06 | Phase 2 | Pending |
+| PROG-07 | Phase 2 | Pending |
+| PROG-08 | Phase 2 | Pending |
+| OFFL-01 | Phase 2 | Pending |
+| OFFL-02 | Phase 2 | Pending |
+| OFFL-03 | Phase 2 | Pending |
+| DECK-01 | Phase 3 | Pending |
+| DECK-02 | Phase 3 | Pending |
+| DECK-03 | Phase 3 | Pending |
+| DECK-04 | Phase 3 | Pending |
+| DECK-05 | Phase 3 | Pending |
 
 **Coverage:**
-- v1 requirements: 35 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 35 ⚠️
+- v1 requirements: 36 total (5 INTR requirements moved to Out of Scope)
+- Mapped to phases: 36
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-01*
-*Last updated: 2026-03-01 after initial definition*
+*Last updated: 2026-03-01 after roadmap creation*

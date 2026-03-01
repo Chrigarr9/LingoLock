@@ -66,13 +66,15 @@ Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | React Native + Expo statt Native Swift | Kein Mac verfügbar, Expo EAS Build ermöglicht iOS-Entwicklung auf Ubuntu | — Pending |
-| Native Modules für Screen Time API | iOS Screen Time API braucht FamilyControls Framework, nur via Native Code zugänglich | — Pending |
+| iOS Shortcuts statt FamilyControls/Screen Time API | Viel einfacher (kein Apple Entitlement, kein 2-3 Wochen Approval), OneSec zeigt dass es funktioniert, User will nur "Commitment Device" nicht "hard block" | ✓ Good |
+| URL Scheme Integration | Shortcuts können App via vokabeltrainer:// öffnen, dann Deep-Link zurück zur Original-App | — Pending |
 | Anki .apkg Import (kein eigener Content) | Fokus auf Mechanik, nicht Content-Creation; Lizenzfragen bei vorinstallierten Decks ungeklärt | — Pending |
-| Spaced Repetition von Anki übernehmen | Wissenschaftlich validiert, kein eigener Algorithmus nötig | — Pending |
+| FSRS Spaced Repetition Algorithm | Moderner als SM-2, wissenschaftlich validiert, Anki 23.10+ Standard | — Pending |
 | Freitext-Eingabe als Standard | Forschung zeigt Active Recall ist effektivster Lern-Modus (80% vs 34% Retention) | — Pending |
 | Offline-First (keine Cloud) | Keep it simple, reduziert Komplexität und Kosten für V1 | — Pending |
 | Keine Cross-Device-Sync | Simplicity over features, Single-Device-Use-Case ausreichend für V1 | — Pending |
 | Minimalistisches & Modernes Design | Fokus auf Funktion statt Ablenkung, passt zu Produktivitäts-Tool | — Pending |
+| Timer Interruptions aus Scope | Shortcuts können Apps nicht während Nutzung unterbrechen (bräuchte Background Execution = Screen Time API) | — Pending |
 
 ---
 *Last updated: 2026-03-01 after initialization*
