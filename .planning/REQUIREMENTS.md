@@ -23,9 +23,35 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 - [ ] **BLCK-04**: System intercepts app opening via Shortcuts automation and deep-links to Vokabeltrainer app
 - [ ] **BLCK-05**: User can configure number of vocabulary questions per app automation (default: 3)
 
-### Interruption Timer
+### Device Unlock Automation
 
-**Note:** Removed from v1 - not feasible with Shortcuts approach (requires background execution, only possible with Screen Time API). Moved to Out of Scope.
+- [ ] **UNLK-01**: User can configure Shortcuts automation that triggers when device is unlocked
+- [ ] **UNLK-02**: When device unlocks, Vokabeltrainer app opens automatically with vocabulary challenge
+- [ ] **UNLK-03**: User can enable/disable unlock automation in app settings
+
+### Timed Notifications
+
+- [ ] **NOTF-01**: System schedules local notifications every configurable interval (3 min, 5 min, 10 min options)
+- [ ] **NOTF-02**: Notification shows: "Time for vocabulary! Tap to practice"
+- [ ] **NOTF-03**: User tapping notification opens Vokabeltrainer with vocabulary challenge
+- [ ] **NOTF-04**: User can configure notification interval in app settings
+- [ ] **NOTF-05**: Notifications only appear during active usage hours (9 AM - 10 PM, configurable)
+
+### Interactive Notifications
+
+- [ ] **INOT-01**: Notifications include interactive actions (Answer A/B/C/D buttons for multiple choice)
+- [ ] **INOT-02**: User can answer vocabulary directly from notification (without opening app)
+- [ ] **INOT-03**: System provides immediate feedback on notification (✓ Correct / ✗ Incorrect)
+- [ ] **INOT-04**: Answered cards via notification count toward progress/streak
+- [ ] **INOT-05**: User can choose "Open App" action from notification for full challenge
+
+### Live Activities (Lock Screen Widget)
+
+- [ ] **LIVE-01**: System displays Live Activity on Lock Screen with current vocabulary card
+- [ ] **LIVE-02**: User can answer vocabulary directly on Lock Screen (swipe down for options)
+- [ ] **LIVE-03**: Live Activity updates in real-time with new card after answering
+- [ ] **LIVE-04**: Live Activity shows streak count and daily progress
+- [ ] **LIVE-05**: User can enable/disable Live Activities in app settings
 
 ### Per-App Configuration
 
@@ -103,7 +129,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Timer-based interruptions during app usage (INTR-01 to INTR-05) | Requires background execution, only possible with Screen Time API (FamilyControls). Shortcuts approach cannot interrupt apps mid-usage. |
+| Screen Time API timer interruptions (DeviceActivityMonitor auto-reopen) | Requires FamilyControls entitlement (2-3 weeks approval). Replaced by Notifications + Live Activities approach for v1. May add in v2 if needed. |
 | Android V1 | iOS focus, no Android test device available |
 | Cross-device sync | Complexity, offline-first simplicity preferred |
 | KI-generated vocabulary lists | Focus on Anki import, content creation later |
@@ -159,10 +185,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DECK-03 | Phase 3 | Pending |
 | DECK-04 | Phase 3 | Pending |
 | DECK-05 | Phase 3 | Pending |
+| UNLK-01 | Phase 1 | Pending |
+| UNLK-02 | Phase 1 | Pending |
+| UNLK-03 | Phase 5 | Pending |
+| NOTF-01 | Phase 4 | Pending |
+| NOTF-02 | Phase 4 | Pending |
+| NOTF-03 | Phase 4 | Pending |
+| NOTF-04 | Phase 5 | Pending |
+| NOTF-05 | Phase 5 | Pending |
+| INOT-01 | Phase 4 | Pending |
+| INOT-02 | Phase 4 | Pending |
+| INOT-03 | Phase 4 | Pending |
+| INOT-04 | Phase 4 | Pending |
+| INOT-05 | Phase 4 | Pending |
+| LIVE-01 | Phase 4 | Pending |
+| LIVE-02 | Phase 4 | Pending |
+| LIVE-03 | Phase 4 | Pending |
+| LIVE-04 | Phase 4 | Pending |
+| LIVE-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 36 total (5 INTR requirements moved to Out of Scope)
-- Mapped to phases: 36
+- v1 requirements: 54 total (18 new requirements: UNLK, NOTF, INOT, LIVE)
+- Mapped to phases: 54
 - Unmapped: 0 ✓
 
 ---

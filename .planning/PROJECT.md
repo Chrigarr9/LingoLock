@@ -6,7 +6,7 @@ Eine iOS-App (später auch Android), die Vokabellernen nahtlos in den Alltag int
 
 ## Core Value
 
-Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch intelligentes App-Blocking, ohne dass der User aktiv eine Lern-Session starten muss.
+Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch multiple Touchpoints (Device Unlock, App-Öffnen, Timed Notifications, Lock Screen Widget), ohne dass der User aktiv eine Lern-Session starten muss.
 
 ## Requirements
 
@@ -17,18 +17,23 @@ Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in
 ### Active
 
 - [ ] User kann Anki .apkg Decks importieren (nur Karten, kein bestehender Fortschritt)
-- [ ] User muss Vokabeln beantworten, um blockierte Apps zu öffnen
-- [ ] User wird während App-Nutzung regelmäßig (3-5 Min Timer) mit Vokabeln unterbrochen
-- [ ] User kann pro App konfigurieren: Anzahl Vokabeln, Timer-Intervall, komplette Ausnahmen
-- [ ] Vokabel-Challenges nutzen Anki's Spaced Repetition Algorithm
+- [ ] User bekommt Vokabel-Challenge beim Device Unlock (Shortcuts Automation)
+- [ ] User bekommt Vokabel-Challenge beim Öffnen konfigurierter Apps (Shortcuts Automation)
+- [ ] User bekommt regelmäßige Vokabel-Notifications (alle 3-5 Min, konfigurierbar)
+- [ ] User kann Vokabeln direkt auf Notifications beantworten (Interactive Notifications)
+- [ ] User sieht Live Activity auf Lock Screen mit Vokabel-Challenge
+- [ ] User kann auf Lock Screen direkt Vokabeln beantworten (swipe down)
+- [ ] User kann pro App konfigurieren: Anzahl Vokabeln, Notification-Intervall, komplette Ausnahmen
+- [ ] Vokabel-Challenges nutzen FSRS Spaced Repetition Algorithm
 - [ ] User kann Vokabeln per Freitext-Eingabe (Standard), Multiple Choice oder Yes/No beantworten
 - [ ] User sieht Statistiken: Streak-Tracking, Erfolgsrate, Fortschritt pro App
-- [ ] Falsche Antworten werden nach Anki-Algorithmus wiederholt (60s Intervall)
+- [ ] Falsche Antworten werden nach FSRS-Algorithmus wiederholt (60s Intervall)
 - [ ] App funktioniert komplett offline (lokale Speicherung)
 
 ### Out of Scope
 
 - **Android** — V1 Fokus auf iOS (kein Android-Testgerät vorhanden)
+- **Screen Time API Timer Interruptions (DeviceActivityMonitor)** — Später (Phase 6), V1 nutzt Notifications + Live Activities
 - **Cross-Device-Sync** — Keep it simple, lokale Daten nur
 - **KI-generierte Vokabellisten** — Später, V1 fokussiert auf Anki-Import
 - **Vorinstallierte Vokabel-Decks** — Lizenzfragen ungeklärt, User bringen eigene Decks
@@ -66,15 +71,17 @@ Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | React Native + Expo statt Native Swift | Kein Mac verfügbar, Expo EAS Build ermöglicht iOS-Entwicklung auf Ubuntu | — Pending |
-| iOS Shortcuts statt FamilyControls/Screen Time API | Viel einfacher (kein Apple Entitlement, kein 2-3 Wochen Approval), OneSec zeigt dass es funktioniert, User will nur "Commitment Device" nicht "hard block" | ✓ Good |
+| Multi-layered Approach: Shortcuts + Notifications + Live Activities | Viel eleganter als Screen Time API: Device Unlock Automation, Timed Notifications, Lock Screen Interaction — kein Apple Entitlement, sofort entwickelbar | ✓ Good |
 | URL Scheme Integration | Shortcuts können App via vokabeltrainer:// öffnen, dann Deep-Link zurück zur Original-App | — Pending |
+| Interactive Notifications & Live Activities | User kann Vokabeln direkt auf Lock Screen/Notification beantworten (iOS 16+ Feature), sehr user-friendly | ✓ Good |
+| Timed Local Notifications statt Screen Time Timer | Alle 3-5 Min Notifications mit Vokabeln, weniger invasiv als App-Blocking, gleicher Effekt | ✓ Good |
+| Screen Time API optional/später (Phase 6) | Falls Notifications nicht ausreichen, können wir später DeviceActivityMonitor hinzufügen (braucht Apple Approval) | — Pending |
 | Anki .apkg Import (kein eigener Content) | Fokus auf Mechanik, nicht Content-Creation; Lizenzfragen bei vorinstallierten Decks ungeklärt | — Pending |
 | FSRS Spaced Repetition Algorithm | Moderner als SM-2, wissenschaftlich validiert, Anki 23.10+ Standard | — Pending |
 | Freitext-Eingabe als Standard | Forschung zeigt Active Recall ist effektivster Lern-Modus (80% vs 34% Retention) | — Pending |
 | Offline-First (keine Cloud) | Keep it simple, reduziert Komplexität und Kosten für V1 | — Pending |
 | Keine Cross-Device-Sync | Simplicity over features, Single-Device-Use-Case ausreichend für V1 | — Pending |
 | Minimalistisches & Modernes Design | Fokus auf Funktion statt Ablenkung, passt zu Produktivitäts-Tool | — Pending |
-| Timer Interruptions aus Scope | Shortcuts können Apps nicht während Nutzung unterbrechen (bräuchte Background Execution = Screen Time API) | — Pending |
 
 ---
 *Last updated: 2026-03-01 after initialization*
