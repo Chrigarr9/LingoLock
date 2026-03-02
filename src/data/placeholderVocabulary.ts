@@ -1,14 +1,19 @@
+/**
+ * @deprecated Phase 1 placeholder data — no longer used.
+ * Phase 2 uses bundled pipeline content from src/content/bundle.ts
+ * and FSRS-scheduled card selection from src/services/cardSelector.ts.
+ * Kept for reference only.
+ */
+
 import { VocabularyCard } from '../types/vocabulary';
 
 /**
  * Placeholder vocabulary cards for Phase 1 testing
  *
- * These cards test various edge cases:
- * - Diacritics (ä, ö, ü, é, à, ñ)
- * - Apostrophes and punctuation
- * - Case sensitivity
- * - Multi-word phrases
- * - Special characters
+ * Cards use three answer types:
+ * - 'text': Free-text input (default)
+ * - 'mc4': 4-choice multiple choice (2x2 grid)
+ * - 'mc2': 2-choice multiple choice (1x2 grid)
  *
  * Phase 3 will replace this with .apkg imports
  */
@@ -17,6 +22,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-001',
     front: 'Hello',
     back: 'Hallo',
+    answerType: 'mc4',
+    choices: ['Hallo', 'Danke', 'Bitte', 'Morgen'],
   },
   {
     id: 'card-002',
@@ -27,11 +34,15 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-003',
     front: 'Good morning',
     back: 'Guten Morgen',
+    answerType: 'mc4',
+    choices: ['Guten Morgen', 'Guten Abend', 'Gute Nacht', 'Auf Wiedersehen'],
   },
   {
     id: 'card-004',
     front: 'Goodbye',
     back: 'Auf Wiedersehen',
+    answerType: 'mc2',
+    choices: ['Auf Wiedersehen', 'Guten Tag'],
   },
   {
     id: 'card-005',
@@ -42,11 +53,15 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-006',
     front: 'The apple',
     back: 'Der Apfel',
+    answerType: 'mc4',
+    choices: ['Der Apfel', 'Das Buch', 'Die Tür', 'Der Kaffee'],
   },
   {
     id: 'card-007',
     front: 'The book',
     back: 'Das Buch',
+    answerType: 'mc2',
+    choices: ['Das Buch', 'Die Schule'],
   },
   {
     id: 'card-008',
@@ -57,11 +72,15 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-009',
     front: 'Beautiful',
     back: 'Schön',
+    answerType: 'mc4',
+    choices: ['Schön', 'Schnell', 'Schwer', 'Schlecht'],
   },
   {
     id: 'card-010',
     front: 'To eat',
     back: 'Essen',
+    answerType: 'mc2',
+    choices: ['Essen', 'Trinken'],
   },
   {
     id: 'card-011',
@@ -72,6 +91,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-012',
     front: 'The coffee',
     back: 'Der Kaffee',
+    answerType: 'mc4',
+    choices: ['Der Kaffee', 'Das Wasser', 'Der Apfel', 'Das Buch'],
   },
   {
     id: 'card-013',
@@ -82,6 +103,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-014',
     front: 'Yesterday',
     back: 'Gestern',
+    answerType: 'mc2',
+    choices: ['Gestern', 'Morgen'],
   },
   {
     id: 'card-015',
@@ -92,6 +115,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-016',
     front: 'The brother',
     back: 'Der Bruder',
+    answerType: 'mc4',
+    choices: ['Der Bruder', 'Die Schwester', 'Die Mutter', 'Der Vater'],
   },
   {
     id: 'card-017',
@@ -102,6 +127,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-018',
     front: 'The mother',
     back: 'Die Mutter',
+    answerType: 'mc2',
+    choices: ['Die Mutter', 'Der Vater'],
   },
   {
     id: 'card-019',
@@ -112,6 +139,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-020',
     front: 'To understand',
     back: 'Verstehen',
+    answerType: 'mc4',
+    choices: ['Verstehen', 'Sprechen', 'Arbeiten', 'Essen'],
   },
   {
     id: 'card-021',
@@ -122,6 +151,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-022',
     front: 'The school',
     back: 'Die Schule',
+    answerType: 'mc2',
+    choices: ['Die Schule', 'Das Haus'],
   },
   {
     id: 'card-023',
@@ -132,6 +163,8 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-024',
     front: 'The street',
     back: 'Die Straße',
+    answerType: 'mc4',
+    choices: ['Die Straße', 'Die Schule', 'Das Haus', 'Die Tür'],
   },
   {
     id: 'card-025',
