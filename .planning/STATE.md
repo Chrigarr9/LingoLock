@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 1 of 5 (1-shortcuts-integration)
-Plan: 4 of TBD in current phase
+Plan: 6 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-04-PLAN.md (Challenge Screen UI)
+Last activity: 2026-03-02 — Completed 1-06-PLAN.md (Deep Link Return Flow)
 
-Progress: [████░░░░░░] ~25%
+Progress: [████░░░░░░] ~30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 4 min
-- Total execution time: 0.2 hours
+- Total plans completed: 6
+- Average duration: 3 min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 4 | 14min | 4min |
+| 1-shortcuts-integration | 6 | 16min | 3min |
 
 **Recent Trend:**
-- Last 3 plans: 1-04 (1min), 1-03 (2min), 1-02 (2min)
+- Last 3 plans: 1-06 (2min), 1-05 (TBD), 1-04 (1min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -82,6 +82,15 @@ Recent decisions affecting current work:
 - Dark mode pattern: useColorScheme() with conditional iOS system colors
 - Modal pattern: fullScreenModal with fade animation and emergency escape
 
+**From Plan 1-06 (Deep Link Return Flow):**
+- URL scheme mapping for 20+ popular apps (Instagram, Twitter, TikTok, YouTube, etc.)
+- canOpenURL pre-flight check to validate app availability before opening
+- Alert dialogs for failed deep links instead of silent failures (user feedback)
+- For unlock-type challenges: instructional alert instead of deep link attempt
+- Deep link utility pattern: src/utils/ for external app integration helpers
+- Type-specific behavior: Different UI/UX based on challenge type (unlock vs app_open)
+- Accessibility pattern: Labels and hints for screen reader support on interactive elements
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -109,7 +118,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-04-PLAN.md (Challenge Screen UI)
+Stopped at: Completed 1-06-PLAN.md (Deep Link Return Flow)
 Resume file: None
 
 ---
