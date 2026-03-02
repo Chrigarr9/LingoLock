@@ -32,21 +32,27 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Depends on**: Nothing (first phase)
 **Requirements**: BLCK-03, BLCK-04 (vocabulary challenge screen), UNLK-01, UNLK-02 (unlock automation), partial CARD-02/03/06/07 (basic card display & answer checking)
 **Success Criteria** (what must be TRUE):
-  1. Expo project initializes successfully and runs in Expo Go on iPhone
+  1. Expo project initializes successfully and runs in development build on iPhone
   2. App registers custom URL scheme (lingolock://) that iOS Shortcuts can invoke
   3. URL scheme accepts parameters: source app name, number of cards to show, trigger type (unlock/app-open)
   4. Fullscreen vocabulary challenge screen displays with placeholder cards
   5. User can answer card via free-text input and see correct/incorrect feedback
-  6. After completing challenge, "Open [App Name]" button deep-links to original app (or returns to home screen if triggered by unlock)
+  6. After completing challenge, "Open [App Name]" button deep-links to original app (or shows message for unlock type)
   7. In-app tutorial explains how to set up two Shortcuts automations:
      - "When device unlocks → Run LingoLock"
      - "When [App] opens → Run LingoLock"
-  8. Tutorial includes copy-paste Shortcut templates for quick setup
-  9. Device unlock automation works reliably and shows vocabulary before home screen
-**Plans**: TBD
+  8. Tutorial includes step-by-step screenshots for Shortcuts setup
+  9. Device unlock automation works reliably and shows vocabulary challenge
+**Plans**: 7 plans in 4 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 1-01-PLAN.md — Expo SDK 55 upgrade + development build setup
+- [ ] 1-02-PLAN.md — Placeholder vocabulary data structure
+- [ ] 1-03-PLAN.md — URL scheme deep linking + parameter parsing
+- [ ] 1-04-PLAN.md — Vocabulary challenge screen UI
+- [ ] 1-05-PLAN.md — Answer input + fuzzy matching validation
+- [ ] 1-06-PLAN.md — Deep-linking to source apps
+- [ ] 1-07-PLAN.md — Tutorial screen implementation
 
 ### Phase 2: Spaced Repetition & Progress
 **Goal**: Vocabulary learning uses scientifically-proven scheduling and tracks user progress
@@ -137,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shortcuts Integration & Basic UI | 0/TBD | Not started | - |
+| 1. Shortcuts Integration & Basic UI | 0/7 | Planned | - |
 | 2. Spaced Repetition & Progress | 0/TBD | Not started | - |
 | 3. Deck Import | 0/TBD | Not started | - |
 | 4. Notifications & Live Activities | 0/TBD | Not started | - |
@@ -145,4 +151,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 ---
 *Roadmap created: 2026-03-01*
-*Last updated: 2026-03-01 (revised for Shortcuts approach)*
+*Last updated: 2026-03-02 (Phase 1 planned)*
