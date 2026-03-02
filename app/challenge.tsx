@@ -1,31 +1,16 @@
-/**
- * Challenge Screen - Fullscreen vocabulary challenge interface
- * Core learning interface where users answer vocabulary questions
- *
- * Design: iOS-native, minimalist, card-based presentation
- * Entry: Deep link via lingolock://challenge?source=Instagram&count=3&type=app_open
- */
-
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, useColorScheme, SafeAreaView, StatusBar, TouchableOpacity, Text, Button } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Button, Card, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '../src/theme';
 import { VocabularyCard } from '../src/components/VocabularyCard';
 import { AnswerInput } from '../src/components/AnswerInput';
 import { ContinueButton } from '../src/components/ContinueButton';
+import { ProgressDots } from '../src/components/ProgressDots';
 import { PLACEHOLDER_CARDS } from '../src/data/placeholderVocabulary';
 import { validateAnswer } from '../src/utils/answerValidation';
 
-/**
- * Challenge screen displays vocabulary cards in fullscreen modal
- *
- * Features:
- * - Receives deep link parameters (source, count, type)
- * - Displays vocabulary cards from placeholder data
- * - Emergency escape via close button (✕) in top-right
- * - Continue button after completion to return to source app
- * - Automatic dark mode adaptation
- * - SafeAreaView handles iOS notch and home indicator
- */
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
     source: string;
@@ -33,83 +18,62 @@ export default function ChallengeScreen() {
     type: 'unlock' | 'app_open';
   }>();
   const router = useRouter();
-
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const theme = useAppTheme();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [results, setResults] = useState<('correct' | 'incorrect' | null)[]>([]);
+  const [correctCount, setCorrectCount] = useState(0);
 
-  const cardCount = parseInt(params.count || '3', 10);
+  const cardCount = Math.min(parseInt(params.count || '3', 10), PLACEHOLDER_CARDS.length);
   const cards = PLACEHOLDER_CARDS.slice(0, cardCount);
   const currentCard = cards[currentIndex];
 
   useEffect(() => {
-    // Log challenge start for debugging
+    setResults(Array(cardCount).fill(null));
     console.log('[Challenge] Started:', {
       source: params.source,
       count: cardCount,
-      type: params.type
+      type: params.type,
     });
   }, []);
-
-  const handleEmergencyExit = () => {
-    console.log('[Challenge] Emergency exit triggered');
-    router.back();
-  };
 
   const handleAnswerSubmit = (userAnswer: string) => {
     const correct = validateAnswer(userAnswer, currentCard.back);
     setIsCorrect(correct);
     setShowAnswer(true);
-    console.log('[Challenge] Answer:', {
-      userAnswer,
-      correct,
-      correctAnswer: currentCard.back
-    });
+    const newResults = [...results];
+    newResults[currentIndex] = correct ? 'correct' : 'incorrect';
+    setResults(newResults);
+    if (correct) setCorrectCount((c) => c + 1);
   };
 
   const handleNext = () => {
     if (currentIndex < cards.length - 1) {
-      // Move to next card
       setCurrentIndex(currentIndex + 1);
       setShowAnswer(false);
       setIsCorrect(null);
     } else {
-      // All cards completed
-      console.log('[Challenge] Completed all cards');
       setIsComplete(true);
     }
   };
 
-  const handleContinue = () => {
-    console.log('[Challenge] Continue button pressed, deep link flow initiated');
-    // Deep link opener will handle opening the source app
-    // After deep link attempt, user can manually close the app if needed
-  };
-
   return (
-    <SafeAreaView style={[
-      styles.container,
-      { backgroundColor: isDark ? '#000000' : '#ffffff' }
-    ]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
-      {/* Emergency escape close button (top-right) */}
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={handleEmergencyExit}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityLabel="Close challenge"
-        accessibilityRole="button"
-      >
-        <Text style={[
-          styles.closeIcon,
-          { color: isDark ? '#8e8e93' : '#8e8e93' }  // iOS secondary label color
-        ]}>✕</Text>
-      </TouchableOpacity>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <View style={styles.header}>
+        <View style={styles.headerSpacer} />
+        <IconButton
+          icon="close"
+          size={24}
+          iconColor={theme.colors.onSurfaceVariant}
+          onPress={() => router.back()}
+          accessibilityLabel="Close challenge"
+        />
+      </View>
 
       <View style={styles.content}>
         {!isComplete && currentCard && (
@@ -120,33 +84,46 @@ export default function ChallengeScreen() {
               isCorrect={isCorrect ?? undefined}
             />
 
-            {/* Show answer input before answer is submitted */}
             {!showAnswer && (
-              <View style={styles.answerInputContainer}>
+              <View style={styles.inputArea}>
                 <AnswerInput onSubmit={handleAnswerSubmit} />
               </View>
             )}
 
-            {/* Show next button after answer is submitted */}
             {showAnswer && (
-              <View style={styles.nextButtonContainer}>
-                <Button title="Next" onPress={handleNext} />
+              <View style={styles.inputArea}>
+                <Button mode="contained" onPress={handleNext}>
+                  {currentIndex < cards.length - 1 ? 'Next' : 'Finish'}
+                </Button>
               </View>
             )}
           </>
         )}
 
-        {/* Show continue button after challenge completion */}
         {isComplete && params.source && (
-          <View style={styles.continueButtonContainer}>
+          <View style={styles.completionArea}>
+            <Card style={styles.completionCard} mode="elevated">
+              <Card.Content style={styles.completionContent}>
+                <Text variant="headlineSmall" style={{ color: theme.colors.onSurface }}>
+                  Challenge Complete
+                </Text>
+                <Text
+                  variant="bodyLarge"
+                  style={{ color: theme.custom.success }}
+                >
+                  {'\u2713'} {correctCount}/{cardCount} correct
+                </Text>
+              </Card.Content>
+            </Card>
             <ContinueButton
               sourceApp={params.source}
               challengeType={params.type || 'app_open'}
-              onPress={handleContinue}
             />
           </View>
         )}
       </View>
+
+      <ProgressDots total={cardCount} current={currentIndex} results={results} />
     </SafeAreaView>
   );
 }
@@ -155,30 +132,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 20,
-    zIndex: 10,
-    padding: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 4,
   },
-  closeIcon: {
-    fontSize: 28,
-    fontWeight: '300',
+  headerSpacer: {
+    flex: 1,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 16,
   },
-  answerInputContainer: {
-    marginTop: 32,
-  },
-  nextButtonContainer: {
+  inputArea: {
     marginTop: 24,
+    gap: 12,
   },
-  continueButtonContainer: {
-    marginTop: 32,
-    paddingHorizontal: 20,
+  completionArea: {
+    gap: 24,
+  },
+  completionCard: {
+    alignItems: 'center',
+  },
+  completionContent: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 8,
   },
 });
