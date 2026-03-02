@@ -7,11 +7,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, useColorScheme, SafeAreaView, StatusBar, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, useColorScheme, SafeAreaView, StatusBar, TouchableOpacity, Text, Button } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { VocabularyCard } from '../src/components/VocabularyCard';
+import { AnswerInput } from '../src/components/AnswerInput';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { PLACEHOLDER_CARDS } from '../src/data/placeholderVocabulary';
+import { validateAnswer } from '../src/utils/answerValidation';
 
 /**
  * Challenge screen displays vocabulary cards in fullscreen modal
@@ -37,6 +39,7 @@ export default function ChallengeScreen() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
   const cardCount = parseInt(params.count || '3', 10);
@@ -57,23 +60,35 @@ export default function ChallengeScreen() {
     router.back();
   };
 
+  const handleAnswerSubmit = (userAnswer: string) => {
+    const correct = validateAnswer(userAnswer, currentCard.back);
+    setIsCorrect(correct);
+    setShowAnswer(true);
+    console.log('[Challenge] Answer:', {
+      userAnswer,
+      correct,
+      correctAnswer: currentCard.back
+    });
+  };
+
+  const handleNext = () => {
+    if (currentIndex < cards.length - 1) {
+      // Move to next card
+      setCurrentIndex(currentIndex + 1);
+      setShowAnswer(false);
+      setIsCorrect(null);
+    } else {
+      // All cards completed
+      console.log('[Challenge] Completed all cards');
+      setIsComplete(true);
+    }
+  };
+
   const handleContinue = () => {
     console.log('[Challenge] Continue button pressed, deep link flow initiated');
     // Deep link opener will handle opening the source app
     // After deep link attempt, user can manually close the app if needed
   };
-
-  // Simulate challenge completion for testing (temporary)
-  // In real implementation, this will be triggered after answering all cards correctly
-  useEffect(() => {
-    // Auto-complete after 2 seconds for demonstration
-    const timer = setTimeout(() => {
-      setIsComplete(true);
-      console.log('[Challenge] Challenge completed, showing continue button');
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <SafeAreaView style={[
@@ -97,11 +112,28 @@ export default function ChallengeScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        {currentCard && (
-          <VocabularyCard
-            card={currentCard}
-            showAnswer={showAnswer}
-          />
+        {!isComplete && currentCard && (
+          <>
+            <VocabularyCard
+              card={currentCard}
+              showAnswer={showAnswer}
+              isCorrect={isCorrect ?? undefined}
+            />
+
+            {/* Show answer input before answer is submitted */}
+            {!showAnswer && (
+              <View style={styles.answerInputContainer}>
+                <AnswerInput onSubmit={handleAnswerSubmit} />
+              </View>
+            )}
+
+            {/* Show next button after answer is submitted */}
+            {showAnswer && (
+              <View style={styles.nextButtonContainer}>
+                <Button title="Next" onPress={handleNext} />
+              </View>
+            )}
+          </>
         )}
 
         {/* Show continue button after challenge completion */}
@@ -114,8 +146,6 @@ export default function ChallengeScreen() {
             />
           </View>
         )}
-
-        {/* Input field and navigation buttons will be added in later plans */}
       </View>
     </SafeAreaView>
   );
@@ -140,6 +170,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+  },
+  answerInputContainer: {
+    marginTop: 32,
+  },
+  nextButtonContainer: {
+    marginTop: 24,
   },
   continueButtonContainer: {
     marginTop: 32,
