@@ -67,8 +67,8 @@ story:
       vocab_focus: ["friendship", "feelings", "future plans", "daily routine"]
 
 llm:
-  provider: "openrouter"
-  model: "google/gemini-2.5-flash-lite"
-  fallback_model: "openai/gpt-4o-mini"
+  provider: "google"
+  model: "gemini-2.5-flash-lite"
+  fallback_model: "gemini-2.5-flash"
   temperature: 0.7
   max_retries: 3
