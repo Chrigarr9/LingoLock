@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 1 of 5 (1-shortcuts-integration)
-Plan: 2 of TBD in current phase
+Plan: 3 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-01-PLAN.md (Expo SDK 55 Upgrade)
+Last activity: 2026-03-02 — Completed 1-03-PLAN.md (Deep Link Infrastructure)
 
-Progress: [██░░░░░░░░] ~15%
+Progress: [███░░░░░░░] ~20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 6 min
+- Total plans completed: 3
+- Average duration: 4 min
 - Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 2 | 11min | 6min |
+| 1-shortcuts-integration | 3 | 13min | 4min |
 
 **Recent Trend:**
-- Last 2 plans: 1-02 (2min), 1-01 (9min)
-- Trend: Establishing baseline
+- Last 3 plans: 1-03 (2min), 1-02 (2min), 1-01 (9min)
+- Trend: Consistent velocity after initial setup
 
 *Updated after each plan completion*
 
@@ -64,6 +64,15 @@ Recent decisions affecting current work:
 - Established src/types/ pattern for TypeScript definitions
 - Established src/data/ pattern for static/placeholder data
 
+**From Plan 1-03 (Deep Link Infrastructure):**
+- Use Expo Linking API for cross-platform deep link handling
+- Validate all URL parameters before parsing (hostname, required params, value ranges)
+- Handle both cold start (getInitialURL) and background (addEventListener) scenarios
+- Override Expo tsconfig module setting to fix TypeScript 5.3 compatibility
+- ChallengeParams interface now includes source, count, type fields for deep linking
+- Established src/utils/ pattern for utility functions
+- Established src/hooks/ pattern for custom React hooks
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -91,7 +100,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-01-PLAN.md (Expo SDK 55 Upgrade)
+Stopped at: Completed 1-03-PLAN.md (Deep Link Infrastructure)
 Resume file: None
 
 ---
