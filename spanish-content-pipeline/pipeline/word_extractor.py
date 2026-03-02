@@ -30,6 +30,10 @@ For each word, provide:
 - "lemma": the base/dictionary form (infinitive for verbs, masculine singular for adjectives)
 - "pos": part of speech (noun, verb, adjective, adverb, preposition, conjunction, interjection)
 - "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural")
+- "similar_words": 6-8 semantically similar {config.languages.target} words in lemma form \
+(e.g. for "perro": ["gato", "vaca", "pollo", "caballo", "pájaro", "pez", "conejo", "ratón"]). \
+These are used as multiple-choice distractors, so they should be from the same semantic \
+category but clearly different words.
 
 Sentences:
 {sentence_block}

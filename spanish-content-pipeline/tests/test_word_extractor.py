@@ -122,6 +122,38 @@ def test_extract_words_saves_json(tmp_path):
     assert json_path.exists()
 
 
+def test_extract_words_includes_similar_words(tmp_path):
+    config = make_mock_config(tmp_path)
+    mock_llm = MagicMock()
+
+    llm_output = {
+        "words": [
+            {
+                "source": "perro",
+                "target": "Hund",
+                "lemma": "perro",
+                "pos": "noun",
+                "context_note": "masculine singular",
+                "similar_words": ["gato", "vaca", "pollo", "caballo", "pájaro", "pez"],
+            },
+        ]
+    }
+    mock_llm.complete_json.return_value = LLMResponse(
+        content=json.dumps(llm_output),
+        usage=Usage(prompt_tokens=200, completion_tokens=100, total_tokens=300),
+        parsed=llm_output,
+    )
+
+    pairs = [
+        SentencePair(chapter=1, sentence_index=0, source="Ella tiene un perro.", target="Sie hat einen Hund."),
+    ]
+
+    extractor = WordExtractor(config, mock_llm, output_base=tmp_path)
+    chapter_words = extractor.extract_chapter(0, pairs)
+
+    assert chapter_words.words[0].similar_words == ["gato", "vaca", "pollo", "caballo", "pájaro", "pez"]
+
+
 def test_extract_words_skips_if_exists(tmp_path):
     config = make_mock_config(tmp_path)
     mock_llm = MagicMock()
