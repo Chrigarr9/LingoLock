@@ -32,6 +32,30 @@ def test_word_annotation_creation():
     assert word.pos == "verb"
 
 
+def test_word_annotation_with_similar_words():
+    word = WordAnnotation(
+        source="perro",
+        target="Hund",
+        lemma="perro",
+        pos="noun",
+        context_note="masculine singular",
+        similar_words=["gato", "vaca", "pollo", "caballo", "pájaro", "pez"],
+    )
+    assert len(word.similar_words) == 6
+    assert "gato" in word.similar_words
+
+
+def test_word_annotation_similar_words_defaults_empty():
+    word = WordAnnotation(
+        source="está",
+        target="ist",
+        lemma="estar",
+        pos="verb",
+        context_note="3rd person",
+    )
+    assert word.similar_words == []
+
+
 def test_chapter_words_contains_sentence_and_words():
     chapter = ChapterWords(
         chapter=1,
