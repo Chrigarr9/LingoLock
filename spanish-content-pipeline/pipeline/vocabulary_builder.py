@@ -1,6 +1,11 @@
-"""BUILD step: Merge word annotations into a deduplicated vocabulary database."""
+"""BUILD step: Produce a story-ordered, chapter-grouped vocabulary deck."""
 
-from pipeline.models import ChapterWords, SentencePair, VocabularyEntry
+from pipeline.models import (
+    ChapterWords, DeckChapter, OrderedDeck, SentencePair,
+    VocabularyEntry, WordAnnotation,
+)
+
+FILTERED_POS = {"article", "determiner", "preposition", "pronoun", "conjunction"}
 
 
 def assign_cefr_level(frequency_rank: int | None) -> str | None:
@@ -20,52 +25,93 @@ def assign_cefr_level(frequency_rank: int | None) -> str | None:
         return "C2"
 
 
+def _is_function_word(word: WordAnnotation) -> bool:
+    return word.pos.lower().strip() in FILTERED_POS
+
+
 def build_vocabulary(
     chapters: list[ChapterWords],
     frequency_data: dict[str, int] | None = None,
-) -> list[VocabularyEntry]:
-    """Merge all chapter word annotations into a deduplicated vocabulary list.
+    chapter_titles: dict[int, str] | None = None,
+    deck_id: str = "",
+    deck_name: str = "",
+) -> OrderedDeck:
+    """Build a story-ordered, chapter-grouped vocabulary deck.
 
-    Args:
-        chapters: List of ChapterWords from the word extraction pass.
-        frequency_data: Optional dict mapping lemma -> frequency rank.
+    Words are ordered by first appearance (chapter order, then sentence order
+    within each chapter). Function words are filtered out. Duplicate lemmas
+    accumulate example sentences and translations from later chapters.
     """
     if frequency_data is None:
         frequency_data = {}
+    if chapter_titles is None:
+        chapter_titles = {}
 
-    # Accumulate per-lemma data
-    lemma_translations: dict[str, set[str]] = {}
-    lemma_pos: dict[str, str] = {}
-    lemma_examples: dict[str, list[SentencePair]] = {}
+    # Track seen lemmas and their data
+    seen_lemmas: dict[str, VocabularyEntry] = {}  # lemma -> entry
+    chapter_word_lists: dict[int, list[str]] = {}  # chapter_num -> ordered lemma list
+
+    global_order = 0
 
     for chapter in chapters:
+        chapter_num = chapter.chapter
+        chapter_word_lists[chapter_num] = []
+
         for word in chapter.words:
+            if _is_function_word(word):
+                continue
+
             lemma = word.lemma.lower().strip()
-            if lemma not in lemma_translations:
-                lemma_translations[lemma] = set()
-                lemma_pos[lemma] = word.pos
-                lemma_examples[lemma] = []
 
-            lemma_translations[lemma].add(word.target)
+            if lemma not in seen_lemmas:
+                # First occurrence: create new entry
+                global_order += 1
+                seen_lemmas[lemma] = VocabularyEntry(
+                    id=lemma,
+                    source=lemma,
+                    target=[word.target],
+                    pos=word.pos,
+                    frequency_rank=frequency_data.get(lemma),
+                    cefr_level=assign_cefr_level(frequency_data.get(lemma)),
+                    first_chapter=chapter_num,
+                    order=global_order,
+                    examples=list(chapter.sentences),
+                    similar_words=list(word.similar_words),
+                )
+                chapter_word_lists[chapter_num].append(lemma)
+            else:
+                # Duplicate: accumulate translations, examples, similar_words
+                entry = seen_lemmas[lemma]
 
-            # Add all sentences from this chapter as examples for this word
-            for s in chapter.sentences:
-                if s not in lemma_examples[lemma]:
-                    lemma_examples[lemma].append(s)
+                if word.target not in entry.target:
+                    entry.target.append(word.target)
 
-    # Build final vocabulary entries
-    entries = []
-    for lemma in sorted(lemma_translations.keys()):
-        rank = frequency_data.get(lemma)
-        entry = VocabularyEntry(
-            id=lemma,
-            source=lemma,
-            target=sorted(lemma_translations[lemma]),
-            pos=lemma_pos[lemma],
-            frequency_rank=rank,
-            cefr_level=assign_cefr_level(rank),
-            examples=lemma_examples[lemma],
-        )
-        entries.append(entry)
+                for s in chapter.sentences:
+                    if s not in entry.examples:
+                        entry.examples.append(s)
 
-    return entries
+                for sw in word.similar_words:
+                    if sw not in entry.similar_words:
+                        entry.similar_words.append(sw)
+
+    # Build chapter-grouped output
+    deck_chapters = []
+    for chapter in chapters:
+        chapter_num = chapter.chapter
+        title = chapter_titles.get(chapter_num, f"Chapter {chapter_num}")
+        words_in_chapter = [
+            seen_lemmas[lemma]
+            for lemma in chapter_word_lists.get(chapter_num, [])
+        ]
+        deck_chapters.append(DeckChapter(
+            chapter=chapter_num,
+            title=title,
+            words=words_in_chapter,
+        ))
+
+    return OrderedDeck(
+        deck_id=deck_id,
+        deck_name=deck_name,
+        total_words=global_order,
+        chapters=deck_chapters,
+    )
