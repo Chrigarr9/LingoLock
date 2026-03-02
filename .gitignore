@@ -4,6 +4,10 @@ dist/
 web-build/
 .expo-shared/
 
+# Prebuild generated native directories
+ios/
+android/
+
 # Dependencies
 node_modules/
 
