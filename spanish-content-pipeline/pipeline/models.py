@@ -20,6 +20,7 @@ class WordAnnotation(BaseModel):
     lemma: str         # Base/dictionary form
     pos: str           # Part of speech
     context_note: str  # Grammar note (e.g. "3rd person singular present")
+    similar_words: list[str] = []  # 6-8 semantically similar words in target language
 
 
 class ChapterWords(BaseModel):
@@ -35,7 +36,23 @@ class VocabularyEntry(BaseModel):
     pos: str
     frequency_rank: int | None = None
     cefr_level: str | None = None
+    first_chapter: int = 0          # Chapter where this word was first introduced
+    order: int = 0                  # Global position in learning sequence
     examples: list[SentencePair]
+    similar_words: list[str] = []   # 6-8 semantically similar words
+
+
+class DeckChapter(BaseModel):
+    chapter: int
+    title: str
+    words: list[VocabularyEntry]
+
+
+class OrderedDeck(BaseModel):
+    deck_id: str
+    deck_name: str
+    total_words: int
+    chapters: list[DeckChapter]
 
 
 class CoverageReport(BaseModel):

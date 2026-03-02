@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from pipeline.coverage_checker import load_frequency_data, check_coverage
-from pipeline.models import VocabularyEntry
+from pipeline.models import VocabularyEntry, OrderedDeck, DeckChapter
 
 
 def test_load_frequency_data(tmp_path):
@@ -42,3 +42,33 @@ def test_check_coverage_empty_vocab():
     report = check_coverage([], {"de": 1, "la": 2}, top_n=1000)
     assert report.total_vocabulary == 0
     assert report.coverage_percent == 0.0
+
+
+def test_check_coverage_with_ordered_deck():
+    deck = OrderedDeck(
+        deck_id="test",
+        deck_name="Test",
+        total_words=2,
+        chapters=[
+            DeckChapter(
+                chapter=1,
+                title="Ch1",
+                words=[
+                    VocabularyEntry(id="estar", source="estar", target=["sein"], pos="verb",
+                                    frequency_rank=3, cefr_level="A1", first_chapter=1,
+                                    order=1, examples=[], similar_words=[]),
+                    VocabularyEntry(id="ser", source="ser", target=["sein"], pos="verb",
+                                    frequency_rank=4, cefr_level="A1", first_chapter=1,
+                                    order=2, examples=[], similar_words=[]),
+                ],
+            )
+        ],
+    )
+    frequency_data = {"de": 1, "la": 2, "estar": 3, "ser": 4, "tener": 5}
+
+    report = check_coverage(deck, frequency_data, top_n=5)
+
+    assert report.total_vocabulary == 2
+    assert report.frequency_matched == 2
+    assert report.top_1000_covered == 2
+    assert report.coverage_percent == 40.0
