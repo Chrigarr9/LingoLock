@@ -110,6 +110,14 @@ Recent decisions affecting current work:
 - URL scheme examples shown: lingolock://challenge?source=...&count=3&type=unlock
 - Important note about disabling "Ask Before Running" in Shortcuts automations
 
+**From Plan 02-01 (Data Foundation — ClozeCard types + content bundle):**
+- Build-time codegen (bundle.ts) instead of runtime JSON parsing — no fs/JSON at app startup
+- ClozeCard.id format: {lemma}-ch{chapter:02d}-s{sentenceIndex:02d} for stable FSRS storage keys
+- Pipeline examples bug fixed in BOTH code paths (first-occurrence and duplicate accumulation)
+- Distractors: same POS + CEFR proximity (±1 level) preferred, fallback to any POS
+- Content pipeline pattern: Python generates chapter JSON → TypeScript script transforms to bundle.ts
+- scripts/ directory established for build-time transforms; src/content/ for generated content
+
 **From Plan 02-02 (Storage & FSRS Services):**
 - MMKV v4 uses createMMKV() factory (not new MMKV() constructor) and remove(key) not delete(key)
 - ts-fsrs Card.learning_steps not persisted in CardState; recomputed internally from state on each call
@@ -146,7 +154,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-02-PLAN.md (Storage & FSRS Services)
+Stopped at: Completed 02-01-PLAN.md (Data Foundation — ClozeCard types + content bundle)
 Resume file: None
 
 ---

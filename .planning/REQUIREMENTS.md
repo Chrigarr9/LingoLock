@@ -63,15 +63,15 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 ### Card Learning (Spaced Repetition)
 
 - [x] **CARD-01**: System implements FSRS spaced repetition algorithm for card scheduling
-- [ ] **CARD-02**: System shows vocabulary card with front side (question) text
+- [x] **CARD-02**: System shows vocabulary card with front side (question) text
 - [ ] **CARD-03**: User can answer vocabulary card via free-text input (default mode)
 - [ ] **CARD-04**: User can switch to multiple-choice mode (4 options) per deck
 - [ ] **CARD-05**: User can switch to yes/no mode (2 options: correct/incorrect) per deck
 - [ ] **CARD-06**: System shows back side (answer) after user submits answer
 - [ ] **CARD-07**: System marks answer as correct/incorrect based on user input
 - [x] **CARD-08**: If answer is incorrect, card is rescheduled according to FSRS algorithm (60s interval for immediate review)
-- [ ] **CARD-09**: System displays images on card if present in Anki deck
-- [ ] **CARD-10**: System plays audio on card if present in Anki deck
+- [x] **CARD-09**: System displays images on card if present in Anki deck
+- [x] **CARD-10**: System plays audio on card if present in Anki deck
 - [ ] **CARD-11**: User must answer correctly to unlock blocked app (incorrect answers keep app blocked)
 
 ### Progress Tracking
@@ -87,7 +87,7 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 
 ### Offline Support
 
-- [ ] **OFFL-01**: All vocabulary data stored locally on device (no cloud sync)
+- [x] **OFFL-01**: All vocabulary data stored locally on device (no cloud sync)
 - [x] **OFFL-02**: App functions fully offline after initial deck import
 - [x] **OFFL-03**: Progress and statistics persisted locally across app restarts
 
@@ -166,8 +166,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CARD-06 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-07 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-08 | Phase 2 | Complete |
-| CARD-09 | Phase 2 | Pending |
-| CARD-10 | Phase 2 | Pending |
+| CARD-09 | Phase 2 | Complete |
+| CARD-10 | Phase 2 | Complete |
 | CARD-11 | Phase 2 | Pending |
 | PROG-01 | Phase 2 | Pending |
 | PROG-02 | Phase 2 | Pending |
@@ -177,7 +177,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROG-06 | Phase 2 | Pending |
 | PROG-07 | Phase 2 | Pending |
 | PROG-08 | Phase 5 (data captured in Phase 2, UI deferred) | Pending |
-| OFFL-01 | Phase 2 | Pending |
+| OFFL-01 | Phase 2 | Complete |
 | OFFL-02 | Phase 2 | Complete |
 | OFFL-03 | Phase 2 | Complete |
 | DECK-01 | Phase 3 | Pending |
