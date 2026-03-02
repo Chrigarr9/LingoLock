@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.config import load_config
-from pipeline.llm import LLMClient
+from pipeline.llm import create_client
 from pipeline.models import SentencePair
 from pipeline.word_extractor import WordExtractor
-from scripts.run_all import parse_chapter_range
+from scripts.run_all import get_api_key, parse_chapter_range
 
 
 def main():
@@ -24,19 +24,17 @@ def main():
     args = parser.parse_args()
 
     load_dotenv()
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
-        print("Error: OPENROUTER_API_KEY not set")
-        sys.exit(1)
-
     config = load_config(Path(args.config))
+    api_key = get_api_key(config)
+
     chapter_range = (
         parse_chapter_range(args.chapters, config.chapter_count)
         if args.chapters
         else range(config.chapter_count)
     )
 
-    llm = LLMClient(
+    llm = create_client(
+        provider=config.llm.provider,
         api_key=api_key,
         model=config.llm.model,
         temperature=config.llm.temperature,
