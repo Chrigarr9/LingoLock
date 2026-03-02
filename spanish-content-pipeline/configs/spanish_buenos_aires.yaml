@@ -1,0 +1,74 @@
+deck:
+  name: "Spanish with Charlotte - Buenos Aires"
+  id: "es-de-buenos-aires"
+
+languages:
+  target: "Spanish"
+  target_code: "es"
+  native: "German"
+  native_code: "de"
+  dialect: "neutral"
+
+protagonist:
+  name: "Charlotte"
+  gender: "female"
+  origin_country: "Germany"
+  origin_city: "Berlin"
+
+destination:
+  country: "Argentina"
+  city: "Buenos Aires"
+  landmarks:
+    - "Plaza de Mayo"
+    - "La Boca"
+    - "San Telmo market"
+    - "Recoleta Cemetery"
+    - "Puerto Madero"
+    - "Obelisco"
+    - "Palermo parks"
+    - "Teatro Colón"
+
+story:
+  cefr_level: "A1-A2"
+  sentences_per_chapter: [8, 20]
+  chapters:
+    - title: "Preparation"
+      context: "Charlotte is in her room in Berlin, packing her suitcase. She talks to her best friend on the phone about the move. She feels excited but nervous."
+      vocab_focus: ["clothing", "travel preparation", "emotions", "farewells"]
+    - title: "To the Airport"
+      context: "Charlotte takes a taxi to Berlin airport. She has a short conversation with the taxi driver about her trip to Buenos Aires. She checks the time nervously."
+      vocab_focus: ["traffic", "time", "emotions", "directions"]
+    - title: "At the Airport"
+      context: "Charlotte checks in at the counter, goes through security, and waits at the gate. She has a brief exchange with the airline staff. She hears the boarding announcement."
+      vocab_focus: ["airport vocabulary", "formalities", "documents", "announcements"]
+    - title: "On the Plane"
+      context: "Charlotte sits next to a friendly Argentine man on the plane. They have a conversation about Buenos Aires, food, and what to see. He gives her tips."
+      vocab_focus: ["small talk", "travel", "food", "countries"]
+    - title: "Arrival in Buenos Aires"
+      context: "Charlotte arrives at Ezeiza airport, goes through immigration, gets her luggage, and takes a taxi into the city. She sees the Obelisco and wide avenues for the first time."
+      vocab_focus: ["city", "weather", "feelings", "first impressions"]
+    - title: "Going Out to Eat"
+      context: "Charlotte goes to a restaurant in San Telmo. She reads the menu, orders food and drinks, and talks to the waiter. She tries empanadas for the first time."
+      vocab_focus: ["food", "ordering", "drinks", "restaurant"]
+    - title: "Bar and Music"
+      context: "Charlotte visits a bar in Palermo with a new acquaintance. They listen to live music, order drinks, and talk about their favorite music and hobbies."
+      vocab_focus: ["music", "socializing", "drinks", "hobbies"]
+    - title: "Sports Date"
+      context: "Charlotte meets someone at a park in Palermo for a casual sports activity. They play together, take a break, and plan to meet again."
+      vocab_focus: ["sports", "activities", "body", "plans"]
+    - title: "Exploring the City"
+      context: "Charlotte walks through La Boca and Puerto Madero, visits the Plaza de Mayo, and takes photos. She asks locals for directions and recommendations."
+      vocab_focus: ["places", "directions", "movement", "sightseeing"]
+    - title: "At the Market"
+      context: "Charlotte goes to the San Telmo market with a friend. They buy fruits, vegetables, and souvenirs. She practices numbers and bargaining."
+      vocab_focus: ["food items", "numbers", "shopping", "colors"]
+    - title: "Friendship"
+      context: "Charlotte reflects on her first weeks in Buenos Aires. She meets her friends at a café, they make plans for the future, and she feels at home."
+      vocab_focus: ["friendship", "feelings", "future plans", "daily routine"]
+
+llm:
+  provider: "openrouter"
+  model: "google/gemini-2.5-flash-lite"
+  fallback_model: "openai/gpt-4o-mini"
+  temperature: 0.7
+  max_retries: 3
