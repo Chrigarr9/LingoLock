@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 1 of 5 (1-shortcuts-integration)
-Plan: 3 of TBD in current phase
+Plan: 4 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-03-PLAN.md (Deep Link Infrastructure)
+Last activity: 2026-03-02 — Completed 1-04-PLAN.md (Challenge Screen UI)
 
-Progress: [███░░░░░░░] ~20%
+Progress: [████░░░░░░] ~25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
 - Total execution time: 0.2 hours
 
@@ -27,11 +27,11 @@ Progress: [███░░░░░░░] ~20%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 3 | 13min | 4min |
+| 1-shortcuts-integration | 4 | 14min | 4min |
 
 **Recent Trend:**
-- Last 3 plans: 1-03 (2min), 1-02 (2min), 1-01 (9min)
-- Trend: Consistent velocity after initial setup
+- Last 3 plans: 1-04 (1min), 1-03 (2min), 1-02 (2min)
+- Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
 
@@ -73,6 +73,15 @@ Recent decisions affecting current work:
 - Established src/utils/ pattern for utility functions
 - Established src/hooks/ pattern for custom React hooks
 
+**From Plan 1-04 (Challenge Screen UI):**
+- VocabularyCard uses iOS system colors (#34c759 green, #ff3b30 red) for answer feedback
+- Challenge screen presented as fullScreenModal with headerShown: false for immersive experience
+- Emergency escape via close button (✕) in top-right corner with accessibility support
+- Typography sized at 34pt for hero vocabulary text (iOS large title size)
+- Established src/components/ pattern for reusable UI components
+- Dark mode pattern: useColorScheme() with conditional iOS system colors
+- Modal pattern: fullScreenModal with fade animation and emergency escape
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -100,7 +109,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-03-PLAN.md (Deep Link Infrastructure)
+Stopped at: Completed 1-04-PLAN.md (Challenge Screen UI)
 Resume file: None
 
 ---
