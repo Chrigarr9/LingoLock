@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 Phase: 1 of 5 (1-shortcuts-integration)
 Plan: 6 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-06-PLAN.md (Deep Link Return Flow)
+Last activity: 2026-03-02 — Completed 1-05-PLAN.md (Answer Input & Fuzzy Matching)
 
 Progress: [████░░░░░░] ~30%
 
@@ -20,17 +20,17 @@ Progress: [████░░░░░░] ~30%
 
 **Velocity:**
 - Total plans completed: 6
-- Average duration: 3 min
-- Total execution time: 0.3 hours
+- Average duration: 4 min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 6 | 16min | 3min |
+| 1-shortcuts-integration | 6 | 26min | 4min |
 
 **Recent Trend:**
-- Last 3 plans: 1-06 (2min), 1-05 (TBD), 1-04 (1min)
+- Last 3 plans: 1-05 (10min), 1-06 (2min), 1-04 (1min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -82,6 +82,15 @@ Recent decisions affecting current work:
 - Dark mode pattern: useColorScheme() with conditional iOS system colors
 - Modal pattern: fullScreenModal with fade animation and emergency escape
 
+**From Plan 1-05 (Answer Input & Fuzzy Matching):**
+- Fuse.js threshold 0.2 for typo tolerance (tunable based on user feedback)
+- Normalization strategy: lowercase → NFD decomposition → remove diacritical marks → remove apostrophes → trim
+- Two submission methods: return key (iOS "done") and button for accessibility
+- Auto-focus input for immediate typing without manual tap
+- Answer validation pattern: normalize → exact match → fuzzy match with Fuse.js
+- Challenge flow pattern: input visible before submission, next button after submission
+- iOS-native input styling: System font, standard text size (17pt), iOS placeholder colors
+
 **From Plan 1-06 (Deep Link Return Flow):**
 - URL scheme mapping for 20+ popular apps (Instagram, Twitter, TikTok, YouTube, etc.)
 - canOpenURL pre-flight check to validate app availability before opening
@@ -118,7 +127,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-06-PLAN.md (Deep Link Return Flow)
+Stopped at: Completed 1-05-PLAN.md (Answer Input & Fuzzy Matching)
 Resume file: None
 
 ---
