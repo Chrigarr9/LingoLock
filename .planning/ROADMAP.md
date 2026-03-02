@@ -68,10 +68,14 @@ Plans:
   7. All vocabulary data, progress, and statistics persist locally using MMKV/WatermelonDB
   8. App functions fully offline with no network dependency
   9. Data survives app force-close and device restart
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 02-01-PLAN.md — Pipeline bug fix + ClozeCard types + build-time content transform
+- [ ] 02-02-PLAN.md — Install ts-fsrs + MMKV + FSRS scheduler + storage services
+- [ ] 02-03-PLAN.md — Card selector + stats service (TDD)
+- [ ] 02-04-PLAN.md — Cloze challenge screen UI + FSRS-driven session flow
+- [ ] 02-05-PLAN.md — Home screen wiring + end-to-end verification
 
 ### Phase 3: Deck Import
 **Goal**: User can import Anki vocabulary decks into the app
@@ -144,7 +148,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2026-03-02 |
-| 2. Spaced Repetition & Progress | 0/TBD | Not started | - |
+| 2. Spaced Repetition & Progress | 0/5 | Planned | - |
 | 3. Deck Import | 0/TBD | Not started | - |
 | 4. Notifications & Live Activities | 0/TBD | Not started | - |
 | 5. Configuration & Settings | 0/TBD | Not started | - |
