@@ -8,7 +8,7 @@ progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2 of 5 (2-spaced-repetition-progress)
-Plan: 4 of TBD in current phase
-Status: In progress
-Last activity: 2026-03-02 — Completed 02-04-PLAN.md (Challenge Screen — Cloze + FSRS)
+Plan: 5 of 5 in current phase
+Status: Phase 2 complete
+Last activity: 2026-03-02 — Completed 02-05-PLAN.md (Home Screen Wired to Real Stats)
 
-Progress: [█████░░░░░] ~50%
+Progress: [██████░░░░] ~60%
 
 ## Performance Metrics
 
@@ -41,10 +41,10 @@ Progress: [█████░░░░░] ~50%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
-| 2-spaced-repetition-progress | 4 | 14min | 3.5min |
+| 2-spaced-repetition-progress | 5 | 19min | 3.8min |
 
 **Recent Trend:**
-- Last 3 plans: 02-02 (3min), 02-03 (5min), 02-04 (3min)
+- Last 3 plans: 02-03 (5min), 02-04 (3min), 02-05 (5min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -154,6 +154,12 @@ Recent decisions affecting current work:
 - expo-av audio stub uses dynamic require as any to avoid compile errors until Phase 3 installs expo-av
 - originalCardCount.current ref tracks initial session size so ProgressDots total never grows with wrong-answer re-insertions
 
+**From Plan 02-05 (Home Screen — Wired to Real Stats):**
+- useFocusEffect + useCallback chosen over useEffect so stats update every return from challenge, not just on initial mount
+- Cards-due label toggles "All caught up!" / "Review ready" based on cardsDue === 0 for motivational feedback
+- placeholderVocabulary.ts kept (not deleted) with @deprecated JSDoc to avoid breaking tutorial/test references
+- Focus-refresh pattern established: useFocusEffect wrapping stat-loading callbacks on dashboard screens
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -181,9 +187,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-04-PLAN.md (Challenge Screen — Cloze + FSRS)
+Stopped at: Completed 02-05-PLAN.md (Home Screen Wired to Real Stats) — Phase 2 complete
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-02 (02-04 complete)*
+*Last updated: 2026-03-02 (02-05 complete — Phase 2 complete)*

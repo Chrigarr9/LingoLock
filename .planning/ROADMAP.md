@@ -20,7 +20,7 @@ LingoLock transforms vocabulary learning from an active chore into a passive hab
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Shortcuts Integration & Basic UI** - URL scheme, unlock automation, app-open automation, vocabulary challenge screen, Shortcuts tutorial
-- [ ] **Phase 2: Spaced Repetition & Progress** - FSRS algorithm, card display, progress tracking, offline persistence
+- [x] **Phase 2: Spaced Repetition & Progress** - FSRS algorithm, card display, progress tracking, offline persistence (completed 2026-03-02)
 - [ ] **Phase 3: Deck Import** - Anki .apkg file parsing, card extraction, media handling
 - [ ] **Phase 4: Notifications & Live Activities** - Timed notifications, interactive notifications, Lock Screen widget, real-time challenges
 - [ ] **Phase 5: Configuration & Settings** - Per-app configuration, whitelist, input modes, notification preferences
@@ -149,7 +149,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2026-03-02 |
-| 2. Spaced Repetition & Progress | 4/5 | In Progress|  |
+| 2. Spaced Repetition & Progress | 5/5 | Complete   | 2026-03-02 |
 | 3. Deck Import | 0/TBD | Not started | - |
 | 4. Notifications & Live Activities | 0/TBD | Not started | - |
 | 5. Configuration & Settings | 0/TBD | Not started | - |
