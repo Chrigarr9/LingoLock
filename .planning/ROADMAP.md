@@ -57,7 +57,8 @@ Plans:
 ### Phase 2: Spaced Repetition & Progress
 **Goal**: Vocabulary learning uses scientifically-proven scheduling and tracks user progress
 **Depends on**: Phase 1
-**Requirements**: CARD-01 through CARD-11 (complete card learning system), PROG-01 through PROG-08 (progress tracking), OFFL-01 through OFFL-03 (offline support)
+**Requirements**: CARD-01 through CARD-11 (complete card learning system), PROG-01 through PROG-07 (progress tracking), OFFL-01 through OFFL-03 (offline support)
+> Note: PROG-08 (per-app stats UI) deferred to Phase 5 per user decision. Phase 2 captures the data; Phase 5 builds the UI.
 **Success Criteria** (what must be TRUE):
   1. System schedules cards using FSRS spaced repetition algorithm with scientifically-optimal intervals
   2. User can answer cards via free-text (default), multiple-choice (4 options), or yes/no modes

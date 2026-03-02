@@ -176,7 +176,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROG-05 | Phase 2 | Pending |
 | PROG-06 | Phase 2 | Pending |
 | PROG-07 | Phase 2 | Pending |
-| PROG-08 | Phase 2 | Pending |
+| PROG-08 | Phase 5 (data captured in Phase 2, UI deferred) | Pending |
 | OFFL-01 | Phase 2 | Pending |
 | OFFL-02 | Phase 2 | Pending |
 | OFFL-03 | Phase 2 | Pending |
