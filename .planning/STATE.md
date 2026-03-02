@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch intelligentes App-Blocking, ohne dass der User aktiv eine Lern-Session starten muss.
-**Current focus:** Phase 1 - Foundation & Entitlements
+**Current focus:** Phase 2 - Spaced Repetition & Progress
 
 ## Current Position
 
-Phase: 1 of 5 (1-shortcuts-integration)
-Plan: 7 of TBD in current phase
+Phase: 2 of 5 (2-spaced-repetition-progress)
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-07-PLAN.md (Tutorial Screen)
+Last activity: 2026-03-02 — Completed 02-02-PLAN.md (Storage & FSRS Services)
 
-Progress: [████░░░░░░] ~35%
+Progress: [████░░░░░░] ~40%
 
 ## Performance Metrics
 
@@ -28,9 +28,10 @@ Progress: [████░░░░░░] ~35%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
+| 2-spaced-repetition-progress | 2 | 6min | 3min |
 
 **Recent Trend:**
-- Last 3 plans: 1-06 (2min), 1-07 (2min), 1-05 (10min)
+- Last 3 plans: 1-07 (2min), 02-01 (3min), 02-02 (3min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -109,6 +110,15 @@ Recent decisions affecting current work:
 - URL scheme examples shown: lingolock://challenge?source=...&count=3&type=unlock
 - Important note about disabling "Ask Before Running" in Shortcuts automations
 
+**From Plan 02-02 (Storage & FSRS Services):**
+- MMKV v4 uses createMMKV() factory (not new MMKV() constructor) and remove(key) not delete(key)
+- ts-fsrs Card.learning_steps not persisted in CardState; recomputed internally from state on each call
+- Binary rating only: Rating.Good (correct) and Rating.Again (incorrect); Hard/Easy excluded per design
+- Answer type graduation thresholds: stability < 1.5 = mc2, < 4.0 = mc4, >= 4.0 = text
+- Mastery definition: State.Review (value 2) — card has survived at least one full review cycle
+- Services pattern established: src/services/ for stateful business logic (storage, algorithms)
+- Serialization boundary: ISO strings at rest in MMKV, Date objects only when calling ts-fsrs
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -136,7 +146,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-07-PLAN.md (Tutorial Screen)
+Stopped at: Completed 02-02-PLAN.md (Storage & FSRS Services)
 Resume file: None
 
 ---

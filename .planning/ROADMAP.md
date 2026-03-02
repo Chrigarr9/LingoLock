@@ -149,7 +149,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2026-03-02 |
-| 2. Spaced Repetition & Progress | 0/5 | Planned | - |
+| 2. Spaced Repetition & Progress | 2/5 | In Progress|  |
 | 3. Deck Import | 0/TBD | Not started | - |
 | 4. Notifications & Live Activities | 0/TBD | Not started | - |
 | 5. Configuration & Settings | 0/TBD | Not started | - |
