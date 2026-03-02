@@ -75,7 +75,10 @@ def build_vocabulary(
                     cefr_level=assign_cefr_level(frequency_data.get(lemma)),
                     first_chapter=chapter_num,
                     order=global_order,
-                    examples=list(chapter.sentences),
+                    examples=[
+                        s for s in chapter.sentences
+                        if word.source.lower() in s.source.lower()
+                    ],
                     similar_words=list(word.similar_words),
                 )
                 chapter_word_lists[chapter_num].append(lemma)
@@ -87,7 +90,7 @@ def build_vocabulary(
                     entry.target.append(word.target)
 
                 for s in chapter.sentences:
-                    if s not in entry.examples:
+                    if word.source.lower() in s.source.lower() and s not in entry.examples:
                         entry.examples.append(s)
 
                 for sw in word.similar_words:
