@@ -1,4 +1,4 @@
-# Requirements: Vokabeltrainer
+# Requirements: LingoLock
 
 **Defined:** 2026-03-01
 **Core Value:** Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch intelligentes App-Blocking, ohne dass der User aktiv eine Lern-Session starten muss.
@@ -20,20 +20,20 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 - [ ] **BLCK-01**: User can configure which apps trigger vocabulary challenges (via Shortcuts automation setup tutorial)
 - [ ] **BLCK-02**: User can add apps to whitelist (never trigger challenges, e.g., Phone, Banking)
 - [ ] **BLCK-03**: When Shortcut automation triggers, app opens and shows fullscreen vocabulary challenge
-- [ ] **BLCK-04**: System intercepts app opening via Shortcuts automation and deep-links to Vokabeltrainer app
+- [ ] **BLCK-04**: System intercepts app opening via Shortcuts automation and deep-links to LingoLock app
 - [ ] **BLCK-05**: User can configure number of vocabulary questions per app automation (default: 3)
 
 ### Device Unlock Automation
 
 - [ ] **UNLK-01**: User can configure Shortcuts automation that triggers when device is unlocked
-- [ ] **UNLK-02**: When device unlocks, Vokabeltrainer app opens automatically with vocabulary challenge
+- [ ] **UNLK-02**: When device unlocks, LingoLock app opens automatically with vocabulary challenge
 - [ ] **UNLK-03**: User can enable/disable unlock automation in app settings
 
 ### Timed Notifications
 
 - [ ] **NOTF-01**: System schedules local notifications every configurable interval (3 min, 5 min, 10 min options)
 - [ ] **NOTF-02**: Notification shows: "Time for vocabulary! Tap to practice"
-- [ ] **NOTF-03**: User tapping notification opens Vokabeltrainer with vocabulary challenge
+- [ ] **NOTF-03**: User tapping notification opens LingoLock with vocabulary challenge
 - [ ] **NOTF-04**: User can configure notification interval in app settings
 - [ ] **NOTF-05**: Notifications only appear during active usage hours (9 AM - 10 PM, configurable)
 

@@ -1,8 +1,8 @@
-# Vokabeltrainer
+# LingoLock
 
 ## What This Is
 
-Eine iOS-App (später auch Android), die Vokabellernen nahtlos in den Alltag integriert durch Screen-Time-Management. Nutzer importieren Anki-Decks (.apkg) und müssen Vokabeln beantworten, um blockierte Apps zu entsperren oder weiterzunutzen. Die App unterbricht regelmäßig die Handy-Nutzung mit Vokabel-Challenges (beim Öffnen von Apps und während der Nutzung), sodass Lernen automatisch passiert ohne aktive Planung.
+Eine iOS-App (später auch Android), die Vokabellernen nahtlos in den Alltag integriert durch multiple Touchpoints (Device Unlock, App-Öffnen, Notifications, Lock Screen Widget). Nutzer importieren Anki-Decks (.apkg) und bekommen Vokabel-Challenges beim Entsperren des Phones, beim Öffnen von Apps, durch timed Notifications, und direkt auf dem Lock Screen. Lernen passiert automatisch ohne aktive Planung.
 
 ## Core Value
 
@@ -72,7 +72,7 @@ Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in
 |----------|-----------|---------|
 | React Native + Expo statt Native Swift | Kein Mac verfügbar, Expo EAS Build ermöglicht iOS-Entwicklung auf Ubuntu | — Pending |
 | Multi-layered Approach: Shortcuts + Notifications + Live Activities | Viel eleganter als Screen Time API: Device Unlock Automation, Timed Notifications, Lock Screen Interaction — kein Apple Entitlement, sofort entwickelbar | ✓ Good |
-| URL Scheme Integration | Shortcuts können App via vokabeltrainer:// öffnen, dann Deep-Link zurück zur Original-App | — Pending |
+| URL Scheme Integration | Shortcuts können App via lingolock:// öffnen, dann Deep-Link zurück zur Original-App | — Pending |
 | Interactive Notifications & Live Activities | User kann Vokabeln direkt auf Lock Screen/Notification beantworten (iOS 16+ Feature), sehr user-friendly | ✓ Good |
 | Timed Local Notifications statt Screen Time Timer | Alle 3-5 Min Notifications mit Vokabeln, weniger invasiv als App-Blocking, gleicher Effekt | ✓ Good |
 | Screen Time API optional/später (Phase 6) | Falls Notifications nicht ausreichen, können wir später DeviceActivityMonitor hinzufügen (braucht Apple Approval) | — Pending |

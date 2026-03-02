@@ -1,11 +1,11 @@
-# Roadmap: Vokabeltrainer
+# Roadmap: LingoLock
 
 ## Overview
 
-Vokabeltrainer transforms vocabulary learning from an active chore into a passive habit by integrating vocabulary challenges throughout the day. Using multiple iOS mechanisms (Shortcuts automation, Local Notifications, Live Activities), the app creates consistent vocabulary practice moments: when unlocking the phone, opening apps, via timed notifications, and through Lock Screen widgets. The roadmap delivers this value in 5 phases: Shortcuts Integration sets up app-open and unlock automations, Spaced Repetition implements scientifically-proven learning algorithms, Deck Import unlocks the Anki ecosystem, Notifications & Live Activities add timed reminders and Lock Screen interaction, and Configuration enables per-app customization. Each phase builds on the previous, with clear success criteria that validate the core value proposition.
+LingoLock transforms vocabulary learning from an active chore into a passive habit by integrating vocabulary challenges throughout the day. Using multiple iOS mechanisms (Shortcuts automation, Local Notifications, Live Activities), the app creates consistent vocabulary practice moments: when unlocking the phone, opening apps, via timed notifications, and through Lock Screen widgets. The roadmap delivers this value in 5 phases: Shortcuts Integration sets up app-open and unlock automations, Spaced Repetition implements scientifically-proven learning algorithms, Deck Import unlocks the Anki ecosystem, Notifications & Live Activities add timed reminders and Lock Screen interaction, and Configuration enables per-app customization. Each phase builds on the previous, with clear success criteria that validate the core value proposition.
 
 **Technical Approach:** Multi-layered iOS integration (NO FamilyControls/Screen Time API required)
-1. **Shortcuts Automation:** "When device unlocks" / "When [App] opens" → Run Vokabeltrainer
+1. **Shortcuts Automation:** "When device unlocks" / "When [App] opens" → Run LingoLock
 2. **Timed Notifications:** Local notifications every 3-5 min with interactive actions
 3. **Live Activities:** Lock Screen widget with real-time vocabulary challenges
 4. **Interactive Notifications:** Answer directly from notification/Lock Screen
@@ -33,14 +33,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: BLCK-03, BLCK-04 (vocabulary challenge screen), UNLK-01, UNLK-02 (unlock automation), partial CARD-02/03/06/07 (basic card display & answer checking)
 **Success Criteria** (what must be TRUE):
   1. Expo project initializes successfully and runs in Expo Go on iPhone
-  2. App registers custom URL scheme (vokabeltrainer://) that iOS Shortcuts can invoke
+  2. App registers custom URL scheme (lingolock://) that iOS Shortcuts can invoke
   3. URL scheme accepts parameters: source app name, number of cards to show, trigger type (unlock/app-open)
   4. Fullscreen vocabulary challenge screen displays with placeholder cards
   5. User can answer card via free-text input and see correct/incorrect feedback
   6. After completing challenge, "Open [App Name]" button deep-links to original app (or returns to home screen if triggered by unlock)
   7. In-app tutorial explains how to set up two Shortcuts automations:
-     - "When device unlocks → Run Vokabeltrainer"
-     - "When [App] opens → Run Vokabeltrainer"
+     - "When device unlocks → Run LingoLock"
+     - "When [App] opens → Run LingoLock"
   8. Tutorial includes copy-paste Shortcut templates for quick setup
   9. Device unlock automation works reliably and shows vocabulary before home screen
 **Plans**: TBD
@@ -91,7 +91,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. System schedules local notifications every configurable interval (3/5/10 min)
   2. Notifications show: "Time for vocabulary! 🧠" with vocabulary word preview
-  3. User tapping notification opens Vokabeltrainer with full vocabulary challenge
+  3. User tapping notification opens LingoLock with full vocabulary challenge
   4. Notifications include interactive buttons (A/B/C/D for multiple choice)
   5. User can answer vocabulary directly from notification without opening app
   6. System provides immediate feedback on notification (✓ Correct / ✗ Try again)
