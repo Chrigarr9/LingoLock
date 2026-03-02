@@ -83,7 +83,7 @@ Each task was committed atomically:
 1. **Task 1: Install dependencies** - `34b5932` (chore)
 2. **Task 2: Create MMKV storage service + FSRS scheduler service** - `bad6edd` (feat)
 
-**Plan metadata:** (pending)
+**Plan metadata:** `295f308` (docs: complete plan)
 
 ## Files Created/Modified
 
