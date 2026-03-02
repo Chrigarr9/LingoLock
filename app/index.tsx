@@ -1,62 +1,91 @@
-import { View, Text, StyleSheet, Button } from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Button, List, Surface, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '../src/theme';
+import { StatsCard } from '../src/components/StatsCard';
+import { StatRow } from '../src/components/StatRow';
+import { getTotalCards } from '../src/data/placeholderVocabulary';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const theme = useAppTheme();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LingoLock 🔒</Text>
-      <Text style={styles.subtitle}>Vocabulary learning, integrated into your day</Text>
-      <Text style={styles.status}>Phase 1: Shortcuts Integration</Text>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
+      edges={['bottom']}
+    >
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: theme.colors.background }]}
+        contentContainerStyle={styles.content}
+      >
+        <StatsCard streak={0} progressPercent={0} cardsDue={0} />
 
-      <View style={styles.buttonContainer}>
         <Button
-          title="Setup Tutorial"
-          onPress={() => router.push('/tutorial')}
-        />
-      </View>
+          mode="contained"
+          onPress={() =>
+            router.push({
+              pathname: '/challenge',
+              params: { source: 'Practice', count: '3', type: 'app_open' },
+            })
+          }
+          style={styles.practiceButton}
+          contentStyle={styles.practiceButtonContent}
+        >
+          Start Practice
+        </Button>
 
-      <Text style={styles.hint}>
-        Configure iOS Shortcuts to trigger vocabulary challenges when unlocking your device or opening apps.
-      </Text>
-    </View>
+        <Surface style={styles.statsSurface} elevation={1}>
+          <StatRow label="Today" value="0 / 0" />
+          <StatRow label="Success" value="--" />
+          <StatRow label="Total" value={`${getTotalCards()} cards`} />
+        </Surface>
+
+        <Surface style={styles.menuSurface} elevation={1}>
+          <List.Item
+            title="Setup Tutorial"
+            left={(props) => <List.Icon {...props} icon="book-open-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => router.push('/tutorial')}
+          />
+          <List.Item
+            title="Manage Decks"
+            left={(props) => <List.Icon {...props} icon="cards-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => {}}
+            description="Coming in Phase 3"
+          />
+        </Surface>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  scroll: {
+    flex: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 32,
-    textAlign: 'center',
+  content: {
+    padding: 16,
+    gap: 16,
   },
-  status: {
-    fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
-    marginBottom: 32,
+  practiceButton: {
+    paddingVertical: 4,
   },
-  buttonContainer: {
-    marginVertical: 20,
+  practiceButtonContent: {
+    paddingVertical: 8,
   },
-  hint: {
-    fontSize: 13,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 20,
-    paddingHorizontal: 40,
+  statsSurface: {
+    padding: 16,
+    borderRadius: 12,
+  },
+  menuSurface: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
