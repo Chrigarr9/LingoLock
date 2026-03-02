@@ -5,6 +5,8 @@ from pipeline.models import (
     ChapterWords,
     VocabularyEntry,
     CoverageReport,
+    DeckChapter,
+    OrderedDeck,
 )
 
 
@@ -117,3 +119,71 @@ def test_coverage_report():
         missing_top_100=[],
     )
     assert report.coverage_percent == 8.5
+
+
+def test_vocabulary_entry_with_ordering_fields():
+    entry = VocabularyEntry(
+        id="maleta",
+        source="maleta",
+        target=["Koffer"],
+        pos="noun",
+        frequency_rank=4231,
+        cefr_level="B2",
+        first_chapter=1,
+        order=1,
+        examples=[],
+        similar_words=["bolsa", "mochila", "equipaje"],
+    )
+    assert entry.first_chapter == 1
+    assert entry.order == 1
+    assert len(entry.similar_words) == 3
+
+
+def test_vocabulary_entry_ordering_fields_default():
+    entry = VocabularyEntry(
+        id="test",
+        source="test",
+        target=["Test"],
+        pos="noun",
+        examples=[],
+    )
+    assert entry.first_chapter == 0
+    assert entry.order == 0
+    assert entry.similar_words == []
+
+
+def test_deck_chapter():
+    chapter = DeckChapter(
+        chapter=1,
+        title="Preparation",
+        words=[
+            VocabularyEntry(
+                id="maleta", source="maleta", target=["Koffer"],
+                pos="noun", first_chapter=1, order=1, examples=[], similar_words=[],
+            )
+        ],
+    )
+    assert chapter.chapter == 1
+    assert len(chapter.words) == 1
+
+
+def test_ordered_deck():
+    deck = OrderedDeck(
+        deck_id="es-de-buenos-aires",
+        deck_name="Spanish with Charlotte",
+        total_words=1,
+        chapters=[
+            DeckChapter(
+                chapter=1,
+                title="Preparation",
+                words=[
+                    VocabularyEntry(
+                        id="maleta", source="maleta", target=["Koffer"],
+                        pos="noun", first_chapter=1, order=1, examples=[], similar_words=[],
+                    )
+                ],
+            )
+        ],
+    )
+    assert deck.total_words == 1
+    assert deck.chapters[0].title == "Preparation"

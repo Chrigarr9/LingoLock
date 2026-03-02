@@ -36,7 +36,23 @@ class VocabularyEntry(BaseModel):
     pos: str
     frequency_rank: int | None = None
     cefr_level: str | None = None
+    first_chapter: int = 0          # Chapter where this word was first introduced
+    order: int = 0                  # Global position in learning sequence
     examples: list[SentencePair]
+    similar_words: list[str] = []   # 6-8 semantically similar words
+
+
+class DeckChapter(BaseModel):
+    chapter: int
+    title: str
+    words: list[VocabularyEntry]
+
+
+class OrderedDeck(BaseModel):
+    deck_id: str
+    deck_name: str
+    total_words: int
+    chapters: list[DeckChapter]
 
 
 class CoverageReport(BaseModel):
