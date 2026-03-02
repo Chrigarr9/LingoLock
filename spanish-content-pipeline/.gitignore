@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 .env
 output/
-data/frequency/
+data/frequency/*
+!data/frequency/.gitkeep
