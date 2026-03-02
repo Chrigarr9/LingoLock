@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Button, List, Surface, Text } from 'react-native-paper';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Button, List, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
@@ -33,31 +33,60 @@ export default function HomeScreen() {
           }
           style={styles.practiceButton}
           contentStyle={styles.practiceButtonContent}
+          labelStyle={styles.practiceButtonLabel}
         >
           Start Practice
         </Button>
 
-        <Surface style={styles.statsSurface} elevation={1}>
+        <View
+          style={[
+            styles.statsContainer,
+            {
+              backgroundColor: theme.custom.cardBackground,
+              borderColor: theme.custom.cardBorder,
+            },
+          ]}
+        >
           <StatRow label="Today" value="0 / 0" />
           <StatRow label="Success" value="--" />
-          <StatRow label="Total" value={`${getTotalCards()} cards`} />
-        </Surface>
+          <StatRow label="Total" value={`${getTotalCards()} cards`} isLast />
+        </View>
 
-        <Surface style={styles.menuSurface} elevation={1}>
+        <View
+          style={[
+            styles.menuContainer,
+            {
+              backgroundColor: theme.custom.cardBackground,
+              borderColor: theme.custom.cardBorder,
+            },
+          ]}
+        >
           <List.Item
             title="Setup Tutorial"
-            left={(props) => <List.Icon {...props} icon="book-open-outline" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            titleStyle={styles.menuTitle}
+            left={(props) => (
+              <List.Icon {...props} icon="book-open-outline" color={theme.colors.onSurfaceVariant} />
+            )}
+            right={(props) => (
+              <List.Icon {...props} icon="chevron-right" color={theme.colors.outline} />
+            )}
             onPress={() => router.push('/tutorial')}
+            style={[styles.menuItem, { borderBottomColor: theme.custom.separator }]}
           />
           <List.Item
             title="Manage Decks"
-            left={(props) => <List.Icon {...props} icon="cards-outline" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            titleStyle={styles.menuTitle}
+            description="Coming soon"
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant, fontSize: 12 }}
+            left={(props) => (
+              <List.Icon {...props} icon="cards-outline" color={theme.colors.onSurfaceVariant} />
+            )}
+            right={(props) => (
+              <List.Icon {...props} icon="chevron-right" color={theme.colors.outline} />
+            )}
             onPress={() => {}}
-            description="Coming in Phase 3"
           />
-        </Surface>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -72,20 +101,34 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    gap: 16,
+    gap: 12,
   },
   practiceButton: {
-    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
   },
   practiceButtonContent: {
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
-  statsSurface: {
-    padding: 16,
-    borderRadius: 12,
+  practiceButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0,
   },
-  menuSurface: {
-    borderRadius: 12,
+  statsContainer: {
+    borderRadius: 14,
+    borderWidth: 1,
     overflow: 'hidden',
+  },
+  menuContainer: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  menuTitle: {
+    fontSize: 15,
   },
 });

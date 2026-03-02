@@ -14,26 +14,28 @@ export function ProgressDots({ total, current, results }: ProgressDotsProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.dots}>
+      <View style={styles.track}>
         {Array.from({ length: total }, (_, i) => {
+          const isActive = i === current && !results?.[i];
           let backgroundColor: string;
           if (results?.[i] === 'correct') {
             backgroundColor = theme.custom.success;
           } else if (results?.[i] === 'incorrect') {
             backgroundColor = theme.colors.error;
-          } else if (i === current) {
+          } else if (isActive) {
             backgroundColor = theme.colors.primary;
           } else {
-            backgroundColor = theme.colors.surfaceVariant;
+            backgroundColor = theme.colors.outline;
           }
 
           return (
             <View
               key={i}
               style={[
-                styles.dot,
-                { backgroundColor },
-                i === current && !results?.[i] && styles.activeDot,
+                styles.segment,
+                { backgroundColor, flex: 1 },
+                isActive && { opacity: 1 },
+                !isActive && !results?.[i] && { opacity: 0.4 },
               ]}
             />
           );
@@ -41,9 +43,9 @@ export function ProgressDots({ total, current, results }: ProgressDotsProps) {
       </View>
       <Text
         variant="labelSmall"
-        style={{ color: theme.colors.onSurfaceVariant }}
+        style={{ color: theme.colors.onSurfaceVariant, letterSpacing: 0.5 }}
       >
-        card {current + 1} of {total}
+        {current + 1} / {total}
       </Text>
     </View>
   );
@@ -52,21 +54,18 @@ export function ProgressDots({ total, current, results }: ProgressDotsProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 40,
     gap: 8,
   },
-  dots: {
+  track: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
+    width: '100%',
+    maxWidth: 200,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  activeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  segment: {
+    height: 3,
+    borderRadius: 1.5,
   },
 });

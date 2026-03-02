@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Surface, Text, ProgressBar } from 'react-native-paper';
+import { Text, ProgressBar } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
 interface StatsCardProps {
@@ -13,53 +13,93 @@ export function StatsCard({ streak, progressPercent, cardsDue }: StatsCardProps)
   const theme = useAppTheme();
 
   return (
-    <Surface style={styles.surface} elevation={1}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.custom.cardBackground,
+          borderColor: theme.custom.cardBorder,
+        },
+      ]}
+    >
       <View style={styles.streakRow}>
-        <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>
-          {streak > 0 ? '\uD83D\uDD25' : '\u2744\uFE0F'} {streak}-day streak
+        <Text
+          variant="headlineMedium"
+          style={{ color: theme.colors.onSurface, fontWeight: '700', letterSpacing: -0.5 }}
+        >
+          {streak}
+        </Text>
+        <Text
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurfaceVariant, marginLeft: 6 }}
+        >
+          day streak {streak > 0 ? '\uD83D\uDD25' : ''}
         </Text>
       </View>
-      <View style={styles.progressRow}>
+
+      <View style={styles.progressSection}>
+        <View style={styles.progressHeader}>
+          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            Progress
+          </Text>
+          <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+            {progressPercent}%
+          </Text>
+        </View>
         <ProgressBar
           progress={progressPercent / 100}
           color={theme.colors.primary}
-          style={styles.progressBar}
+          style={[styles.progressBar, { backgroundColor: theme.colors.surfaceVariant }]}
         />
+      </View>
+
+      <View style={[styles.dueRow, { borderTopColor: theme.custom.separator }]}>
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          Cards due today
+        </Text>
         <Text
-          variant="labelSmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurface, fontWeight: '600' }}
         >
-          {progressPercent}%
+          {cardsDue}
         </Text>
       </View>
-      <Text
-        variant="bodyMedium"
-        style={{ color: theme.colors.onSurfaceVariant }}
-      >
-        {cardsDue} cards due today
-      </Text>
-    </Surface>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  surface: {
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
+  card: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   streakRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    padding: 16,
+    paddingBottom: 12,
   },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  progressSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     gap: 8,
   },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   progressBar: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
+  },
+  dueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

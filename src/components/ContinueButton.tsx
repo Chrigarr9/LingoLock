@@ -43,7 +43,9 @@ export function ContinueButton({ sourceApp, challengeType, onPress }: ContinueBu
       onPress={handlePress}
       disabled={isOpening}
       loading={isOpening}
-      style={{ paddingVertical: 4 }}
+      style={{ borderRadius: 12 }}
+      contentStyle={{ paddingVertical: 6 }}
+      labelStyle={{ fontSize: 16, fontWeight: '600', letterSpacing: 0 }}
       accessibilityLabel={`Continue to ${sourceApp}`}
       accessibilityHint={`Opens ${sourceApp}`}
     >

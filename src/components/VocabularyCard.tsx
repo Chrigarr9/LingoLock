@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { Card, Text, Divider } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 import { VocabularyCard as VocabCardType } from '../types/vocabulary';
 
@@ -21,41 +21,62 @@ export function VocabularyCard({ card, showAnswer, isCorrect }: VocabularyCardPr
         : theme.colors.error;
 
   return (
-    <Card style={styles.card} mode="elevated">
-      <Card.Content style={styles.content}>
-        <Text variant="headlineLarge" style={[styles.frontText, { color: theme.colors.onSurface }]}>
-          {card.front}
-        </Text>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.custom.cardBackground,
+          borderColor: theme.custom.cardBorder,
+        },
+      ]}
+    >
+      <Text
+        variant="displaySmall"
+        style={[styles.frontText, { color: theme.colors.onSurface }]}
+      >
+        {card.front}
+      </Text>
 
-        {showAnswer && (
-          <>
-            <Divider style={styles.divider} />
-            <Text variant="headlineSmall" style={[styles.backText, { color: answerColor }]}>
-              {card.back} {isCorrect !== undefined && (isCorrect ? ' \u2713' : ' \u2717')}
-            </Text>
-          </>
-        )}
-      </Card.Content>
-    </Card>
+      {showAnswer && (
+        <>
+          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+          <Text
+            variant="headlineSmall"
+            style={[styles.backText, { color: answerColor }]}
+          >
+            {card.back}
+            {isCorrect !== undefined && (
+              <Text style={{ color: answerColor }}>
+                {isCorrect ? '  \u2713' : '  \u2717'}
+              </Text>
+            )}
+          </Text>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 200,
+    minHeight: 220,
     justifyContent: 'center',
-  },
-  content: {
     alignItems: 'center',
-    paddingVertical: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   frontText: {
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  divider: {
-    width: '60%',
-    marginVertical: 16,
+  separator: {
+    width: 40,
+    height: 2,
+    borderRadius: 1,
+    marginVertical: 20,
   },
   backText: {
     textAlign: 'center',

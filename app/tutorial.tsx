@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Button, Surface, Text } from 'react-native-paper';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
@@ -23,9 +23,17 @@ export default function TutorialScreen() {
           Configure iOS Shortcuts to trigger vocabulary challenges automatically
         </Text>
 
-        <Surface style={styles.section} elevation={1}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.custom.cardBackground,
+              borderColor: theme.custom.cardBorder,
+            },
+          ]}
+        >
           <Text
-            variant="titleMedium"
+            variant="titleSmall"
             style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
           >
             1. Device Unlock Automation
@@ -55,11 +63,19 @@ export default function TutorialScreen() {
             description={'Add action "Open URL" and enter:\n\nlingolock://challenge?source=Unlock&count=3&type=unlock\n\nDisable "Ask Before Running" and tap Done.'}
             image={require('../assets/tutorial/shortcuts-setup-4.png')}
           />
-        </Surface>
+        </View>
 
-        <Surface style={styles.section} elevation={1}>
+        <View
+          style={[
+            styles.section,
+            {
+              backgroundColor: theme.custom.cardBackground,
+              borderColor: theme.custom.cardBorder,
+            },
+          ]}
+        >
           <Text
-            variant="titleMedium"
+            variant="titleSmall"
             style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
           >
             2. App-Open Automation (Optional)
@@ -75,13 +91,14 @@ export default function TutorialScreen() {
             {'\n\n'}
             Replace [AppName] with the app name (e.g., Instagram).
           </Text>
-        </Surface>
+        </View>
 
         <Button
           mode="contained"
           onPress={() => router.back()}
           style={styles.doneButton}
           contentStyle={styles.doneButtonContent}
+          labelStyle={styles.doneButtonLabel}
         >
           Got It!
         </Button>
@@ -96,19 +113,23 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    gap: 16,
+    gap: 12,
   },
   subtitle: {
     textAlign: 'center',
     lineHeight: 22,
   },
   section: {
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
     padding: 16,
   },
   sectionTitle: {
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 12,
   },
   sectionBody: {
     lineHeight: 22,
@@ -116,8 +137,14 @@ const styles = StyleSheet.create({
   doneButton: {
     marginTop: 8,
     marginBottom: 24,
+    borderRadius: 12,
   },
   doneButtonContent: {
-    paddingVertical: 8,
+    paddingVertical: 6,
+  },
+  doneButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0,
   },
 });

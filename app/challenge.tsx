@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button, Card, IconButton, Text } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
@@ -65,13 +65,14 @@ export default function ChallengeScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.header}>
-        <View style={styles.headerSpacer} />
+        <ProgressDots total={cardCount} current={currentIndex} results={results} />
         <IconButton
           icon="close"
-          size={24}
+          size={20}
           iconColor={theme.colors.onSurfaceVariant}
           onPress={() => router.back()}
           accessibilityLabel="Close challenge"
+          style={styles.closeButton}
         />
       </View>
 
@@ -92,7 +93,13 @@ export default function ChallengeScreen() {
 
             {showAnswer && (
               <View style={styles.inputArea}>
-                <Button mode="contained" onPress={handleNext}>
+                <Button
+                  mode="contained"
+                  onPress={handleNext}
+                  style={{ borderRadius: 12 }}
+                  contentStyle={{ paddingVertical: 6 }}
+                  labelStyle={{ fontSize: 16, fontWeight: '600', letterSpacing: 0 }}
+                >
                   {currentIndex < cards.length - 1 ? 'Next' : 'Finish'}
                 </Button>
               </View>
@@ -102,19 +109,20 @@ export default function ChallengeScreen() {
 
         {isComplete && params.source && (
           <View style={styles.completionArea}>
-            <Card style={styles.completionCard} mode="elevated">
-              <Card.Content style={styles.completionContent}>
-                <Text variant="headlineSmall" style={{ color: theme.colors.onSurface }}>
-                  Challenge Complete
-                </Text>
-                <Text
-                  variant="bodyLarge"
-                  style={{ color: theme.custom.success }}
-                >
-                  {'\u2713'} {correctCount}/{cardCount} correct
-                </Text>
-              </Card.Content>
-            </Card>
+            <View style={styles.completionContent}>
+              <Text
+                variant="displaySmall"
+                style={{ color: theme.colors.onSurface, fontWeight: '700', letterSpacing: -0.5 }}
+              >
+                Done
+              </Text>
+              <Text
+                variant="titleLarge"
+                style={{ color: theme.custom.success, fontWeight: '600', marginTop: 8 }}
+              >
+                {correctCount}/{cardCount} correct
+              </Text>
+            </View>
             <ContinueButton
               sourceApp={params.source}
               challengeType={params.type || 'app_open'}
@@ -122,8 +130,6 @@ export default function ChallengeScreen() {
           </View>
         )}
       </View>
-
-      <ProgressDots total={cardCount} current={currentIndex} results={results} />
     </SafeAreaView>
   );
 }
@@ -134,30 +140,27 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingRight: 4,
   },
-  headerSpacer: {
-    flex: 1,
+  closeButton: {
+    marginLeft: 'auto',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
   },
   inputArea: {
-    marginTop: 24,
+    marginTop: 28,
     gap: 12,
   },
   completionArea: {
-    gap: 24,
-  },
-  completionCard: {
+    gap: 32,
     alignItems: 'center',
   },
   completionContent: {
     alignItems: 'center',
-    paddingVertical: 24,
-    gap: 8,
   },
 });
