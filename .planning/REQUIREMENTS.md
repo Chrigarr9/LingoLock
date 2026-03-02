@@ -65,24 +65,24 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 - [x] **CARD-01**: System implements FSRS spaced repetition algorithm for card scheduling
 - [x] **CARD-02**: System shows vocabulary card with front side (question) text
 - [ ] **CARD-03**: User can answer vocabulary card via free-text input (default mode)
-- [ ] **CARD-04**: User can switch to multiple-choice mode (4 options) per deck
-- [ ] **CARD-05**: User can switch to yes/no mode (2 options: correct/incorrect) per deck
+- [x] **CARD-04**: User can switch to multiple-choice mode (4 options) per deck
+- [x] **CARD-05**: User can switch to yes/no mode (2 options: correct/incorrect) per deck
 - [ ] **CARD-06**: System shows back side (answer) after user submits answer
 - [ ] **CARD-07**: System marks answer as correct/incorrect based on user input
 - [x] **CARD-08**: If answer is incorrect, card is rescheduled according to FSRS algorithm (60s interval for immediate review)
 - [x] **CARD-09**: System displays images on card if present in Anki deck
 - [x] **CARD-10**: System plays audio on card if present in Anki deck
-- [ ] **CARD-11**: User must answer correctly to unlock blocked app (incorrect answers keep app blocked)
+- [x] **CARD-11**: User must answer correctly to unlock blocked app (incorrect answers keep app blocked)
 
 ### Progress Tracking
 
-- [ ] **PROG-01**: System tracks daily streak (consecutive days with at least one card answered)
-- [ ] **PROG-02**: User can view current streak count in app
-- [ ] **PROG-03**: System calculates overall success rate (% correct answers)
-- [ ] **PROG-04**: User can view success rate in app
-- [ ] **PROG-05**: System calculates overall progress (% of total cards mastered)
-- [ ] **PROG-06**: User can view overall progress in app
-- [ ] **PROG-07**: System tracks cards answered per app (which blocked apps triggered how many cards)
+- [x] **PROG-01**: System tracks daily streak (consecutive days with at least one card answered)
+- [x] **PROG-02**: User can view current streak count in app
+- [x] **PROG-03**: System calculates overall success rate (% correct answers)
+- [x] **PROG-04**: User can view success rate in app
+- [x] **PROG-05**: System calculates overall progress (% of total cards mastered)
+- [x] **PROG-06**: User can view overall progress in app
+- [x] **PROG-07**: System tracks cards answered per app (which blocked apps triggered how many cards)
 - [ ] **PROG-08**: User can view per-app statistics
 
 ### Offline Support
@@ -161,21 +161,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CARD-01 | Phase 2 | Complete |
 | CARD-02 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-03 | Phase 1 (partial), Phase 2 (complete) | Partial |
-| CARD-04 | Phase 4 | Pending |
-| CARD-05 | Phase 4 | Pending |
+| CARD-04 | Phase 4 | Complete |
+| CARD-05 | Phase 4 | Complete |
 | CARD-06 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-07 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-08 | Phase 2 | Complete |
 | CARD-09 | Phase 2 | Complete |
 | CARD-10 | Phase 2 | Complete |
-| CARD-11 | Phase 2 | Pending |
-| PROG-01 | Phase 2 | Pending |
-| PROG-02 | Phase 2 | Pending |
-| PROG-03 | Phase 2 | Pending |
-| PROG-04 | Phase 2 | Pending |
-| PROG-05 | Phase 2 | Pending |
-| PROG-06 | Phase 2 | Pending |
-| PROG-07 | Phase 2 | Pending |
+| CARD-11 | Phase 2 | Complete |
+| PROG-01 | Phase 2 | Complete |
+| PROG-02 | Phase 2 | Complete |
+| PROG-03 | Phase 2 | Complete |
+| PROG-04 | Phase 2 | Complete |
+| PROG-05 | Phase 2 | Complete |
+| PROG-06 | Phase 2 | Complete |
+| PROG-07 | Phase 2 | Complete |
 | PROG-08 | Phase 5 (data captured in Phase 2, UI deferred) | Pending |
 | OFFL-01 | Phase 2 | Complete |
 | OFFL-02 | Phase 2 | Complete |

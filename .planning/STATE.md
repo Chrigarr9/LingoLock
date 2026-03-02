@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-03-02T22:14:34.713Z"
+progress:
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 12
+  completed_plans: 10
+---
+
 # Project State
 
 ## Project Reference
@@ -10,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2 of 5 (2-spaced-repetition-progress)
-Plan: 2 of TBD in current phase
+Plan: 3 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 02-02-PLAN.md (Storage & FSRS Services)
+Last activity: 2026-03-02 — Completed 02-03-PLAN.md (Card Selector & Stats Services)
 
-Progress: [████░░░░░░] ~40%
+Progress: [█████░░░░░] ~50%
 
 ## Performance Metrics
 
@@ -28,10 +41,10 @@ Progress: [████░░░░░░] ~40%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
-| 2-spaced-repetition-progress | 2 | 6min | 3min |
+| 2-spaced-repetition-progress | 3 | 11min | 4min |
 
 **Recent Trend:**
-- Last 3 plans: 1-07 (2min), 02-01 (3min), 02-02 (3min)
+- Last 3 plans: 02-01 (3min), 02-02 (3min), 02-03 (5min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -127,6 +140,14 @@ Recent decisions affecting current work:
 - Services pattern established: src/services/ for stateful business logic (storage, algorithms)
 - Serialization boundary: ISO strings at rest in MMKV, Date objects only when calling ts-fsrs
 
+**From Plan 02-03 (Card Selector & Stats Services):**
+- Jest 30 + ts-jest 29 with diagnostics:false for TDD RED phase support; MMKV mock uses in-memory Map
+- buildSession always reserves 1 slot for new word (maxDue = cardCount - 1) even when enough due reviews exist
+- getStreak returns 0 for stale streaks (lastSessionDate > yesterday) — shows reality; updateStatsAfterSession resets on next session
+- handleWrongAnswer inserts at min(currentIndex + 4, queue.length) — 4 positions ahead or append
+- getCurrentChapterNumber delegates to cardSelector.getCurrentChapter — single source of truth
+- TDD pattern established: commit RED test file before GREEN implementation; diagnostics:false allows RED to fail at "module not found" level
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -154,7 +175,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-01-PLAN.md (Data Foundation — ClozeCard types + content bundle)
+Stopped at: Completed 02-03-PLAN.md (Card Selector & Stats Services)
 Resume file: None
 
 ---
