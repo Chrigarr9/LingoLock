@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 1 of 5 (1-shortcuts-integration)
-Plan: 6 of TBD in current phase
+Plan: 7 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-05-PLAN.md (Answer Input & Fuzzy Matching)
+Last activity: 2026-03-02 — Completed 1-07-PLAN.md (Tutorial Screen)
 
-Progress: [████░░░░░░] ~30%
+Progress: [████░░░░░░] ~35%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 4 min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 6 | 26min | 4min |
+| 1-shortcuts-integration | 7 | 28min | 4min |
 
 **Recent Trend:**
-- Last 3 plans: 1-05 (10min), 1-06 (2min), 1-04 (1min)
+- Last 3 plans: 1-06 (2min), 1-07 (2min), 1-05 (10min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -100,6 +100,15 @@ Recent decisions affecting current work:
 - Type-specific behavior: Different UI/UX based on challenge type (unlock vs app_open)
 - Accessibility pattern: Labels and hints for screen reader support on interactive elements
 
+**From Plan 1-07 (Tutorial Screen):**
+- Single tutorial covering both unlock and app-open automations (simpler UX)
+- TutorialStep component pattern for reusable tutorial steps with images
+- Placeholder screenshots to be replaced during device testing
+- Tutorial presented as standard modal (not fullScreenModal) with system header
+- Tutorial always accessible from home screen via "Setup Tutorial" button
+- URL scheme examples shown: lingolock://challenge?source=...&count=3&type=unlock
+- Important note about disabling "Ask Before Running" in Shortcuts automations
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -127,7 +136,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-05-PLAN.md (Answer Input & Fuzzy Matching)
+Stopped at: Completed 1-07-PLAN.md (Tutorial Screen)
 Resume file: None
 
 ---
