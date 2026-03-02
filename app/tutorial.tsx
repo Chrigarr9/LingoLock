@@ -1,45 +1,33 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, useColorScheme, SafeAreaView, Button } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Button, Surface, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '../src/theme';
 import { TutorialStep } from '../src/components/TutorialStep';
 
 export default function TutorialScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
-  const handleComplete = () => {
-    router.back();
-  };
+  const theme = useAppTheme();
 
   return (
-    <SafeAreaView style={[
-      styles.container,
-      { backgroundColor: isDark ? '#000000' : '#ffffff' }
-    ]}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
+      edges={['bottom']}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[
-            styles.headerTitle,
-            { color: isDark ? '#ffffff' : '#000000' }
-          ]}>
-            Setting Up LingoLock
-          </Text>
-          <Text style={[
-            styles.headerSubtitle,
-            { color: isDark ? 'rgba(235, 235, 245, 0.6)' : 'rgba(60, 60, 67, 0.6)' }
-          ]}>
-            Configure iOS Shortcuts to trigger vocabulary challenges automatically
-          </Text>
-        </View>
+        <Text
+          variant="bodyMedium"
+          style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
+        >
+          Configure iOS Shortcuts to trigger vocabulary challenges automatically
+        </Text>
 
-        {/* Device Unlock Automation */}
-        <View style={styles.section}>
-          <Text style={[
-            styles.sectionTitle,
-            { color: isDark ? '#ffffff' : '#000000' }
-          ]}>
+        <Surface style={styles.section} elevation={1}>
+          <Text
+            variant="titleMedium"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
             1. Device Unlock Automation
           </Text>
 
@@ -49,105 +37,87 @@ export default function TutorialScreen() {
             description="Launch the Shortcuts app from your home screen."
             image={require('../assets/tutorial/shortcuts-setup-1.png')}
           />
-
           <TutorialStep
             stepNumber={2}
             title="Create New Automation"
             description='Tap "Automation" tab at bottom, then tap "+" to create new automation.'
             image={require('../assets/tutorial/shortcuts-setup-2.png')}
           />
-
           <TutorialStep
             stepNumber={3}
             title='Select "When I unlock my iPhone"'
             description='Choose personal automation trigger "When I unlock my iPhone".'
             image={require('../assets/tutorial/shortcuts-setup-3.png')}
           />
-
           <TutorialStep
             stepNumber={4}
             title="Add Open URL Action"
             description={'Add action "Open URL" and enter:\n\nlingolock://challenge?source=Unlock&count=3&type=unlock\n\nDisable "Ask Before Running" and tap Done.'}
             image={require('../assets/tutorial/shortcuts-setup-4.png')}
           />
-        </View>
+        </Surface>
 
-        {/* App-Open Automation */}
-        <View style={styles.section}>
-          <Text style={[
-            styles.sectionTitle,
-            { color: isDark ? '#ffffff' : '#000000' }
-          ]}>
+        <Surface style={styles.section} elevation={1}>
+          <Text
+            variant="titleMedium"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
             2. App-Open Automation (Optional)
           </Text>
-
-          <Text style={[
-            styles.sectionDescription,
-            { color: isDark ? 'rgba(235, 235, 245, 0.6)' : 'rgba(60, 60, 67, 0.6)' }
-          ]}>
+          <Text
+            variant="bodyMedium"
+            style={[styles.sectionBody, { color: theme.colors.onSurfaceVariant }]}
+          >
             Repeat the same steps, but in Step 3, select "When I open an app" and choose which app to trigger LingoLock (e.g., Instagram, Twitter).
             {'\n\n'}
-            Use URL:
-            {'\n\n'}
+            Use URL:{'\n'}
             lingolock://challenge?source=[AppName]&count=3&type=app_open
             {'\n\n'}
             Replace [AppName] with the app name (e.g., Instagram).
           </Text>
-        </View>
+        </Surface>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Button title="Got It!" onPress={handleComplete} />
-        </View>
+        <Button
+          mode="contained"
+          onPress={() => router.back()}
+          style={styles.doneButton}
+          contentStyle={styles.doneButtonContent}
+        >
+          Got It!
+        </Button>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: 20,
+    padding: 16,
+    gap: 16,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    fontFamily: 'System',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    fontFamily: 'System',
+  subtitle: {
     textAlign: 'center',
     lineHeight: 22,
   },
   section: {
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(60, 60, 67, 0.12)',
+    borderRadius: 12,
+    padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
     fontWeight: '600',
-    fontFamily: 'System',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  sectionDescription: {
-    fontSize: 15,
-    fontFamily: 'System',
-    paddingHorizontal: 20,
+  sectionBody: {
     lineHeight: 22,
   },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
+  doneButton: {
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  doneButtonContent: {
+    paddingVertical: 8,
   },
 });
