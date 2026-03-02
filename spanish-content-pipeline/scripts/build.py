@@ -1,4 +1,4 @@
-"""Run BUILD step: Merge word annotations into vocabulary database."""
+"""Run BUILD step: Produce story-ordered vocabulary deck."""
 
 import argparse
 import json
@@ -47,14 +47,27 @@ def main():
             frequency_data = load_frequency_data(freq_path)
             print(f"  Loaded {len(frequency_data)} frequency entries")
 
+    # Build chapter titles from config
+    chapter_titles = {
+        i + 1: config.story.chapters[i].title
+        for i in chapter_range
+        if i < len(config.story.chapters)
+    }
+
     print("=== Building Vocabulary Database ===")
-    vocab = build_vocabulary(all_chapters, frequency_data)
+    deck = build_vocabulary(
+        all_chapters,
+        frequency_data=frequency_data,
+        chapter_titles=chapter_titles,
+        deck_id=config.deck.id,
+        deck_name=config.deck.name,
+    )
     vocab_path = output_base / config.deck.id / "vocabulary.json"
     vocab_path.parent.mkdir(parents=True, exist_ok=True)
     vocab_path.write_text(
-        json.dumps([v.model_dump() for v in vocab], ensure_ascii=False, indent=2)
+        json.dumps(deck.model_dump(), ensure_ascii=False, indent=2)
     )
-    print(f"  {len(vocab)} unique vocabulary entries saved to {vocab_path}")
+    print(f"  {deck.total_words} unique vocabulary entries saved to {vocab_path}")
 
 
 if __name__ == "__main__":

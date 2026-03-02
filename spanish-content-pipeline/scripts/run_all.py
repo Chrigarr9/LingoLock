@@ -116,18 +116,29 @@ def main():
             frequency_data = load_frequency_data(freq_path)
             print(f"  Loaded {len(frequency_data)} frequency entries")
 
-    vocab = build_vocabulary(all_chapters, frequency_data)
+    chapter_titles = {
+        i + 1: config.story.chapters[i].title
+        for i in chapter_range
+    }
+
+    deck = build_vocabulary(
+        all_chapters,
+        frequency_data=frequency_data,
+        chapter_titles=chapter_titles,
+        deck_id=config.deck.id,
+        deck_name=config.deck.name,
+    )
     vocab_path = output_base / config.deck.id / "vocabulary.json"
     vocab_path.parent.mkdir(parents=True, exist_ok=True)
     vocab_path.write_text(
-        json.dumps([v.model_dump() for v in vocab], ensure_ascii=False, indent=2)
+        json.dumps(deck.model_dump(), ensure_ascii=False, indent=2)
     )
-    print(f"  {len(vocab)} unique vocabulary entries saved to {vocab_path}")
+    print(f"  {deck.total_words} unique vocabulary entries saved to {vocab_path}")
 
     # REPORT: Coverage Analysis
     if frequency_data:
         print("\n=== Coverage Report ===")
-        report = check_coverage(vocab, frequency_data, top_n=1000)
+        report = check_coverage(deck, frequency_data, top_n=1000)
         report_path = output_base / config.deck.id / "coverage_report.json"
         report_path.write_text(
             json.dumps(report.model_dump(), ensure_ascii=False, indent=2)
