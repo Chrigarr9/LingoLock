@@ -12,26 +12,26 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 Phase: 1 of 5 (1-shortcuts-integration)
 Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 1-02-PLAN.md (Vocabulary Data Structure)
+Last activity: 2026-03-02 — Completed 1-01-PLAN.md (Expo SDK 55 Upgrade)
 
-Progress: [█░░░░░░░░░] ~10%
+Progress: [██░░░░░░░░] ~15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 2 min
-- Total execution time: 0.0 hours
+- Total plans completed: 2
+- Average duration: 6 min
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1-shortcuts-integration | 1 | 2min | 2min |
+| 1-shortcuts-integration | 2 | 11min | 6min |
 
 **Recent Trend:**
-- Last plan: 1-02 (2min)
-- Trend: Just started
+- Last 2 plans: 1-02 (2min), 1-01 (9min)
+- Trend: Establishing baseline
 
 *Updated after each plan completion*
 
@@ -47,6 +47,15 @@ Recent decisions affecting current work:
 - Anki .apkg import as content strategy (no preinstalled decks)
 - FSRS spaced repetition algorithm (scientifically validated)
 - Offline-first architecture (no cloud sync in v1)
+
+**From Plan 1-01 (Expo SDK 55 Upgrade):**
+- Expo SDK 55 enables React Native 0.83 with New Architecture by default
+- Development build required for custom URL schemes (doesn't work in Expo Go)
+- Generated native iOS project excluded from git via .gitignore (regenerated via prebuild)
+- Created placeholder assets for initial development (to be replaced with final designs)
+- Use expo prebuild to generate native projects (don't commit ios/ or android/ directories)
+- Development build workflow: expo run:ios instead of expo start --ios
+- Custom URL schemes configured in app.json, propagated to native projects via prebuild
 
 **From Plan 1-02 (Vocabulary Data Structure):**
 - VocabularyCard schema includes optional media/tags/deckId for Phase 3 expansion
@@ -82,7 +91,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 1-02-PLAN.md (Vocabulary Data Structure)
+Stopped at: Completed 1-01-PLAN.md (Expo SDK 55 Upgrade)
 Resume file: None
 
 ---
