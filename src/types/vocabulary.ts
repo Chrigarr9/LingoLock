@@ -31,7 +31,16 @@ export interface VocabularyCard {
  * Parameters for challenge screen deep linking and routing
  */
 export interface ChallengeParams {
-  /** ID of the card to display */
+  /** Source app that triggered the challenge (from deep link: lingolock://challenge?source=Instagram) */
+  source: string;
+
+  /** Number of vocabulary cards to present (1-10) */
+  count: number;
+
+  /** Type of challenge trigger */
+  type: 'unlock' | 'app_open';
+
+  /** ID of the card to display (optional, for specific card navigation) */
   cardId?: string;
 
   /** Whether this was triggered by app blocking (affects UI/behavior) */
