@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-02T22:14:34.713Z"
+last_updated: "2026-03-02T22:20:51.960Z"
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2 of 5 (2-spaced-repetition-progress)
-Plan: 3 of TBD in current phase
+Plan: 4 of TBD in current phase
 Status: In progress
-Last activity: 2026-03-02 — Completed 02-03-PLAN.md (Card Selector & Stats Services)
+Last activity: 2026-03-02 — Completed 02-04-PLAN.md (Challenge Screen — Cloze + FSRS)
 
 Progress: [█████░░░░░] ~50%
 
@@ -41,10 +41,10 @@ Progress: [█████░░░░░] ~50%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
-| 2-spaced-repetition-progress | 3 | 11min | 4min |
+| 2-spaced-repetition-progress | 4 | 14min | 3.5min |
 
 **Recent Trend:**
-- Last 3 plans: 02-01 (3min), 02-02 (3min), 02-03 (5min)
+- Last 3 plans: 02-02 (3min), 02-03 (5min), 02-04 (3min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -148,6 +148,12 @@ Recent decisions affecting current work:
 - getCurrentChapterNumber delegates to cardSelector.getCurrentChapter — single source of truth
 - TDD pattern established: commit RED test file before GREEN implementation; diagnostics:false allows RED to fail at "module not found" level
 
+**From Plan 02-04 (Challenge Screen — Cloze + FSRS):**
+- createNewCardState() used as fallback when loadCardState returns null before calling scheduleReview on new cards
+- AUTO_ADVANCE_MS 1500ms (vs 500ms Phase 1) to give user time to read AnswerReveal German translation
+- expo-av audio stub uses dynamic require as any to avoid compile errors until Phase 3 installs expo-av
+- originalCardCount.current ref tracks initial session size so ProgressDots total never grows with wrong-answer re-insertions
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -175,9 +181,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-03-PLAN.md (Card Selector & Stats Services)
+Stopped at: Completed 02-04-PLAN.md (Challenge Screen — Cloze + FSRS)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-02*
+*Last updated: 2026-03-02 (02-04 complete)*

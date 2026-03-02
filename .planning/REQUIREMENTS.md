@@ -64,11 +64,11 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 
 - [x] **CARD-01**: System implements FSRS spaced repetition algorithm for card scheduling
 - [x] **CARD-02**: System shows vocabulary card with front side (question) text
-- [ ] **CARD-03**: User can answer vocabulary card via free-text input (default mode)
+- [x] **CARD-03**: User can answer vocabulary card via free-text input (default mode)
 - [x] **CARD-04**: User can switch to multiple-choice mode (4 options) per deck
 - [x] **CARD-05**: User can switch to yes/no mode (2 options: correct/incorrect) per deck
-- [ ] **CARD-06**: System shows back side (answer) after user submits answer
-- [ ] **CARD-07**: System marks answer as correct/incorrect based on user input
+- [x] **CARD-06**: System shows back side (answer) after user submits answer
+- [x] **CARD-07**: System marks answer as correct/incorrect based on user input
 - [x] **CARD-08**: If answer is incorrect, card is rescheduled according to FSRS algorithm (60s interval for immediate review)
 - [x] **CARD-09**: System displays images on card if present in Anki deck
 - [x] **CARD-10**: System plays audio on card if present in Anki deck
