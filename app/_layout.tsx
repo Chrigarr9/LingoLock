@@ -32,6 +32,13 @@ export default function RootLayout() {
           animation: 'fade'
         }}
       />
+      <Stack.Screen
+        name="tutorial"
+        options={{
+          presentation: 'modal',
+          title: 'Setup Tutorial'
+        }}
+      />
     </Stack>
   );
 }
