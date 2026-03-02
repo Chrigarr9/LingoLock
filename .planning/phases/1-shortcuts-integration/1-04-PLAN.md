@@ -180,8 +180,8 @@ Use Expo Router's useLocalSearchParams to receive deep link parameters.
 Implementation:
 ```typescript
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, useColorScheme, SafeAreaView, StatusBar } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, StyleSheet, useColorScheme, SafeAreaView, StatusBar, TouchableOpacity, Text } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { VocabularyCard } from '../src/components/VocabularyCard';
 import { PLACEHOLDER_CARDS } from '../src/data/placeholderVocabulary';
 
@@ -191,6 +191,7 @@ export default function ChallengeScreen() {
     count: string;
     type: 'unlock' | 'app_open';
   }>();
+  const router = useRouter();
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -211,12 +212,29 @@ export default function ChallengeScreen() {
     });
   }, []);
 
+  const handleEmergencyExit = () => {
+    console.log('[Challenge] Emergency exit triggered');
+    router.back();
+  };
+
   return (
     <SafeAreaView style={[
       styles.container,
       { backgroundColor: isDark ? '#000000' : '#ffffff' }
     ]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {/* Emergency escape close button (top-right) */}
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={handleEmergencyExit}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={[
+          styles.closeIcon,
+          { color: isDark ? '#8e8e93' : '#8e8e93' }
+        ]}>✕</Text>
+      </TouchableOpacity>
 
       <View style={styles.content}>
         {currentCard && (
@@ -235,6 +253,17 @@ export default function ChallengeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  closeIcon: {
+    fontSize: 28,
+    fontWeight: '300',
   },
   content: {
     flex: 1,
@@ -337,6 +366,7 @@ Challenge screen UI with iOS-native card design, dark mode support, and deep lin
 
 3. Verify challenge screen appears:
    - [ ] Fullscreen modal (no header)
+   - [ ] Close button (✕) visible in top-right corner
    - [ ] Card with rounded corners (12px border radius)
    - [ ] Card background: light gray (#f2f2f7) in light mode, dark gray (#1c1c1e) in dark mode
    - [ ] Vocabulary text centered, large (34pt), bold
@@ -355,7 +385,12 @@ Challenge screen UI with iOS-native card design, dark mode support, and deep lin
    - [ ] Screen shows first card from placeholder data
    - [ ] Console logs show correct params
 
-Expected: Clean, minimalist card design matching iOS aesthetic, automatic dark mode adaptation.
+6. Test emergency escape:
+   - [ ] Tap close button (✕) in top-right corner
+   - [ ] Screen dismisses and returns to previous screen
+   - [ ] Console shows "Emergency exit triggered" log
+
+Expected: Clean, minimalist card design matching iOS aesthetic, automatic dark mode adaptation, functional emergency escape.
   </how-to-verify>
   <resume-signal>
 Type "approved" if visual design matches requirements, or describe issues (alignment, colors, spacing, fonts, dark mode).
@@ -380,6 +415,7 @@ Type "approved" if visual design matches requirements, or describe issues (align
 - VocabularyCard component displays vocabulary with iOS-native styling
 - Challenge screen route receives deep link parameters via Expo Router
 - Deep link navigation triggers fullscreen challenge screen
+- Emergency escape close button (✕) visible and functional in top-right corner
 - UI adapts to light and dark mode automatically
 - Card-based presentation with minimalist design (no headers, minimal chrome)
 - Typography and colors match iOS design language
