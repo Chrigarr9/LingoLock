@@ -151,20 +151,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BLCK-01 | Phase 4 | Pending |
 | BLCK-02 | Phase 4 | Pending |
-| BLCK-03 | Phase 1 | Pending |
-| BLCK-04 | Phase 1 | Pending |
+| BLCK-03 | Phase 1 | Complete |
+| BLCK-04 | Phase 1 | Complete |
 | BLCK-05 | Phase 4 | Pending |
 | CONF-01 | Phase 4 | Pending |
 | CONF-02 | Phase 4 | Pending |
 | CONF-03 | Phase 4 | Pending |
 | CONF-04 | Phase 4 | Pending |
 | CARD-01 | Phase 2 | Pending |
-| CARD-02 | Phase 1 (partial), Phase 2 (complete) | Pending |
-| CARD-03 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-02 | Phase 1 (partial), Phase 2 (complete) | Partial |
+| CARD-03 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-04 | Phase 4 | Pending |
 | CARD-05 | Phase 4 | Pending |
-| CARD-06 | Phase 1 (partial), Phase 2 (complete) | Pending |
-| CARD-07 | Phase 1 (partial), Phase 2 (complete) | Pending |
+| CARD-06 | Phase 1 (partial), Phase 2 (complete) | Partial |
+| CARD-07 | Phase 1 (partial), Phase 2 (complete) | Partial |
 | CARD-08 | Phase 2 | Pending |
 | CARD-09 | Phase 2 | Pending |
 | CARD-10 | Phase 2 | Pending |
@@ -185,8 +185,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DECK-03 | Phase 3 | Pending |
 | DECK-04 | Phase 3 | Pending |
 | DECK-05 | Phase 3 | Pending |
-| UNLK-01 | Phase 1 | Pending |
-| UNLK-02 | Phase 1 | Pending |
+| UNLK-01 | Phase 1 | Complete |
+| UNLK-02 | Phase 1 | Complete |
 | UNLK-03 | Phase 5 | Pending |
 | NOTF-01 | Phase 4 | Pending |
 | NOTF-02 | Phase 4 | Pending |

@@ -46,13 +46,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 7 plans in 4 waves
 
 Plans:
-- [ ] 1-01-PLAN.md — Expo SDK 55 upgrade + development build setup
-- [ ] 1-02-PLAN.md — Placeholder vocabulary data structure
-- [ ] 1-03-PLAN.md — URL scheme deep linking + parameter parsing
-- [ ] 1-04-PLAN.md — Vocabulary challenge screen UI
-- [ ] 1-05-PLAN.md — Answer input + fuzzy matching validation
-- [ ] 1-06-PLAN.md — Deep-linking to source apps
-- [ ] 1-07-PLAN.md — Tutorial screen implementation
+- [x] 1-01-PLAN.md — Expo SDK 55 upgrade + development build setup
+- [x] 1-02-PLAN.md — Placeholder vocabulary data structure
+- [x] 1-03-PLAN.md — URL scheme deep linking + parameter parsing
+- [x] 1-04-PLAN.md — Vocabulary challenge screen UI
+- [x] 1-05-PLAN.md — Answer input + fuzzy matching validation
+- [x] 1-06-PLAN.md — Deep-linking to source apps
+- [x] 1-07-PLAN.md — Tutorial screen implementation
 
 ### Phase 2: Spaced Repetition & Progress
 **Goal**: Vocabulary learning uses scientifically-proven scheduling and tracks user progress
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shortcuts Integration & Basic UI | 0/7 | Planned | - |
+| 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2026-03-02 |
 | 2. Spaced Repetition & Progress | 0/TBD | Not started | - |
 | 3. Deck Import | 0/TBD | Not started | - |
 | 4. Notifications & Live Activities | 0/TBD | Not started | - |
@@ -151,4 +151,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 ---
 *Roadmap created: 2026-03-01*
-*Last updated: 2026-03-02 (Phase 1 planned)*
+*Last updated: 2026-03-02 (Phase 1 executed, awaiting device testing)*
