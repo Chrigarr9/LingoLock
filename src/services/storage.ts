@@ -104,6 +104,27 @@ export function loadStats(): PersistedStats {
 }
 
 // ---------------------------------------------------------------------------
+// Audio preferences
+// ---------------------------------------------------------------------------
+
+const AUDIO_MUTED_KEY = 'audio_muted';
+
+/**
+ * Load the user's audio mute preference.
+ * Returns false (unmuted) if never set.
+ */
+export function loadAudioMuted(): boolean {
+  return statsStorage.getBoolean(AUDIO_MUTED_KEY) ?? false;
+}
+
+/**
+ * Persist the user's audio mute preference.
+ */
+export function saveAudioMuted(muted: boolean): void {
+  statsStorage.set(AUDIO_MUTED_KEY, muted);
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 
