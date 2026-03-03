@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 import { VocabularyCard as VocabCardType } from '../types/vocabulary';
@@ -25,9 +25,13 @@ export function VocabularyCard({ card, showAnswer, isCorrect }: VocabularyCardPr
       style={[
         styles.card,
         {
-          backgroundColor: theme.custom.cardBackground,
-          borderColor: theme.custom.cardBorder,
+          backgroundColor: theme.custom.glassBackground,
+          borderColor: theme.custom.glassBorder,
         },
+        Platform.select({
+          web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+          default: {},
+        }),
       ]}
     >
       <Text
@@ -62,7 +66,7 @@ const styles = StyleSheet.create({
     minHeight: 220,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     paddingVertical: 40,
     paddingHorizontal: 24,
@@ -71,6 +75,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '700',
     letterSpacing: -0.5,
+    fontSize: 34,
   },
   separator: {
     width: 40,

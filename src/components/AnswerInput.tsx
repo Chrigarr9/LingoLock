@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
@@ -37,8 +37,8 @@ export function AnswerInput({
         returnKeyType="done"
         onSubmitEditing={handleSubmit}
         disabled={disabled}
-        style={[styles.input, { backgroundColor: theme.custom.cardBackground }]}
-        outlineStyle={{ borderRadius: 12, borderColor: theme.custom.cardBorder }}
+        style={[styles.input, { backgroundColor: theme.custom.glassBackground }]}
+        outlineStyle={{ borderRadius: 20, borderColor: theme.custom.glassBorder }}
         activeOutlineColor={theme.colors.primary}
         placeholderTextColor={theme.colors.onSurfaceVariant}
       />
@@ -64,10 +64,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   button: {
-    borderRadius: 12,
+    borderRadius: 20,
   },
   buttonContent: {
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   buttonLabel: {
     fontSize: 16,

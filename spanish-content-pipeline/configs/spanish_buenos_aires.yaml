@@ -1,5 +1,5 @@
 deck:
-  name: "Spanish with Charlotte - Buenos Aires"
+  name: "Spanish with Maria - Buenos Aires"
   id: "es-de-buenos-aires"
 
 languages:
@@ -10,7 +10,7 @@ languages:
   dialect: "neutral"
 
 protagonist:
-  name: "Charlotte"
+  name: "Maria"
   gender: "female"
   origin_country: "Germany"
   origin_city: "Berlin"
@@ -33,37 +33,37 @@ story:
   sentences_per_chapter: [8, 20]
   chapters:
     - title: "Preparation"
-      context: "Charlotte is in her room in Berlin, packing her suitcase. She talks to her best friend on the phone about the move. She feels excited but nervous."
+      context: "Maria is in her room in Berlin, packing her suitcase. She talks to her best friend on the phone about the move. She feels excited but nervous."
       vocab_focus: ["clothing", "travel preparation", "emotions", "farewells"]
     - title: "To the Airport"
-      context: "Charlotte takes a taxi to Berlin airport. She has a short conversation with the taxi driver about her trip to Buenos Aires. She checks the time nervously."
+      context: "Maria takes a taxi to Berlin airport. She has a short conversation with the taxi driver about her trip to Buenos Aires. She checks the time nervously."
       vocab_focus: ["traffic", "time", "emotions", "directions"]
     - title: "At the Airport"
-      context: "Charlotte checks in at the counter, goes through security, and waits at the gate. She has a brief exchange with the airline staff. She hears the boarding announcement."
+      context: "Maria checks in at the counter, goes through security, and waits at the gate. She has a brief exchange with the airline staff. She hears the boarding announcement."
       vocab_focus: ["airport vocabulary", "formalities", "documents", "announcements"]
     - title: "On the Plane"
-      context: "Charlotte sits next to a friendly Argentine man on the plane. They have a conversation about Buenos Aires, food, and what to see. He gives her tips."
+      context: "Maria sits next to a friendly Argentine man on the plane. They have a conversation about Buenos Aires, food, and what to see. He gives her tips."
       vocab_focus: ["small talk", "travel", "food", "countries"]
     - title: "Arrival in Buenos Aires"
-      context: "Charlotte arrives at Ezeiza airport, goes through immigration, gets her luggage, and takes a taxi into the city. She sees the Obelisco and wide avenues for the first time."
+      context: "Maria arrives at Ezeiza airport, goes through immigration, gets her luggage, and takes a taxi into the city. She sees the Obelisco and wide avenues for the first time."
       vocab_focus: ["city", "weather", "feelings", "first impressions"]
     - title: "Going Out to Eat"
-      context: "Charlotte goes to a restaurant in San Telmo. She reads the menu, orders food and drinks, and talks to the waiter. She tries empanadas for the first time."
+      context: "Maria goes to a restaurant in San Telmo. She reads the menu, orders food and drinks, and talks to the waiter. She tries empanadas for the first time."
       vocab_focus: ["food", "ordering", "drinks", "restaurant"]
     - title: "Bar and Music"
-      context: "Charlotte visits a bar in Palermo with a new acquaintance. They listen to live music, order drinks, and talk about their favorite music and hobbies."
+      context: "Maria visits a bar in Palermo with a new acquaintance. They listen to live music, order drinks, and talk about their favorite music and hobbies."
       vocab_focus: ["music", "socializing", "drinks", "hobbies"]
     - title: "Sports Date"
-      context: "Charlotte meets someone at a park in Palermo for a casual sports activity. They play together, take a break, and plan to meet again."
+      context: "Maria meets someone at a park in Palermo for a casual sports activity. They play together, take a break, and plan to meet again."
       vocab_focus: ["sports", "activities", "body", "plans"]
     - title: "Exploring the City"
-      context: "Charlotte walks through La Boca and Puerto Madero, visits the Plaza de Mayo, and takes photos. She asks locals for directions and recommendations."
+      context: "Maria walks through La Boca and Puerto Madero, visits the Plaza de Mayo, and takes photos. She asks locals for directions and recommendations."
       vocab_focus: ["places", "directions", "movement", "sightseeing"]
     - title: "At the Market"
-      context: "Charlotte goes to the San Telmo market with a friend. They buy fruits, vegetables, and souvenirs. She practices numbers and bargaining."
+      context: "Maria goes to the San Telmo market with a friend. They buy fruits, vegetables, and souvenirs. She practices numbers and bargaining."
       vocab_focus: ["food items", "numbers", "shopping", "colors"]
     - title: "Friendship"
-      context: "Charlotte reflects on her first weeks in Buenos Aires. She meets her friends at a café, they make plans for the future, and she feels at home."
+      context: "Maria reflects on her first weeks in Buenos Aires. She meets her friends at a café, they make plans for the future, and she feels at home."
       vocab_focus: ["friendship", "feelings", "future plans", "daily routine"]
 
 llm:

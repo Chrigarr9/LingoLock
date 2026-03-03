@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, StyleSheet, ImageSourcePropType } from 'react-native';
+import { View, Image, StyleSheet, ImageSourcePropType, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
@@ -47,7 +47,14 @@ export function TutorialStep({ stepNumber, title, description, image }: Tutorial
       <View
         style={[
           styles.imageContainer,
-          { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.custom.cardBorder },
+          {
+            backgroundColor: theme.custom.glassBackground,
+            borderColor: theme.custom.glassBorder,
+          },
+          Platform.select({
+            web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+            default: {},
+          }),
         ]}
       >
         <Image source={image} style={styles.image} resizeMode="contain" />
@@ -80,7 +87,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 180,
-    borderRadius: 10,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
   },

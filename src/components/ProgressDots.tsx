@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
 interface ProgressDotsProps {
@@ -9,63 +8,46 @@ interface ProgressDotsProps {
   results?: ('correct' | 'incorrect' | null)[];
 }
 
-export function ProgressDots({ total, current, results }: ProgressDotsProps) {
+export function ProgressDots({ total, current }: ProgressDotsProps) {
   const theme = useAppTheme();
+  const progress = total > 0 ? current / total : 0;
 
   return (
     <View style={styles.container}>
-      <View style={styles.track}>
-        {Array.from({ length: total }, (_, i) => {
-          const isActive = i === current && !results?.[i];
-          let backgroundColor: string;
-          if (results?.[i] === 'correct') {
-            backgroundColor = theme.custom.success;
-          } else if (results?.[i] === 'incorrect') {
-            backgroundColor = theme.colors.error;
-          } else if (isActive) {
-            backgroundColor = theme.colors.primary;
-          } else {
-            backgroundColor = theme.colors.outline;
-          }
-
-          return (
-            <View
-              key={i}
-              style={[
-                styles.segment,
-                { backgroundColor, flex: 1 },
-                isActive && { opacity: 1 },
-                !isActive && !results?.[i] && { opacity: 0.4 },
-              ]}
-            />
-          );
-        })}
-      </View>
-      <Text
-        variant="labelSmall"
-        style={{ color: theme.colors.onSurfaceVariant, letterSpacing: 0.5 }}
+      <View
+        style={[
+          styles.track,
+          { backgroundColor: theme.colors.primaryContainer },
+        ]}
       >
-        {current + 1} / {total}
-      </Text>
+        <View
+          style={[
+            styles.fill,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: 0.6,
+              width: `${Math.round(progress * 100)}%`,
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    gap: 8,
+    flex: 1,
+    paddingVertical: 8,
+    justifyContent: 'center',
   },
   track: {
-    flexDirection: 'row',
-    gap: 4,
-    width: '100%',
-    maxWidth: 200,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-  segment: {
-    height: 3,
-    borderRadius: 1.5,
+  fill: {
+    height: '100%',
+    borderRadius: 3,
   },
 });

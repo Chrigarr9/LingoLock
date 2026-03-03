@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Text, ProgressBar } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
@@ -17,9 +17,13 @@ export function StatsCard({ streak, progressPercent, cardsDue }: StatsCardProps)
       style={[
         styles.card,
         {
-          backgroundColor: theme.custom.cardBackground,
-          borderColor: theme.custom.cardBorder,
+          backgroundColor: theme.custom.glassBackground,
+          borderColor: theme.custom.glassBorder,
         },
+        Platform.select({
+          web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+          default: {},
+        }),
       ]}
     >
       <View style={styles.streakRow}>
@@ -70,7 +74,7 @@ export function StatsCard({ streak, progressPercent, cardsDue }: StatsCardProps)
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
   },

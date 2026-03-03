@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,12 +10,21 @@ export default function TutorialScreen() {
   const router = useRouter();
   const theme = useAppTheme();
 
+  const glassStyle = {
+    backgroundColor: theme.custom.glassBackground,
+    borderColor: theme.custom.glassBorder,
+    ...Platform.select({
+      web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+      default: {},
+    }),
+  };
+
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['bottom']}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.content}>
         <Text
           variant="bodyMedium"
           style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
@@ -23,15 +32,7 @@ export default function TutorialScreen() {
           Configure iOS Shortcuts to trigger vocabulary challenges automatically
         </Text>
 
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: theme.custom.cardBackground,
-              borderColor: theme.custom.cardBorder,
-            },
-          ]}
-        >
+        <View style={[styles.section, glassStyle, styles.mainSection]}>
           <Text
             variant="titleSmall"
             style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
@@ -65,15 +66,7 @@ export default function TutorialScreen() {
           />
         </View>
 
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: theme.custom.cardBackground,
-              borderColor: theme.custom.cardBorder,
-            },
-          ]}
-        >
+        <View style={[styles.section, glassStyle]}>
           <Text
             variant="titleSmall"
             style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
@@ -84,12 +77,9 @@ export default function TutorialScreen() {
             variant="bodyMedium"
             style={[styles.sectionBody, { color: theme.colors.onSurfaceVariant }]}
           >
-            Repeat the same steps, but in Step 3, select "When I open an app" and choose which app to trigger LingoLock (e.g., Instagram, Twitter).
+            Repeat the same steps, but select "When I open an app" and choose which app to trigger LingoLock.
             {'\n\n'}
-            Use URL:{'\n'}
-            lingolock://challenge?source=[AppName]&count=3&type=app_open
-            {'\n\n'}
-            Replace [AppName] with the app name (e.g., Instagram).
+            Use URL: lingolock://challenge?source=[AppName]&count=3&type=app_open
           </Text>
         </View>
 
@@ -102,7 +92,7 @@ export default function TutorialScreen() {
         >
           Got It!
         </Button>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -111,18 +101,22 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  scrollContent: {
+  content: {
+    flex: 1,
     padding: 16,
-    gap: 12,
+    gap: 10,
   },
   subtitle: {
     textAlign: 'center',
     lineHeight: 22,
   },
   section: {
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     padding: 16,
+  },
+  mainSection: {
+    flex: 1,
   },
   sectionTitle: {
     fontWeight: '600',
@@ -135,12 +129,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   doneButton: {
-    marginTop: 8,
-    marginBottom: 24,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   doneButtonContent: {
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   doneButtonLabel: {
     fontSize: 16,
