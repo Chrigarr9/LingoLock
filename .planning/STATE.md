@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2.1 of 4 (02.1-pwa-deployment-content-integration)
-Plan: 3 of 3 in current phase
-Status: Phase 2.1 in progress — Plans 01 and 02 complete
-Last activity: 2026-03-03 — Completed 02.1-02-PLAN.md (PWA Manifest + Service Worker + Build Pipeline)
+Plan: 3 of 3 in current phase (COMPLETE — Task 3 Vercel deploy pending user action)
+Status: Phase 2.1 plans all executed — awaiting Vercel deployment (user action required)
+Last activity: 2026-03-03 — Completed 02.1-03-PLAN.md (Service Worker Registration + Responsive Layout + PWA Verification)
 
 Progress: [████████░░] ~75%
 
@@ -168,6 +168,15 @@ Recent decisions affecting current work:
 - Metro .web.ts platform override: zero native imports required, all service-layer code works unchanged on web
 - PWA-STORAGE blocker resolved: MMKV cannot run in browser, localStorage adapter provides identical synchronous API
 
+**From Plan 02.1-03 (Service Worker Registration + Responsive Layout):**
+- Platform.OS === 'web' guard used for web-only side effects in root layout (useEffect + SW registration)
+- navigator.serviceWorker.register with .catch() prevents unhandled rejections on restrictive browsers
+- Responsive container: outer View centers + inner View constrains to 480px maxWidth on desktop
+- Conditional rendering without wrapper on native — zero native performance impact
+- manifest.json requires a static file in public/ (expo export does not auto-generate from app.json)
+- app/+html.tsx is Expo's mechanism for customizing the root HTML document for web
+- Task 3 (Vercel deployment) is a manual step — requires GitHub import at vercel.com
+
 **From Plan 02.1-02 (PWA Manifest + Service Worker + Build Pipeline):**
 - themeColor #FFA056 (brand orange) and backgroundColor #fffcf2 (warm light theme) set in web manifest
 - display: standalone makes installed PWA look native (no browser chrome)
@@ -212,7 +221,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 02.1-02-PLAN.md (PWA Manifest + Service Worker + Build Pipeline)
+Stopped at: 02.1-03 complete — awaiting user action for Task 3 (Vercel deployment at vercel.com)
 Resume file: None
 
 ---
