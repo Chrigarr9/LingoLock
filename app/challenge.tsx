@@ -12,24 +12,43 @@ import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { buildSession, handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
 import { scheduleReview, createNewCardState } from '../src/services/fsrs';
-import { saveCardState, loadCardState, loadAudioMuted, saveAudioMuted } from '../src/services/storage';
-import { updateStatsAfterSession, recordAbort } from '../src/services/statsService';
+import {
+  saveCardState,
+  loadCardState,
+  loadAudioMuted,
+  saveAudioMuted,
+  loadNewWordsPerDay,
+  recordNewWordsIntroduced,
+} from '../src/services/storage';
+import { updateStatsAfterSession, recordAbort, getStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import type { SessionCard } from '../src/types/vocabulary';
 
 /** How long to show the answer reveal before auto-advancing on correct answer */
 const AUTO_ADVANCE_MS = 1500;
 
+function getMotivationalMessage(accuracy: number): string {
+  if (accuracy === 100) return '¡Perfecto! Every answer correct.';
+  if (accuracy >= 80) return '¡Muy bien! Great session.';
+  if (accuracy >= 60) return '¡Bien! Keep practising.';
+  return 'Every mistake is a lesson. ¡Ánimo!';
+}
+
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
     source: string;
     count: string;
     type: 'unlock' | 'app_open';
+    mode?: 'continuous' | 'fixed';
   }>();
   const router = useRouter();
   const theme = useAppTheme();
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalCardCount = useRef(0);
+  const newCardCount = useRef(0);
+
+  // Default mode to 'continuous' when absent
+  const mode = params.mode ?? 'continuous';
 
   // --------------------------------------------------------------------------
   // Session state
@@ -43,21 +62,35 @@ export default function ChallengeScreen() {
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
-
-  // Parse count param; default to 3
-  const cardCount = Math.min(parseInt(params.count || '3', 10), 10);
+  const [isEmpty, setIsEmpty] = useState(false);
 
   // --------------------------------------------------------------------------
-  // Session initialization — replace PLACEHOLDER_CARDS with buildSession
+  // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
-    const session = buildSession(cardCount, params.source);
-    setQueue(session);
-    originalCardCount.current = cardCount;
+    let session: SessionCard[];
+    if (mode === 'continuous') {
+      session = buildSession(loadNewWordsPerDay(), params.source);
+    } else {
+      // fixed mode: use count param
+      session = buildSession(parseInt(params.count || '3', 10), params.source);
+    }
+
+    if (session.length === 0) {
+      // No due cards and daily budget exhausted — show "all caught up" screen
+      setIsEmpty(true);
+      setIsComplete(true);
+    } else {
+      setQueue(session);
+      originalCardCount.current = session.length;
+
+      // Count new cards (no existing FSRS state at session start)
+      newCardCount.current = session.filter((sc) => loadCardState(sc.card.id) === null).length;
+    }
 
     console.log('[Challenge] Started:', {
       source: params.source,
-      count: cardCount,
+      mode,
       type: params.type,
       sessionLength: session.length,
     });
@@ -99,6 +132,8 @@ export default function ChallengeScreen() {
       setShowReveal(false);
     } else {
       updateStatsAfterSession(correctCount, originalCardCount.current, params.source ?? 'unknown');
+      // Record new words introduced during this session
+      recordNewWordsIntroduced(newCardCount.current);
       setIsComplete(true);
     }
   };
@@ -189,6 +224,13 @@ export default function ChallengeScreen() {
   };
 
   // --------------------------------------------------------------------------
+  // Celebration data (computed when complete)
+  // --------------------------------------------------------------------------
+  const accuracyPercent = Math.round((correctCount / (originalCardCount.current || 1)) * 100);
+  const streakCount = isComplete && !isEmpty ? getStreak() : 0;
+  const motivationalMessage = getMotivationalMessage(accuracyPercent);
+
+  // --------------------------------------------------------------------------
   // Render
   // --------------------------------------------------------------------------
   return (
@@ -203,9 +245,8 @@ export default function ChallengeScreen() {
           iconColor={theme.colors.onSurface}
           onPress={() => {
             if (advanceTimer.current) clearTimeout(advanceTimer.current);
-            // Only forced sessions (unlock/app_open) count as aborts
-            const isForced = params.type === 'unlock' || params.type === 'app_open';
-            if (isForced && !isComplete) {
+            // Only fixed forced sessions count as aborts — not voluntary continuous practice
+            if (mode === 'fixed' && !isComplete) {
               recordAbort(params.source ?? 'unknown');
             }
             router.back();
@@ -245,7 +286,7 @@ export default function ChallengeScreen() {
               variant="labelSmall"
               style={[styles.progressLabel, { color: theme.colors.onSurfaceVariant }]}
             >
-              CHAPTER {getCurrentChapter()} · CARD {currentIndex + 1} OF {originalCardCount.current || cardCount}
+              CHAPTER {getCurrentChapter()} · CARD {currentIndex + 1} OF {originalCardCount.current}
             </Text>
             <Text
               variant="labelSmall"
@@ -254,7 +295,7 @@ export default function ChallengeScreen() {
               {correctCount} correct
             </Text>
           </View>
-          <ProgressDots total={originalCardCount.current || cardCount} current={currentIndex} />
+          <ProgressDots total={originalCardCount.current} current={currentIndex} />
         </View>
       )}
 
@@ -336,26 +377,76 @@ export default function ChallengeScreen() {
         )}
 
         {/* Completion screen */}
-        {isComplete && params.source && (
+        {isComplete && (
           <View style={styles.completionArea}>
-            <View style={[styles.completionCard, glassStyle]}>
-              <Text
-                variant="displayMedium"
-                style={[styles.completionScore, { color: theme.colors.onSurface }]}
+            {isEmpty ? (
+              /* Empty session — no cards available */
+              <View style={[styles.completionCard, glassStyle]}>
+                <Text
+                  variant="headlineMedium"
+                  style={[styles.completionTitle, { color: theme.colors.onSurface }]}
+                >
+                  You're all caught up!
+                </Text>
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}
+                >
+                  No cards due and daily word budget reached. Come back tomorrow!
+                </Text>
+              </View>
+            ) : (
+              /* Normal session completion */
+              <View style={[styles.completionCard, glassStyle]}>
+                {/* Hero accuracy number */}
+                <Text
+                  variant="displayLarge"
+                  style={[styles.accuracyHero, { color: theme.custom.brandOrange }]}
+                >
+                  {accuracyPercent}%
+                </Text>
+                <Text
+                  variant="bodyMedium"
+                  style={[styles.accuracySubtitle, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  {correctCount}/{originalCardCount.current} correct answers
+                </Text>
+                <Text
+                  variant="bodyLarge"
+                  style={[styles.motivationalMessage, { color: theme.colors.onSurface }]}
+                >
+                  {motivationalMessage}
+                </Text>
+                {streakCount > 1 && (
+                  <Text
+                    variant="labelLarge"
+                    style={[styles.streakLine, { color: theme.custom.brandOrange }]}
+                  >
+                    {'\uD83D\uDD25'} {streakCount} day streak!
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Done button for voluntary/continuous practice */}
+            {(mode === 'continuous' || isEmpty) && (
+              <Pressable
+                onPress={() => router.back()}
+                style={[styles.doneButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
+                accessibilityLabel="Done"
+                accessibilityRole="button"
               >
-                {correctCount}/{originalCardCount.current || cardCount}
-              </Text>
-              <Text
-                variant="titleMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                correct answers
-              </Text>
-            </View>
-            <ContinueButton
-              sourceApp={params.source}
-              challengeType={params.type || 'app_open'}
-            />
+                <Text style={styles.doneButtonText}>Done</Text>
+              </Pressable>
+            )}
+
+            {/* ContinueButton only for fixed forced sessions */}
+            {mode === 'fixed' && !isEmpty && params.source && (
+              <ContinueButton
+                sourceApp={params.source}
+                challengeType={params.type || 'app_open'}
+              />
+            )}
           </View>
         )}
       </View>
@@ -436,9 +527,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     width: '100%',
   },
-  completionScore: {
+  completionTitle: {
     fontWeight: '700',
-    letterSpacing: -1,
+    textAlign: 'center',
+  },
+  accuracyHero: {
+    fontWeight: '800',
+    letterSpacing: -2,
+  },
+  accuracySubtitle: {
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  motivationalMessage: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  streakLine: {
+    marginTop: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  doneButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 20,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
   },
   nextButton: {
     alignSelf: 'center',
