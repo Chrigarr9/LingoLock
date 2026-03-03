@@ -136,6 +136,59 @@ export function saveAudioMuted(muted: boolean): void {
 }
 
 // ---------------------------------------------------------------------------
+// New-words-per-day preferences and daily tracking
+// ---------------------------------------------------------------------------
+
+const NEW_WORDS_PER_DAY_KEY = 'll.new_words_per_day';
+const NEW_WORDS_TODAY_KEY = 'll.new_words_today';
+const NEW_WORDS_TODAY_DATE_KEY = 'll.new_words_today_date';
+
+/**
+ * Load the configured daily new-word limit.
+ * Returns 20 if never set.
+ */
+export function loadNewWordsPerDay(): number {
+  const raw = localStorage.getItem(NEW_WORDS_PER_DAY_KEY);
+  if (raw === null) return 20;
+  const parsed = parseInt(raw, 10);
+  return isNaN(parsed) ? 20 : parsed;
+}
+
+/**
+ * Persist the daily new-word limit.
+ * Clamped to [1, 50].
+ */
+export function saveNewWordsPerDay(n: number): void {
+  localStorage.setItem(NEW_WORDS_PER_DAY_KEY, String(Math.max(1, Math.min(50, n))));
+}
+
+/**
+ * Load how many new words have been introduced today.
+ * Returns 0 if on a new calendar day or never set.
+ */
+export function loadNewWordsIntroducedToday(): number {
+  const today = new Date().toISOString().slice(0, 10);
+  const storedDate = localStorage.getItem(NEW_WORDS_TODAY_DATE_KEY);
+  if (storedDate !== today) return 0;
+  const raw = localStorage.getItem(NEW_WORDS_TODAY_KEY);
+  if (raw === null) return 0;
+  const parsed = parseInt(raw, 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Record that `count` new words were introduced today.
+ * Adds to today's running total and sets the date stamp.
+ * Call this from challenge.tsx at session completion — NOT inside buildSession.
+ */
+export function recordNewWordsIntroduced(count: number): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = loadNewWordsIntroducedToday();
+  localStorage.setItem(NEW_WORDS_TODAY_DATE_KEY, today);
+  localStorage.setItem(NEW_WORDS_TODAY_KEY, String(current + count));
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 
