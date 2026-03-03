@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "expo": "~55.0.0",
+    "expo-av": "^16.0.8",
     "expo-constants": "~55.0.7",
     "expo-dev-client": "~55.0.10",
     "expo-linking": "~55.0.7",
