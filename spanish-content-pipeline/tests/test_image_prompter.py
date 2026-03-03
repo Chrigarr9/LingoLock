@@ -156,3 +156,32 @@ def test_prompt_includes_protagonist_info(tmp_path):
     prompt = call_args.kwargs.get("prompt") or call_args.args[0]
     assert "Charlotte" in prompt
     assert "light brown hair" in prompt
+
+
+def test_prompt_includes_vocabulary_words(tmp_path):
+    config = make_config(tmp_path)
+    mock_llm = MagicMock()
+    mock_llm.complete_json.return_value = LLMResponse(
+        content=json.dumps(MOCK_LLM_RESPONSE),
+        usage=Usage(prompt_tokens=500, completion_tokens=200, total_tokens=700),
+        parsed=MOCK_LLM_RESPONSE,
+    )
+
+    stories = {0: "La maleta es muy grande."}
+    translations = {0: [
+        {"chapter": 1, "sentence_index": 0, "source": "La maleta es muy grande.", "target": "Der Koffer ist sehr groß."},
+    ]}
+    words = {0: [
+        {"source": "maleta", "target": "Koffer", "lemma": "maleta", "pos": "noun", "context_note": "feminine singular"},
+        {"source": "grande", "target": "groß", "lemma": "grande", "pos": "adjective", "context_note": "singular"},
+        {"source": "es", "target": "ist", "lemma": "ser", "pos": "verb", "context_note": "3rd person singular"},
+    ]}
+
+    prompter = ImagePrompter(config, mock_llm, output_base=tmp_path)
+    prompter.generate_prompts(stories, translations, words)
+
+    call_args = mock_llm.complete_json.call_args
+    prompt = call_args.kwargs.get("prompt") or call_args.args[0]
+    # Nouns and adjectives should appear as vocab annotations
+    assert "maleta (noun: Koffer)" in prompt
+    assert "grande (adjective: groß)" in prompt

@@ -143,16 +143,26 @@ class ImageGenerator:
         # Step A: Generate reference
         ref_path = self.generate_reference(prompts.protagonist_prompt, prompts.style)
 
-        # Step B: Generate sentence images
+        # Step B: Generate sentence images (dedup identical prompts)
         all_images = dict(existing_images)
+        prompt_to_entry: dict[str, ImageManifestEntry] = {}
         for prompt in prompts.sentences:
             key = self._sentence_key(prompt)
             if key in existing_images:
                 continue  # Already generated
 
+            # Reuse image if an identical prompt was already generated
+            if prompt.prompt in prompt_to_entry:
+                prev = prompt_to_entry[prompt.prompt]
+                all_images[key] = ImageManifestEntry(file=prev.file, status=prev.status)
+                print(f"    Reusing for {key} (same scene)")
+                continue
+
             print(f"    Generating {key} ({prompt.image_type})...", end=" ", flush=True)
             entry = self.generate_sentence_image(prompt, prompts.style, ref_path)
             all_images[key] = entry
+            if entry.status == "success":
+                prompt_to_entry[prompt.prompt] = entry
             print(entry.status)
 
         # Step C: Write manifest

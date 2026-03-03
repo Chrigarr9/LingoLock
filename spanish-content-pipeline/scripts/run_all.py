@@ -142,16 +142,20 @@ def main():
         print("\n=== Pass 4: Image Prompt Generation ===")
         prompter = ImagePrompter(config, llm, output_base=output_base)
 
-        # Collect all stories and translations for full-context prompting
+        # Collect all stories, translations, and words for full-context prompting
         all_stories = {}
         all_translations = {}
+        all_words: dict[int, list[dict]] = {}
         for i in chapter_range:
             all_stories[i] = stories[i]
             trans_path = output_base / config.deck.id / "translations" / f"chapter_{i + 1:02d}.json"
             if trans_path.exists():
                 all_translations[i] = json.loads(trans_path.read_text())
+            words_path = output_base / config.deck.id / "words" / f"chapter_{i + 1:02d}.json"
+            if words_path.exists():
+                all_words[i] = json.loads(words_path.read_text()).get("words", [])
 
-        image_prompts = prompter.generate_prompts(all_stories, all_translations)
+        image_prompts = prompter.generate_prompts(all_stories, all_translations, all_words)
         print(f"  {len(image_prompts.sentences)} image prompts generated")
 
         # Pass 5: Image Generation
