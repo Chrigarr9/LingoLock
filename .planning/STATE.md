@@ -191,6 +191,7 @@ Recent decisions affecting current work:
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
 - Phase 2.1 inserted after Phase 2: PWA Deployment & Content Integration (strategic pivot to PWA-first testing)
+- Phase 2.2 inserted after Phase 2: App Polish & Missing Screens (URGENT) — infinite practice session, Stats screen, Vocabulary browser, Settings screen, emoji→icon replacement
 
 ### Pending Todos
 
