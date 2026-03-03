@@ -57,15 +57,31 @@ class ImageGenerator:
         last_error = None
         for attempt in range(self._max_retries):
             response = self._client.post(TOGETHER_API_URL, json=payload, headers=headers)
-            if response.status_code < 500:
-                response.raise_for_status()
+            if response.status_code == 200:
                 break
-            last_error = response
-            if attempt < self._max_retries - 1:
-                time.sleep(2 * (attempt + 1))
+            # Retry on 5xx (server) and 422 (transient moderation/validation)
+            if response.status_code >= 500 or response.status_code == 422:
+                last_error = response
+                if attempt < self._max_retries - 1:
+                    delay = 2 * (attempt + 1)
+                    print(f"\n      Retry {attempt + 1}/{self._max_retries} after {response.status_code} (waiting {delay}s)...", end="", flush=True)
+                    time.sleep(delay)
+                continue
+            # Other 4xx errors — raise immediately with response body
+            body = response.text[:500]
+            raise httpx.HTTPStatusError(
+                f"{response.status_code} for {response.url}: {body}",
+                request=response.request,
+                response=response,
+            )
         else:
             if last_error:
-                last_error.raise_for_status()
+                body = last_error.text[:500]
+                raise httpx.HTTPStatusError(
+                    f"{last_error.status_code} for {last_error.url} after {self._max_retries} retries: {body}",
+                    request=last_error.request,
+                    response=last_error,
+                )
 
         data = response.json()
         b64_data = data["data"][0]["b64_json"]
@@ -102,7 +118,7 @@ class ImageGenerator:
         rel_path = f"images/{key}.webp"
         abs_path = self._deck_dir() / rel_path
 
-        full_prompt = f"{prompt.prompt}. Style: {style}"
+        full_prompt = prompt.prompt
 
         try:
             image_url = None

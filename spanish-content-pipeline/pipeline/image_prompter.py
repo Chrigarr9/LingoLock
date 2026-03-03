@@ -22,9 +22,14 @@ You are a visual scene designer for a language learning app. Given a story with 
 sentences and their KEY VOCABULARY, create an image prompt for each sentence \
 that helps learners remember the vocabulary through visual association.
 
-## Characters
-When showing people, describe them by HAIR, CLOTHING, and BODY TYPE — that is enough \
-for recognition. Do not describe facial features in detail.
+## Character Consistency — CRITICAL
+You will be given a VISUAL_TAG for the protagonist and for any secondary characters. \
+When a character appears in a scene, you MUST include their VISUAL_TAG phrase exactly \
+as given. Do not abbreviate, rephrase, or drop any part of it. This is the ONLY way \
+to keep characters looking consistent across all images.
+
+When showing unnamed/background people, describe them by HAIR, CLOTHING, and BODY TYPE. \
+Do not describe facial features in detail for anyone.
 
 ## Composition
 - Show characters as part of a rich environment — not isolated portraits.
@@ -54,7 +59,7 @@ picture book storyboard when viewed as thumbnails.
 - Two places mentioned → pick ONE, show it as a single scene.
 
 ## Prompt Length
-Keep each prompt SHORT — under 200 characters after the style prefix. \
+Keep each prompt under 250 characters after the style prefix. \
 Describe one clear scene simply. Do not over-describe.
 
 Write prompts in English. Be specific but concise."""
@@ -172,10 +177,29 @@ class ImagePrompter:
 
         chapters_text = "\n\n".join(chapter_sections)
 
+        visual_tag = p.visual_tag or p.description
+
+        # Build secondary characters section
+        secondary_chars = self._config.secondary_characters
+        char_tags_section = ""
+        if secondary_chars:
+            lines = []
+            for sc in secondary_chars:
+                ch_list = ", ".join(str(c) for c in sc.chapters)
+                lines.append(f"- {sc.name} (chapters {ch_list}): {sc.visual_tag}")
+            char_tags_section = (
+                "\n\n## Secondary Character VISUAL_TAGs\n"
+                + "\n".join(lines)
+                + "\nUse the exact VISUAL_TAG when these characters appear in their chapters."
+            )
+
         return f"""Create image prompts for a language learning story. Think of it as a picture book storyboard.
 
 ## Protagonist
 {p.name}: {p.description}
+
+## VISUAL_TAG (use this EXACT phrase when {p.name} appears)
+{visual_tag}{char_tags_section}
 
 ## Art Style (MUST start every prompt)
 {style}
@@ -185,35 +209,40 @@ class ImagePrompter:
 
 ## Instructions
 Return a JSON object with:
-- "protagonist_prompt": A portrait description of {p.name} ({p.description}) for reference.
+- "protagonist_prompt": A portrait description of {p.name} ({p.description}) for reference. \
+Start with the style prefix.
 - "sentences": An array with one entry per sentence listed above. Each entry has:
   - "chapter": chapter number (1-indexed)
   - "sentence_index": sentence index within chapter (0-indexed)
   - "source": the original sentence
   - "image_type": always "scene_only"
   - "characters": always empty list []
-  - "prompt": Start with "{style}." then describe the scene. Show characters \
-within their environment, not as isolated portraits. Make vocabulary objects \
-prominent. NEVER include text/labels. NEVER split layouts.
+  - "prompt": Start with "{style}." then describe the scene. When {p.name} is visible, \
+include their VISUAL_TAG ("{visual_tag}") in the prompt — do NOT abbreviate it. \
+When secondary characters appear, include their VISUAL_TAG too. \
+Show characters within their environment. Make vocabulary objects prominent. \
+NEVER include text/labels. NEVER split layouts. \
+End every prompt with "no text, no writing, no letters."
   - "setting": a short snake_case tag for the location
 
 RULES:
 1. Generate a prompt for EVERY sentence listed above — no skipping.
 2. Every prompt starts with the art style string.
-3. Show characters IN their environment — medium/wide shots, never isolated portraits.
-4. Vocabulary objects should be clearly visible and well-placed in the scene.
-5. Phone calls: show only the caller's side (their room, the phone, the window). \
+3. CHARACTER CONSISTENCY: When {p.name} appears, always include their VISUAL_TAG \
+("{visual_tag}") — never shorten to just a name or "slim". When secondary characters \
+appear, use their VISUAL_TAG exactly. This is critical for visual consistency.
+4. Show characters IN their environment — medium/wide shots, never isolated portraits.
+5. Vocabulary objects should be clearly visible and well-placed in the scene.
+6. Phone calls: show only the caller's side (their room, the phone, the window). \
 Never show both callers together.
-6. Two people in the same image are fine IF they are physically together in the story.
-7. No text, writing, or labels. No multi-panel/split layouts.
-8. Two places mentioned → pick ONE, show it as a single scene.
-9. NEVER use "split", "side by side", "panoramic", "skyline" in any prompt.
-10. VARIETY across the ENTIRE chapter: every image must feel distinct from ALL \
+7. Two people in the same image are fine IF they are physically together in the story.
+8. No text, writing, labels, signs, books with visible pages, or newspapers. \
+No multi-panel/split layouts.
+9. Two places mentioned → pick ONE, show it as a single scene.
+10. NEVER use "split", "side by side", "panoramic", "skyline" in any prompt.
+11. VARIETY across the ENTIRE chapter: every image must feel distinct from ALL \
 others in the chapter — not just its neighbors. Vary SUBJECT, ANGLE, COLOR PALETTE, \
-and FRAMING throughout. Use the full range: close-ups of objects, wide room shots, \
-outdoor views, character actions, overhead/bird's-eye angles, detail shots of hands, \
-low-angle views. Before writing each prompt, consider what you already described — \
-if a suitcase appeared 2 images ago, do NOT show it again. Each image should be \
-immediately recognizable as different when seen as thumbnails side by side.
-11. EXAGGERATE the key vocabulary object — make it comically large, dramatically \
-lit, or impossibly prominent. This is a picture book, not a photograph."""
+and FRAMING throughout.
+12. EXAGGERATE the key vocabulary object — make it comically large, dramatically \
+lit, or impossibly prominent. This is a cartoon, not a photograph.
+13. Every prompt MUST end with the phrase: no text, no writing, no letters."""

@@ -14,7 +14,8 @@ protagonist:
   gender: "female"
   origin_country: "Germany"
   origin_city: "Berlin"
-  description: "mid-20s, light brown shoulder-length hair, warm brown eyes, slim build"
+  description: "mid-20s, shoulder-length wavy light-brown hair with a side part, warm brown eyes, slim build, wears a cozy dark-teal cardigan over a white t-shirt and light blue jeans"
+  visual_tag: "a slim young woman with wavy shoulder-length light-brown hair, dark-teal cardigan, white shirt"
 
 destination:
   country: "Argentina"
@@ -77,8 +78,13 @@ llm:
 image_generation:
   enabled: true
   provider: "together"
-  model: "black-forest-labs/FLUX.1-kontext-dev"
-  cheap_model: "black-forest-labs/FLUX.1-schnell"
-  style: "warm storybook illustration, semi-realistic modern picture book, soft lighting, rich colors"
+  model: "black-forest-labs/FLUX.1-kontext-pro"
+  cheap_model: "black-forest-labs/FLUX.2-dev"
+  style: "modern cartoon illustration, crisp outlines, vibrant flat colors, cel-shaded, warm palette"
   width: 768
   height: 512
+
+secondary_characters:
+  - name: "Taxi Driver"
+    visual_tag: "a stocky middle-aged man with a gray flat cap, thick dark mustache, olive-green jacket"
+    chapters: [2]
