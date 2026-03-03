@@ -91,7 +91,7 @@ Plans:
   6. Home screen shows time-based Spanish greeting, wired tile navigation, and "Review anyway" empty state
   7. Tutorial link hidden on web (Platform check)
   8. All new storage functions have parallel web adapter implementations
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 02.2-01-PLAN.md -- Settings storage + daily cap in cardSelector + Settings screen + route registration
