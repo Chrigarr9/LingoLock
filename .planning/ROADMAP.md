@@ -77,6 +77,16 @@ Plans:
 - [ ] 02-04-PLAN.md — Cloze challenge screen UI + FSRS-driven session flow
 - [ ] 02-05-PLAN.md — Home screen wiring + end-to-end verification
 
+### Phase 02.1: PWA Deployment & Content Integration (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 2
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 02.1 to break down)
+
 ### Phase 3: Notifications & Live Activities
 **Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen widget
 **Depends on**: Phase 2 (needs FSRS scheduling and card data)

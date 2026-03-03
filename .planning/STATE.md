@@ -160,6 +160,11 @@ Recent decisions affecting current work:
 - placeholderVocabulary.ts kept (not deleted) with @deprecated JSDoc to avoid breaking tutorial/test references
 - Focus-refresh pattern established: useFocusEffect wrapping stat-loading callbacks on dashboard screens
 
+### Roadmap Evolution
+
+- Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
+- Phase 2.1 inserted after Phase 2: PWA Deployment & Content Integration (strategic pivot to PWA-first testing)
+
 ### Pending Todos
 
 [From .planning/todos/pending/ — ideas captured during sessions]
@@ -180,9 +185,11 @@ None yet.
 - DeviceActivityMonitor callbacks unreliable in production; architecture must use direct ManagedSettings
 - Shield UI cannot open parent app; vocabulary prompts must appear BEFORE blocking
 
-**Phase 4:**
-- APKG parsing may encounter schema variations across Anki versions; test with diverse real-world decks
-- Large decks (2GB+) can cause memory issues; implement file size limits and chunked processing
+**Phase 2.1 (Open Questions):**
+- Data delivery architecture: how vocabulary data reaches the phone (bundled vs. downloaded per language pair)
+- User accounts & progress sync: needed for device migration, or local storage sufficient?
+- Content security: preventing extraction of vocabulary datasets
+- PWA limitations: MMKV is native-only, need IndexedDB/localStorage fallback for web
 
 ## Session Continuity
 
