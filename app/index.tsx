@@ -8,6 +8,13 @@ import { useAppTheme } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { getTotalCards } from '../src/content/bundle';
 
+function getSpanishGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días';   // 0-11
+  if (hour < 20) return 'Buenas tardes'; // 12-19
+  return 'Buenas noches';                 // 20-23
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
@@ -16,6 +23,7 @@ export default function HomeScreen() {
   const [chapterProgress, setChapterProgress] = useState(0);
   const [cardsDue, setCardsDue] = useState(0);
   const [currentChapter, setCurrentChapter] = useState(1);
+  const [greeting, setGreeting] = useState(getSpanishGreeting);
 
   // Refresh stats when screen gains focus (returning from challenge)
   useFocusEffect(
@@ -25,6 +33,8 @@ export default function HomeScreen() {
       setCurrentChapter(chapter);
       setChapterProgress(getChapterMastery(chapter));
       setCardsDue(getCardsDueCount());
+      // Refresh greeting in case time-of-day has changed
+      setGreeting(getSpanishGreeting());
     }, [])
   );
 
@@ -36,6 +46,9 @@ export default function HomeScreen() {
       default: {},
     }),
   };
+
+  // CTA label changes based on whether any cards are due
+  const ctaLabel = cardsDue === 0 ? 'Review anyway' : 'Start Practice';
 
   return (
     <SafeAreaView
@@ -62,6 +75,8 @@ export default function HomeScreen() {
             icon="cog-outline"
             size={22}
             iconColor={theme.colors.onSurfaceVariant}
+            onPress={() => router.push('/settings')}
+            accessibilityLabel="Settings"
           />
         </View>
 
@@ -87,7 +102,7 @@ export default function HomeScreen() {
           variant="displaySmall"
           style={[styles.greeting, { color: theme.colors.onSurface }]}
         >
-          {'¡Hola!\nReady to practice?'}
+          {`${greeting}\nReady to practice?`}
         </Text>
 
         {/* Stats Grid */}
@@ -157,17 +172,17 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Start Practice CTA */}
+        {/* Start Practice / Review anyway CTA */}
         <Pressable
           onPress={() =>
             router.push({
               pathname: '/challenge',
-              params: { source: 'Practice', count: '5', type: 'app_open' },
+              params: { source: 'Practice', type: 'app_open', mode: 'continuous' },
             })
           }
           style={[styles.ctaButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
         >
-          <Text style={styles.ctaText}>Start Practice</Text>
+          <Text style={styles.ctaText}>{ctaLabel}</Text>
           <Text style={styles.ctaArrow}>{'\u25B6'}</Text>
         </Pressable>
 
@@ -176,8 +191,10 @@ export default function HomeScreen() {
           {/* Quick Actions */}
           <View style={styles.quickActions}>
             <Pressable
-              onPress={() => {}}
+              onPress={() => router.push('/vocabulary')}
               style={[styles.actionTile, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+              accessibilityLabel="Vocabulary"
+              accessibilityRole="button"
             >
               <Text style={[styles.actionIcon, { color: theme.custom.brandOrange }]}>
                 {'\uD83D\uDCD6'}
@@ -190,8 +207,10 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => {}}
+              onPress={() => router.push('/stats')}
               style={[styles.actionTile, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+              accessibilityLabel="Stats"
+              accessibilityRole="button"
             >
               <Text style={[styles.actionIcon, { color: theme.custom.brandOrange }]}>
                 {'\uD83D\uDCCA'}
@@ -205,17 +224,19 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* Tutorial link */}
-          <Pressable
-            onPress={() => router.push('/tutorial')}
-            style={[styles.tutorialLink, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
-          >
-            <Text style={{ color: theme.custom.brandOrange, fontSize: 18 }}>{'\uD83D\uDCD6'}</Text>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
-              Setup Tutorial
-            </Text>
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>{'\u203A'}</Text>
-          </Pressable>
+          {/* Tutorial link — hidden on web */}
+          {Platform.OS !== 'web' && (
+            <Pressable
+              onPress={() => router.push('/tutorial')}
+              style={[styles.tutorialLink, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+            >
+              <Text style={{ color: theme.custom.brandOrange, fontSize: 18 }}>{'\uD83D\uDCD6'}</Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
+                Setup Tutorial
+              </Text>
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>{'\u203A'}</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>
