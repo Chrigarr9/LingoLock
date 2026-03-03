@@ -7,6 +7,9 @@ from pipeline.models import (
     CoverageReport,
     DeckChapter,
     OrderedDeck,
+    ImagePrompt,
+    ImageManifestEntry,
+    ImageManifest,
 )
 
 
@@ -187,3 +190,51 @@ def test_ordered_deck():
     )
     assert deck.total_words == 1
     assert deck.chapters[0].title == "Preparation"
+
+
+def test_image_prompt_character_scene():
+    prompt = ImagePrompt(
+        chapter=1,
+        sentence_index=0,
+        source="María está en su habitación.",
+        image_type="character_scene",
+        characters=["protagonist"],
+        prompt="A young woman folding clothes in a cozy bedroom",
+        setting="maria_bedroom_berlin",
+    )
+    assert prompt.image_type == "character_scene"
+    assert "protagonist" in prompt.characters
+
+
+def test_image_prompt_scene_only():
+    prompt = ImagePrompt(
+        chapter=2,
+        sentence_index=3,
+        source="Las calles están llenas de gente.",
+        image_type="scene_only",
+        characters=[],
+        prompt="A busy street with colorful buildings",
+        setting="buenos_aires_street",
+    )
+    assert prompt.characters == []
+
+
+def test_image_manifest_entry():
+    entry = ImageManifestEntry(file="images/ch01_s00.webp", status="success")
+    assert entry.status == "success"
+    assert entry.error is None
+
+
+def test_image_manifest_entry_failed():
+    entry = ImageManifestEntry(file=None, status="failed", error="API timeout")
+    assert entry.file is None
+
+
+def test_image_manifest():
+    manifest = ImageManifest(
+        reference="references/protagonist.webp",
+        model_character="flux-kontext-dev",
+        model_scene="flux-schnell",
+        images={"ch01_s00": ImageManifestEntry(file="images/ch01_s00.webp", status="success")},
+    )
+    assert manifest.images["ch01_s00"].status == "success"

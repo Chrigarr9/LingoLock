@@ -62,3 +62,26 @@ class CoverageReport(BaseModel):
     top_1000_total: int
     coverage_percent: float
     missing_top_100: list[str]  # Most frequent missing words
+
+
+class ImagePrompt(BaseModel):
+    chapter: int
+    sentence_index: int
+    source: str  # Original sentence in target language
+    image_type: str  # "character_scene" or "scene_only"
+    characters: list[str] = []  # e.g. ["protagonist"]
+    prompt: str  # English visual description for image generation
+    setting: str = ""  # Reusable setting tag (e.g. "maria_bedroom_berlin")
+
+
+class ImageManifestEntry(BaseModel):
+    file: str | None  # Relative path to image, or None if failed
+    status: str  # "success" or "failed"
+    error: str | None = None
+
+
+class ImageManifest(BaseModel):
+    reference: str  # Path to protagonist reference image
+    model_character: str
+    model_scene: str
+    images: dict[str, ImageManifestEntry]  # Key: "ch{NN}_s{NN}"
