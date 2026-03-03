@@ -31,7 +31,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "LingoLock",
+      "shortName": "LingoLock",
+      "description": "Vocabulary learning with spaced repetition",
+      "themeColor": "#FFA056",
+      "backgroundColor": "#fffcf2",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "plugins": [
       "expo-router",
