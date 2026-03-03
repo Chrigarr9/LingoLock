@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Platform, View, useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
 import { ChallengeParams } from '../src/types/vocabulary';
@@ -9,6 +10,14 @@ export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('[SW] Registration failed:', err);
+      });
+    }
+  }, []);
 
   const handleDeepLink = (params: ChallengeParams) => {
     console.log('[App] Deep link received:', params);
@@ -24,26 +33,38 @@ export default function RootLayout() {
 
   useDeepLink(handleDeepLink);
 
+  const content = (
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="challenge"
+        options={{
+          presentation: 'fullScreenModal',
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="tutorial"
+        options={{
+          presentation: 'modal',
+          title: 'Setup Tutorial',
+        }}
+      />
+    </Stack>
+  );
+
   return (
     <PaperProvider theme={theme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="challenge"
-          options={{
-            presentation: 'fullScreenModal',
-            headerShown: false,
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen
-          name="tutorial"
-          options={{
-            presentation: 'modal',
-            title: 'Setup Tutorial',
-          }}
-        />
-      </Stack>
+      {Platform.OS === 'web' ? (
+        <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
+          <View style={{ flex: 1, width: '100%', maxWidth: 480 }}>
+            {content}
+          </View>
+        </View>
+      ) : (
+        content
+      )}
     </PaperProvider>
   );
 }
