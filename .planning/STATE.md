@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T18:26:32.514Z"
+status: in_progress
+last_updated: "2026-03-03T20:23:59Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 15
+  completed_plans: 15
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch intelligentes App-Blocking, ohne dass der User aktiv eine Lern-Session starten muss.
-**Current focus:** Phase 2 - Spaced Repetition & Progress
+**Current focus:** Phase 2.1 - PWA Deployment & Content Integration
 
 ## Current Position
 
-Phase: 2 of 4 (2-spaced-repetition-progress)
-Plan: 5 of 5 in current phase
-Status: Phase 2 complete
-Last activity: 2026-03-02 — Completed 02-05-PLAN.md (Home Screen Wired to Real Stats)
+Phase: 2.1 of 4 (02.1-pwa-deployment-content-integration)
+Plan: 3 of 3 in current phase
+Status: Phase 2.1 in progress — Plans 01 and 02 complete
+Last activity: 2026-03-03 — Completed 02.1-02-PLAN.md (PWA Manifest + Service Worker + Build Pipeline)
 
-Progress: [██████░░░░] ~60%
+Progress: [████████░░] ~75%
 
 ## Performance Metrics
 
@@ -42,9 +42,10 @@ Progress: [██████░░░░] ~60%
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
+| 02.1-pwa-deployment-content-integration | 2/3 | ~6min | ~2min |
 
 **Recent Trend:**
-- Last 3 plans: 02-03 (5min), 02-04 (3min), 02-05 (5min)
+- Last 3 plans: 02-05 (5min), 02.1-02 (2min), 02.1-01 (2min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -160,6 +161,23 @@ Recent decisions affecting current work:
 - placeholderVocabulary.ts kept (not deleted) with @deprecated JSDoc to avoid breaking tutorial/test references
 - Focus-refresh pattern established: useFocusEffect wrapping stat-loading callbacks on dashboard screens
 
+**From Plan 02.1-01 (Web Storage Adapter — localStorage):**
+- Key prefix ll. used for all LingoLock localStorage keys (ll.card.{id}, ll.stats, ll.audio_muted)
+- Boolean audio mute stored as string 'true'/'false' via String(muted) — matches MMKV boolean semantics
+- clearAllData snapshots keys before deletion to avoid mutation-during-iteration issues
+- Metro .web.ts platform override: zero native imports required, all service-layer code works unchanged on web
+- PWA-STORAGE blocker resolved: MMKV cannot run in browser, localStorage adapter provides identical synchronous API
+
+**From Plan 02.1-02 (PWA Manifest + Service Worker + Build Pipeline):**
+- themeColor #FFA056 (brand orange) and backgroundColor #fffcf2 (warm light theme) set in web manifest
+- display: standalone makes installed PWA look native (no browser chrome)
+- skipWaiting + clients.claim: new SW activates immediately on redeploy without waiting for tab close
+- Navigation requests use network-first to ensure fresh HTML after Vercel deploys
+- Static assets use cache-first for performance (Metro content-hashes bundle filenames, so new deploys get new URLs)
+- No pre-caching of JS/CSS bundles: filenames include hashes unknown at authoring time; cached on first fetch
+- public/ pattern: static files placed in public/ are copied verbatim to dist/ by expo export
+- build:web chains build:content first to ensure fresh content bundle in every web build
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
@@ -189,14 +207,14 @@ None yet.
 - Data delivery architecture: how vocabulary data reaches the phone (bundled vs. downloaded per language pair)
 - User accounts & progress sync: needed for device migration, or local storage sufficient?
 - Content security: preventing extraction of vocabulary datasets
-- PWA limitations: MMKV is native-only, need IndexedDB/localStorage fallback for web
+- ~~PWA limitations: MMKV is native-only, need IndexedDB/localStorage fallback for web~~ — RESOLVED (02.1-01)
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed 02-05-PLAN.md (Home Screen Wired to Real Stats) — Phase 2 complete
+Last session: 2026-03-03
+Stopped at: Completed 02.1-01-PLAN.md (Web Storage Adapter — localStorage)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-02 (02-05 complete — Phase 2 complete)*
+*Last updated: 2026-03-03 (02.1-01 complete — web storage adapter ready, PWA-STORAGE resolved)*

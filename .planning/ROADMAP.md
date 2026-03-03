@@ -90,11 +90,11 @@ Plans:
   5. Desktop browser shows centered ~480px layout (not full-width stretch)
   6. Vercel auto-deploys on push to master via GitHub integration
   7. build:web script chains content generation with expo web export
-**Plans:** 3 plans in 2 waves
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 02.1-01-PLAN.md -- Web storage adapter (localStorage platform file)
-- [ ] 02.1-02-PLAN.md -- PWA config, service worker, and build pipeline
+- [x] 02.1-02-PLAN.md -- PWA config, service worker, and build pipeline
 - [ ] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
 
 ### Phase 3: Notifications & Live Activities
@@ -152,9 +152,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2003-03-02 |
 | 2. Spaced Repetition & Progress | 5/5 | Complete   | 2003-03-02 |
+| 2.1 PWA Deployment & Content Integration | 1/3 | In progress | - |
 | 3. Notifications & Live Activities | 0/TBD | Not started | - |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2003-03-01*
-*Last updated: 2003-03-02 (Phase 1 executed, awaiting device testing)*
+*Last updated: 2026-03-03 (02.1-02 complete — PWA manifest, service worker, build:web script)*
