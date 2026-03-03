@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Audio, AVPlaybackStatus } from 'expo-av';
@@ -32,6 +32,9 @@ export function ClozeCardDisplay({
   const theme = useAppTheme();
   const { card, answerType } = sessionCard;
   const soundRef = useRef<Audio.Sound | null>(null);
+  // Ref to always call the latest onAudioFinish callback without re-triggering the effect
+  const onAudioFinishRef = useRef(onAudioFinish);
+  onAudioFinishRef.current = onAudioFinish;
 
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
@@ -66,13 +69,13 @@ export function ClozeCardDisplay({
 
         sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
           if (status.isLoaded && status.didJustFinish) {
-            onAudioFinish?.();
+            onAudioFinishRef.current?.();
           }
         });
       } catch (_err) {
         // Audio failed to load — treat as if no audio (call onAudioFinish
         // so challenge screen falls back to timer-based advance)
-        onAudioFinish?.();
+        onAudioFinishRef.current?.();
       }
     };
 
@@ -98,7 +101,12 @@ export function ClozeCardDisplay({
   }, []);
 
   // --- Image error handling ---
-  const [imageError, setImageError] = React.useState(false);
+  const [imageError, setImageError] = useState(false);
+  // Reset error state when card changes so a previous card's broken image
+  // doesn't hide the next card's image
+  useEffect(() => {
+    setImageError(false);
+  }, [card.id]);
   const showImage = !!card.image && !imageError;
 
   return (
