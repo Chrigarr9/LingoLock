@@ -163,6 +163,74 @@ export function getCardsDueCount(): number {
 }
 
 // ---------------------------------------------------------------------------
+// Abort tracking
+// ---------------------------------------------------------------------------
+
+/** Max allowed forced-session aborts per day before streak breaks */
+const MAX_DAILY_ABORTS = 2;
+
+/**
+ * Ensure abort counters are for today. If lastAbortDate is not today, reset.
+ * Handles migration from older stats that lack abort fields.
+ */
+function normalizeAbortStats(stats: import('../types/vocabulary').PersistedStats): void {
+  // Migration: old stats may lack abort fields
+  if (stats.abortsToday === undefined) stats.abortsToday = 0;
+  if (stats.lastAbortDate === undefined) stats.lastAbortDate = null;
+  if (stats.totalAborts === undefined) stats.totalAborts = 0;
+
+  const todayStr = getTodayString();
+  if (stats.lastAbortDate !== todayStr) {
+    stats.abortsToday = 0;
+    stats.lastAbortDate = todayStr;
+  }
+}
+
+/**
+ * Record a forced-session abort. If this is the 3rd abort today, streak resets to 0.
+ *
+ * Only call this for forced sessions (type: 'unlock' | 'app_open').
+ * Voluntary practice aborts should NOT call this.
+ *
+ * @param sourceApp  The app that triggered the session (for per-app tracking)
+ * @returns true if streak was broken by this abort
+ */
+export function recordAbort(sourceApp: string): boolean {
+  const stats = loadStats();
+  normalizeAbortStats(stats);
+
+  stats.abortsToday += 1;
+  stats.totalAborts += 1;
+
+  const streakBroken = stats.abortsToday >= MAX_DAILY_ABORTS + 1; // 3rd abort breaks it
+  if (streakBroken) {
+    stats.currentStreak = 0;
+  }
+
+  saveStats(stats);
+  return streakBroken;
+}
+
+/**
+ * Returns whether the user can still abort without losing their streak.
+ * true = safe to abort (under the daily limit), false = next abort breaks streak.
+ */
+export function canAbortSafely(): boolean {
+  const stats = loadStats();
+  normalizeAbortStats(stats);
+  return stats.abortsToday < MAX_DAILY_ABORTS;
+}
+
+/**
+ * Returns the number of forced-session aborts today.
+ */
+export function getAbortsToday(): number {
+  const stats = loadStats();
+  normalizeAbortStats(stats);
+  return stats.abortsToday;
+}
+
+// ---------------------------------------------------------------------------
 // getCurrentChapterNumber
 // ---------------------------------------------------------------------------
 

@@ -54,6 +54,9 @@ import {
   getChapterMastery,
   getCardsDueCount,
   getCurrentChapterNumber,
+  recordAbort,
+  canAbortSafely,
+  getAbortsToday,
 } from './statsService';
 import { loadStats, saveStats, loadAllCardStates, loadCardState } from './storage';
 import { isCardMastered, isDue } from './fsrs';
@@ -76,6 +79,9 @@ function makeDefaultStats(): import('../types/vocabulary').PersistedStats {
     totalCorrect: 0,
     totalAnswered: 0,
     perAppStats: {},
+    abortsToday: 0,
+    lastAbortDate: null,
+    totalAborts: 0,
   };
 }
 
@@ -351,5 +357,129 @@ describe('getCurrentChapterNumber', () => {
   test('delegates to cardSelector.getCurrentChapter', () => {
     // Mock returns 1 by default (set up in jest.mock at top)
     expect(getCurrentChapterNumber()).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Abort tracking tests
+// ---------------------------------------------------------------------------
+
+describe('recordAbort', () => {
+  test('first abort increments abortsToday to 1, does not break streak', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 5,
+      lastSessionDate: today(),
+    });
+
+    const broken = recordAbort('Instagram');
+
+    expect(broken).toBe(false);
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.abortsToday).toBe(1);
+    expect(saved.totalAborts).toBe(1);
+    expect(saved.currentStreak).toBe(5);
+  });
+
+  test('second abort does not break streak', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 5,
+      lastSessionDate: today(),
+      abortsToday: 1,
+      lastAbortDate: today(),
+      totalAborts: 1,
+    });
+
+    const broken = recordAbort('TikTok');
+
+    expect(broken).toBe(false);
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.abortsToday).toBe(2);
+    expect(saved.currentStreak).toBe(5);
+  });
+
+  test('third abort breaks streak — resets to 0', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 12,
+      lastSessionDate: today(),
+      abortsToday: 2,
+      lastAbortDate: today(),
+      totalAborts: 5,
+    });
+
+    const broken = recordAbort('YouTube');
+
+    expect(broken).toBe(true);
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.abortsToday).toBe(3);
+    expect(saved.totalAborts).toBe(6);
+    expect(saved.currentStreak).toBe(0);
+  });
+
+  test('aborts from previous day reset to 0 before counting', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 3,
+      lastSessionDate: today(),
+      abortsToday: 2,
+      lastAbortDate: yesterday(),
+      totalAborts: 10,
+    });
+
+    const broken = recordAbort('Instagram');
+
+    expect(broken).toBe(false);
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    // abortsToday was reset to 0 (new day), then incremented to 1
+    expect(saved.abortsToday).toBe(1);
+    expect(saved.totalAborts).toBe(11);
+    expect(saved.currentStreak).toBe(3);
+  });
+});
+
+describe('canAbortSafely', () => {
+  test('returns true when 0 aborts today', () => {
+    mockLoadStats.mockReturnValue(makeDefaultStats());
+    expect(canAbortSafely()).toBe(true);
+  });
+
+  test('returns true when 1 abort today', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      abortsToday: 1,
+      lastAbortDate: today(),
+    });
+    expect(canAbortSafely()).toBe(true);
+  });
+
+  test('returns false when 2 aborts today — next one would break streak', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      abortsToday: 2,
+      lastAbortDate: today(),
+    });
+    expect(canAbortSafely()).toBe(false);
+  });
+});
+
+describe('getAbortsToday', () => {
+  test('returns current abort count for today', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      abortsToday: 2,
+      lastAbortDate: today(),
+    });
+    expect(getAbortsToday()).toBe(2);
+  });
+
+  test('returns 0 when aborts are from a previous day', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      abortsToday: 3,
+      lastAbortDate: yesterday(),
+    });
+    expect(getAbortsToday()).toBe(0);
   });
 });

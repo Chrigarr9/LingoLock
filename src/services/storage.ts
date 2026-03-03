@@ -81,6 +81,9 @@ const DEFAULT_STATS: PersistedStats = {
   totalCorrect: 0,
   totalAnswered: 0,
   perAppStats: {},
+  abortsToday: 0,
+  lastAbortDate: null,
+  totalAborts: 0,
 };
 
 /**

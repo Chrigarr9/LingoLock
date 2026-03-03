@@ -13,7 +13,7 @@ import { ProgressDots } from '../src/components/ProgressDots';
 import { buildSession, handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
 import { scheduleReview, createNewCardState } from '../src/services/fsrs';
 import { saveCardState, loadCardState } from '../src/services/storage';
-import { updateStatsAfterSession } from '../src/services/statsService';
+import { updateStatsAfterSession, recordAbort } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import type { SessionCard } from '../src/types/vocabulary';
 
@@ -180,6 +180,11 @@ export default function ChallengeScreen() {
           iconColor={theme.colors.onSurface}
           onPress={() => {
             if (advanceTimer.current) clearTimeout(advanceTimer.current);
+            // Only forced sessions (unlock/app_open) count as aborts
+            const isForced = params.type === 'unlock' || params.type === 'app_open';
+            if (isForced && !isComplete) {
+              recordAbort(params.source ?? 'unknown');
+            }
             router.back();
           }}
           accessibilityLabel="Close challenge"

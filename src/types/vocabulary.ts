@@ -161,4 +161,10 @@ export interface PersistedStats {
   totalAnswered: number;
   /** Per-app session tracking: source app name → { sessions, cards } */
   perAppStats: Record<string, { sessions: number; cards: number }>;
+  /** Number of forced-session aborts today */
+  abortsToday: number;
+  /** Date of last abort count reset (YYYY-MM-DD) — resets daily */
+  lastAbortDate: string | null;
+  /** Lifetime total aborts across all days */
+  totalAborts: number;
 }
