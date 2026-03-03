@@ -12,7 +12,7 @@
  */
 
 import { isDue, getAnswerType, isCardMastered } from './fsrs';
-import { loadCardState } from './storage';
+import { loadCardState, loadNewWordsIntroducedToday } from './storage';
 import { CHAPTERS, getChapterCards } from '../content/bundle';
 import type { SessionCard, ClozeCard } from '../types/vocabulary';
 
@@ -105,26 +105,28 @@ export function getCurrentChapter(): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a session queue of exactly `cardCount` cards.
+ * Build a session queue for the current learning session.
  *
- * Priority:
- *   1. Due reviews (FSRS cards where isDue() === true)
- *   2. New words (cards with no CardState in storage)
- *   3. "At least 1 new word" guarantee: even if enough due reviews exist,
- *      replace the last due review slot with a new word
+ * @param dailyNewWordBudget - Maximum new words the user wants to learn per day.
+ *   Due reviews are unlimited — all due cards are included regardless of this cap.
+ *   New words are limited to: Math.max(0, dailyNewWordBudget - wordsIntroducedToday).
  *
- * Source ordering:
- *   - Reviews: from all loaded card states
- *   - New words: from current chapter first, overflow to next chapters
+ * Session composition:
+ *   1. ALL due review cards (no fixed limit — continuous sessions review everything due)
+ *   2. New words up to remaining daily budget (current chapter first, then next chapters)
+ *   3. Due reviews are shuffled for variety; new words follow after reviews
  *
- * If total available cards < cardCount, returns as many as available.
+ * NOTE: buildSession is pure/idempotent — it does NOT call recordNewWordsIntroduced.
+ * The caller (challenge.tsx) must record introduced words at session completion.
+ *
+ * If dailyNewWordBudget is 0, returns reviews only (no new words).
+ * If total available cards < session size, returns as many as available.
  */
-export function buildSession(cardCount: number, _sourceApp?: string): SessionCard[] {
+export function buildSession(dailyNewWordBudget: number, _sourceApp?: string): SessionCard[] {
   const currentChapterNumber = getCurrentChapter();
 
-  // --- Collect due review cards -----------------------------------------
-  // We only have states for cards that have been reviewed at least once.
-  // Scan all chapters to find due cards (must check each card by ID).
+  // --- Collect ALL due review cards -------------------------------------
+  // No fixed limit — continuous sessions review everything that is due.
   const dueCards: ClozeCard[] = [];
   for (const chapter of CHAPTERS) {
     for (const card of chapter.cards) {
@@ -152,23 +154,13 @@ export function buildSession(cardCount: number, _sourceApp?: string): SessionCar
     }
   }
 
-  // --- Build queue with due-first priority --------------------------------
-  // We need `cardCount` cards, with at least 1 new word.
+  // --- Apply daily new-word budget ----------------------------------------
+  // Calculate how many new words can still be introduced today.
+  const remainingBudget = Math.max(0, dailyNewWordBudget - loadNewWordsIntroducedToday());
+  const selectedNew = newCards.slice(0, remainingBudget);
 
-  // How many due reviews do we take?
-  // At most cardCount - 1 (reserve 1 slot for new word guarantee)
-  const maxDue = Math.max(0, cardCount - 1);
-  const selectedDue = dueCards.slice(0, maxDue);
-
-  // Fill remaining slots with new words
-  const remainingSlots = cardCount - selectedDue.length;
-  const selectedNew = newCards.slice(0, remainingSlots);
-
-  // Combine: due reviews first, then new words
-  const selected = [...selectedDue, ...selectedNew];
-
-  // If we have fewer cards than requested, return what we have
-  // (handles case where not enough content exists yet)
+  // Combine: shuffled due reviews first, then new words
+  const selected = [...shuffle(dueCards), ...selectedNew];
 
   return selected.map((card) => toSessionCard(card));
 }
