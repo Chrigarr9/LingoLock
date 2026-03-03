@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.config import DeckConfig, load_config
 from pipeline.coverage_checker import check_coverage, load_frequency_data
+from pipeline.image_generator import ImageGenerator
+from pipeline.image_prompter import ImagePrompter
 from pipeline.llm import create_client
 from pipeline.sentence_translator import SentenceTranslator
 from pipeline.story_generator import StoryGenerator
@@ -134,6 +136,35 @@ def main():
         json.dumps(deck.model_dump(), ensure_ascii=False, indent=2)
     )
     print(f"  {deck.total_words} unique vocabulary entries saved to {vocab_path}")
+
+    # Pass 4: Image Prompt Generation
+    if config.image_generation and config.image_generation.enabled:
+        print("\n=== Pass 4: Image Prompt Generation ===")
+        prompter = ImagePrompter(config, llm, output_base=output_base)
+
+        # Collect all stories and translations for full-context prompting
+        all_stories = {}
+        all_translations = {}
+        for i in chapter_range:
+            all_stories[i] = stories[i]
+            trans_path = output_base / config.deck.id / "translations" / f"chapter_{i + 1:02d}.json"
+            if trans_path.exists():
+                all_translations[i] = json.loads(trans_path.read_text())
+
+        image_prompts = prompter.generate_prompts(all_stories, all_translations)
+        print(f"  {len(image_prompts.sentences)} image prompts generated")
+
+        # Pass 5: Image Generation
+        print("\n=== Pass 5: Image Generation ===")
+        image_api_key = os.environ.get("TOGETHER_API_KEY")
+        if not image_api_key:
+            print("  WARNING: TOGETHER_API_KEY not set — skipping image generation")
+        else:
+            generator = ImageGenerator(config, api_key=image_api_key, output_base=output_base)
+            manifest = generator.generate_all(image_prompts)
+            success = sum(1 for e in manifest.images.values() if e.status == "success")
+            failed = sum(1 for e in manifest.images.values() if e.status == "failed")
+            print(f"  {success} images generated, {failed} failed")
 
     # REPORT: Coverage Analysis
     if frequency_data:
