@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-03-03T20:23:59Z"
+status: unknown
+last_updated: "2026-03-03T22:38:11.590Z"
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** Vokabeln müssen zum User kommen, nicht umgekehrt — Lernen wird automatisch in den Alltag integriert durch intelligentes App-Blocking, ohne dass der User aktiv eine Lern-Session starten muss.
-**Current focus:** Phase 2.1 - PWA Deployment & Content Integration
+**Current focus:** Phase 2.2 - App Polish & Missing Screens
 
 ## Current Position
 
-Phase: 2.1 of 4 (02.1-pwa-deployment-content-integration)
-Plan: 3 of 3 in current phase (COMPLETE — Task 3 Vercel deploy pending user action)
-Status: Phase 2.1 complete — all plans executed, verified, Vercel deployed
-Last activity: 2026-03-03 — Phase 02.1 complete (PWA deployed to Vercel)
+Phase: 2.2 of 4 (02.2-app-polish-missing-screens)
+Plan: 1 of 3 complete in current phase
+Status: Phase 02.2 in progress — Plan 01 (Settings + daily cap) complete
+Last activity: 2026-03-03 — Phase 02.2 Plan 01 complete (Settings screen, storage functions, routes)
 
-Progress: [████████░░] ~75%
+Progress: [████████░░] ~80%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [████████░░] ~75%
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
+| Phase 02.2-app-polish-missing-screens P01 | 3 | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -186,6 +187,9 @@ Recent decisions affecting current work:
 - No pre-caching of JS/CSS bundles: filenames include hashes unknown at authoring time; cached on first fetch
 - public/ pattern: static files placed in public/ are copied verbatim to dist/ by expo export
 - build:web chains build:content first to ensure fresh content bundle in every web build
+- [Phase 02.2-01]: buildSession parameter renamed cardCount->dailyNewWordBudget: due reviews now unlimited, new words capped by remaining daily budget
+- [Phase 02.2-01]: buildSession remains pure/idempotent: recordNewWordsIntroduced not called inside buildSession, caller records at session completion
+- [Phase 02.2-01]: Route stubs created for stats and vocabulary/[id] to resolve Expo Router TS2820 type error and unblock Plan 02.2-02
 
 ### Roadmap Evolution
 
@@ -222,7 +226,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 02.1 complete — PWA deployed to Vercel
+Stopped at: Phase 02.2 Plan 01 complete — Settings screen, daily new-word cap, routes registered
 Resume file: None
 
 ---
