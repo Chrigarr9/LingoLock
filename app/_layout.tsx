@@ -51,6 +51,22 @@ export default function RootLayout() {
           title: 'Setup Tutorial',
         }}
       />
+      <Stack.Screen
+        name="settings"
+        options={{ title: 'Settings', headerBackTitle: '' }}
+      />
+      <Stack.Screen
+        name="vocabulary"
+        options={{ title: 'Vocabulary', headerBackTitle: '' }}
+      />
+      <Stack.Screen
+        name="stats"
+        options={{ title: 'Progress', headerBackTitle: '' }}
+      />
+      <Stack.Screen
+        name="vocabulary/[id]"
+        options={{ title: 'Word Detail', headerBackTitle: '' }}
+      />
     </Stack>
   );
 
