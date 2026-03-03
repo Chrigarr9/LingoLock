@@ -87,3 +87,59 @@ def test_config_invalid_file_raises():
     import pytest
     with pytest.raises(FileNotFoundError):
         load_config(Path("/nonexistent/config.yaml"))
+
+
+def test_config_protagonist_description():
+    """protagonist.description is optional, defaults to empty string."""
+    config_data = {**SAMPLE_CONFIG}
+    config_data["protagonist"] = {
+        **SAMPLE_CONFIG["protagonist"],
+        "description": "mid-20s, light brown hair, warm brown eyes",
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(config_data, f)
+        f.flush()
+        config = load_config(Path(f.name))
+
+    assert config.protagonist.description == "mid-20s, light brown hair, warm brown eyes"
+
+
+def test_config_protagonist_description_defaults_empty():
+    """Existing configs without description still load fine."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(SAMPLE_CONFIG, f)
+        f.flush()
+        config = load_config(Path(f.name))
+
+    assert config.protagonist.description == ""
+
+
+def test_config_image_generation():
+    config_data = {**SAMPLE_CONFIG}
+    config_data["image_generation"] = {
+        "enabled": True,
+        "provider": "together",
+        "model": "black-forest-labs/FLUX.1-kontext-dev",
+        "cheap_model": "black-forest-labs/FLUX.1-schnell",
+        "style": "warm storybook illustration",
+        "width": 768,
+        "height": 512,
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(config_data, f)
+        f.flush()
+        config = load_config(Path(f.name))
+
+    assert config.image_generation is not None
+    assert config.image_generation.provider == "together"
+    assert config.image_generation.width == 768
+
+
+def test_config_image_generation_defaults_none():
+    """Existing configs without image_generation still load."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(SAMPLE_CONFIG, f)
+        f.flush()
+        config = load_config(Path(f.name))
+
+    assert config.image_generation is None

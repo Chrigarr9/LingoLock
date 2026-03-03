@@ -24,6 +24,7 @@ class Protagonist(BaseModel):
     gender: str
     origin_country: str
     origin_city: str
+    description: str = ""
 
 
 class Destination(BaseModel):
@@ -52,6 +53,16 @@ class LLMConfig(BaseModel):
     max_retries: int
 
 
+class ImageGenerationConfig(BaseModel):
+    enabled: bool = True
+    provider: str = "together"
+    model: str = "black-forest-labs/FLUX.1-kontext-dev"
+    cheap_model: str = "black-forest-labs/FLUX.1-schnell"
+    style: str = "warm storybook illustration, semi-realistic modern picture book, soft lighting"
+    width: int = 768
+    height: int = 512
+
+
 class DeckConfig(BaseModel):
     deck: DeckInfo
     languages: Languages
@@ -59,6 +70,7 @@ class DeckConfig(BaseModel):
     destination: Destination
     story: StoryConfig
     llm: LLMConfig
+    image_generation: ImageGenerationConfig | None = None
 
     @property
     def chapter_count(self) -> int:

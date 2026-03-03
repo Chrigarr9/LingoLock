@@ -14,6 +14,7 @@ protagonist:
   gender: "female"
   origin_country: "Germany"
   origin_city: "Berlin"
+  description: "mid-20s, light brown shoulder-length hair, warm brown eyes, slim build"
 
 destination:
   country: "Argentina"
@@ -72,3 +73,12 @@ llm:
   fallback_model: "gemini-2.5-flash"
   temperature: 0.7
   max_retries: 3
+
+image_generation:
+  enabled: true
+  provider: "together"
+  model: "black-forest-labs/FLUX.1-kontext-dev"
+  cheap_model: "black-forest-labs/FLUX.1-schnell"
+  style: "warm storybook illustration, semi-realistic modern picture book, soft lighting, rich colors"
+  width: 768
+  height: 512
