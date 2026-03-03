@@ -12,7 +12,7 @@ import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { buildSession, handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
 import { scheduleReview, createNewCardState } from '../src/services/fsrs';
-import { saveCardState, loadCardState } from '../src/services/storage';
+import { saveCardState, loadCardState, loadAudioMuted, saveAudioMuted } from '../src/services/storage';
 import { updateStatsAfterSession, recordAbort } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import type { SessionCard } from '../src/types/vocabulary';
@@ -42,6 +42,7 @@ export default function ChallengeScreen() {
   const [correctCount, setCorrectCount] = useState(0);
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
 
   // Parse count param; default to 3
   const cardCount = Math.min(parseInt(params.count || '3', 10), 10);
@@ -76,10 +77,19 @@ export default function ChallengeScreen() {
   const answerType = currentCard?.answerType ?? 'mc2';
   const isMC = answerType === 'mc2' || answerType === 'mc4';
 
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      saveAudioMuted(next);
+      return next;
+    });
+  };
+
   // --------------------------------------------------------------------------
   // Navigation helpers
   // --------------------------------------------------------------------------
   const advanceToNext = () => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
     const nextIndex = currentIndex + 1;
     if (nextIndex < originalCardCount.current) {
       setCurrentIndex(nextIndex);
@@ -88,7 +98,6 @@ export default function ChallengeScreen() {
       setAnsweredChoice(null);
       setShowReveal(false);
     } else {
-      // All original cards have been answered at least once — session complete
       updateStatsAfterSession(correctCount, originalCardCount.current, params.source ?? 'unknown');
       setIsComplete(true);
     }
@@ -97,6 +106,14 @@ export default function ChallengeScreen() {
   const scheduleAdvance = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     advanceTimer.current = setTimeout(advanceToNext, AUTO_ADVANCE_MS);
+  };
+
+  const handleAudioFinish = () => {
+    // Only auto-advance on correct answers when audio finishes.
+    // Wrong answers always require manual "Next" tap.
+    if (isCorrect === true) {
+      advanceToNext();
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -119,7 +136,13 @@ export default function ChallengeScreen() {
     setShowAnswer(true);
     setShowReveal(true);
     setCorrectCount((c) => c + 1);
-    scheduleAdvance();
+    // If card has audio and not muted, ClozeCardDisplay will play audio
+    // and call onAudioFinish when done — that triggers advanceToNext.
+    // Otherwise fall back to timer-based advance.
+    const hasAudio = !!sessionCard.card.audio && !isMuted;
+    if (!hasAudio) {
+      scheduleAdvance();
+    }
   };
 
   const handleIncorrect = (sessionCard: SessionCard) => {
@@ -205,7 +228,13 @@ export default function ChallengeScreen() {
             </Text>
           </View>
         )}
-        <View style={{ width: 48 }} />
+        <IconButton
+          icon={isMuted ? 'volume-off' : 'volume-high'}
+          size={22}
+          iconColor={theme.colors.onSurface}
+          onPress={toggleMute}
+          accessibilityLabel={isMuted ? 'Unmute audio' : 'Mute audio'}
+        />
       </View>
 
       {/* Progress */}
@@ -241,6 +270,8 @@ export default function ChallengeScreen() {
                   sessionCard={currentCard}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
+                  isMuted={isMuted}
+                  onAudioFinish={handleAudioFinish}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -269,6 +300,8 @@ export default function ChallengeScreen() {
                   sessionCard={currentCard}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
+                  isMuted={isMuted}
+                  onAudioFinish={handleAudioFinish}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -286,8 +319,8 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {/* Next button — only shown for wrong answers (correct auto-advances) */}
-            {showAnswer && isCorrect === false && (
+            {/* Next button — always visible after answering */}
+            {showAnswer && (
               <Pressable
                 onPress={advanceToNext}
                 style={[styles.nextButton, { backgroundColor: theme.colors.surfaceVariant }]}
