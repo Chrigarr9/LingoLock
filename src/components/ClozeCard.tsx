@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform, Image } from 'react-native';
 import { Text } from 'react-native-paper';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 import { useAppTheme } from '../theme';
 import type { SessionCard } from '../types/vocabulary';
 
@@ -8,24 +9,33 @@ interface ClozeCardDisplayProps {
   sessionCard: SessionCard;
   showAnswer: boolean;
   isCorrect?: boolean;
+  /** Whether audio is muted (user preference from header toggle) */
+  isMuted: boolean;
+  /** Called when sentence audio finishes playing. Challenge screen uses this for advance timing. */
+  onAudioFinish?: () => void;
 }
 
 /**
  * Renders a cloze card: sentence with blank + German hint before answer;
  * full sentence with highlighted correct word after answering.
  *
- * CARD-09: Conditionally renders image if sessionCard.card.image is present.
- * CARD-10: Conditionally renders audio play button if sessionCard.card.audio is present.
+ * Plays sentence audio automatically when the answer is revealed (unless muted).
+ * Renders an image above the sentence when available.
  */
-export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCardDisplayProps) {
+export function ClozeCardDisplay({
+  sessionCard,
+  showAnswer,
+  isCorrect,
+  isMuted,
+  onAudioFinish,
+}: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { card, answerType } = sessionCard;
+  const soundRef = useRef<Audio.Sound | null>(null);
 
-  // iOS system colors, consistent with Phase 1
-  const correctColor = '#34C759';
-  const incorrectColor = '#FF3B30';
+  const correctColor = theme.custom.success;
+  const incorrectColor = theme.colors.error;
 
-  // Answer type label
   const answerTypeLabel =
     answerType === 'mc2'
       ? 'Choose 1 of 2'
@@ -33,23 +43,63 @@ export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCa
         ? 'Choose 1 of 4'
         : 'Type answer';
 
-  // Split sentence on _____ to render blank
   const sentenceParts = card.sentence.split('_____');
 
-  // Render audio play button using expo-av (graceful fallback if not installed)
-  const handlePlayAudio = async () => {
-    if (!card.audio) return;
-    try {
-      // Dynamic require so the app doesn't crash if expo-av is not installed.
-      // Type as any to avoid requiring @types/expo-av at compile time.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-      const expoAv = require('expo-av') as any;
-      const { sound } = await expoAv.Audio.Sound.createAsync({ uri: card.audio });
-      await sound.playAsync();
-    } catch (_err) {
-      // expo-av not installed yet (Phase 3) — silent no-op
-    }
-  };
+  // --- Audio lifecycle ---
+  // Play audio when answer is revealed (if available and not muted)
+  useEffect(() => {
+    if (!showAnswer || !card.audio || isMuted) return;
+
+    let cancelled = false;
+
+    const playAudio = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: card.audio! },
+          { shouldPlay: true },
+        );
+        if (cancelled) {
+          await sound.unloadAsync();
+          return;
+        }
+        soundRef.current = sound;
+
+        sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+          if (status.isLoaded && status.didJustFinish) {
+            onAudioFinish?.();
+          }
+        });
+      } catch (_err) {
+        // Audio failed to load — treat as if no audio (call onAudioFinish
+        // so challenge screen falls back to timer-based advance)
+        onAudioFinish?.();
+      }
+    };
+
+    playAudio();
+
+    return () => {
+      cancelled = true;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
+  }, [showAnswer, card.audio, isMuted]);
+
+  // Cleanup sound on unmount (safety net)
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  // --- Image error handling ---
+  const [imageError, setImageError] = React.useState(false);
+  const showImage = !!card.image && !imageError;
 
   return (
     <View
@@ -63,21 +113,26 @@ export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCa
           web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
           default: {},
         }),
+        // When image is present, remove top padding so image sits flush with card top
+        showImage && styles.cardWithImage,
       ]}
     >
-      {/* CARD-09: Optional image above sentence */}
-      {card.image ? (
+      {/* Sentence image — above the sentence, inside the card */}
+      {showImage && (
         <Image
           source={{ uri: card.image }}
-          style={styles.cardImage}
+          style={[
+            styles.cardImage,
+            { borderColor: theme.custom.glassBorder },
+          ]}
           resizeMode="cover"
+          onError={() => setImageError(true)}
         />
-      ) : null}
+      )}
 
       {/* Sentence with blank or answered word */}
       <View style={styles.sentenceRow}>
         {showAnswer ? (
-          /* After answering: full sentence with highlighted word */
           <Text
             variant="headlineSmall"
             style={[styles.sentenceText, { color: theme.colors.onSurface }]}
@@ -94,7 +149,6 @@ export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCa
             {sentenceParts[1] ?? ''}
           </Text>
         ) : (
-          /* Before answering: blank as underlined span */
           <Text
             variant="headlineSmall"
             style={[styles.sentenceText, { color: theme.colors.onSurface }]}
@@ -106,7 +160,7 @@ export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCa
         )}
       </View>
 
-      {/* After-answer feedback: correct/incorrect indicator */}
+      {/* After-answer feedback */}
       {showAnswer && (
         <>
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
@@ -124,39 +178,22 @@ export function ClozeCardDisplay({ sessionCard, showAnswer, isCorrect }: ClozeCa
         </>
       )}
 
-      {/* Before-answer info: separator + German hint + answer type */}
+      {/* Before-answer info */}
       {!showAnswer && (
         <>
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-
-          {/* German hint with lightbulb icon */}
           <Text
             variant="bodyLarge"
             style={[styles.germanHint, { color: theme.custom.brandOrange }]}
           >
             {'\uD83D\uDCA1 '}{card.germanHint}
           </Text>
-
-          {/* Answer type indicator */}
           <Text
             variant="labelSmall"
             style={[styles.answerTypeLabel, { color: theme.colors.onSurfaceVariant }]}
           >
             {answerTypeLabel}
           </Text>
-
-          {/* CARD-10: Optional audio play button */}
-          {card.audio ? (
-            <Text
-              variant="labelMedium"
-              style={[styles.audioButton, { color: theme.custom.brandOrange }]}
-              onPress={handlePlayAudio}
-              accessibilityLabel="Play audio for this word"
-              accessibilityRole="button"
-            >
-              {'\uD83D\uDD0A'} Play audio
-            </Text>
-          ) : null}
         </>
       )}
     </View>
@@ -173,12 +210,18 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 24,
     gap: 4,
+    overflow: 'hidden',
+  },
+  cardWithImage: {
+    paddingTop: 0,
   },
   cardImage: {
     width: '100%',
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 12,
+    maxHeight: 160,
+    aspectRatio: 16 / 9,
+    borderTopLeftRadius: 19,
+    borderTopRightRadius: 19,
+    marginBottom: 16,
   },
   sentenceRow: {
     width: '100%',
@@ -209,10 +252,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontWeight: '700',
     marginTop: 4,
-  },
-  audioButton: {
-    marginTop: 8,
-    fontWeight: '600',
   },
   feedbackText: {
     fontWeight: '700',
