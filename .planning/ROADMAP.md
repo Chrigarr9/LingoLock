@@ -79,13 +79,23 @@ Plans:
 
 ### Phase 02.1: PWA Deployment & Content Integration (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Deploy LingoLock as a Progressive Web App on Vercel with full FSRS scheduling, streaks, and stats via localStorage platform adapter. Mobile-first layout with max-width container for desktop.
+**Requirements**: PWA-STORAGE, PWA-MANIFEST, PWA-SERVICE-WORKER, PWA-BUILD-PIPELINE, PWA-RESPONSIVE-LAYOUT, PWA-SW-REGISTRATION, PWA-VERCEL-DEPLOY
 **Depends on:** Phase 2
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. Web build compiles without native module crashes (MMKV replaced by localStorage on web)
+  2. All FSRS scheduling, streaks, and stats persist in browser via localStorage
+  3. PWA manifest enables "Add to Home Screen" with standalone display mode
+  4. Service worker caches app shell for offline use after first load
+  5. Desktop browser shows centered ~480px layout (not full-width stretch)
+  6. Vercel auto-deploys on push to master via GitHub integration
+  7. build:web script chains content generation with expo web export
+**Plans:** 3 plans in 2 waves
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 02.1 to break down)
+- [ ] 02.1-01-PLAN.md -- Web storage adapter (localStorage platform file)
+- [ ] 02.1-02-PLAN.md -- PWA config, service worker, and build pipeline
+- [ ] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
 
 ### Phase 3: Notifications & Live Activities
 **Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen widget
