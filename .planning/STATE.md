@@ -212,9 +212,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 02.1-01-PLAN.md (Web Storage Adapter — localStorage)
+Stopped at: Completed 02.1-02-PLAN.md (PWA Manifest + Service Worker + Build Pipeline)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-03 (02.1-01 complete — web storage adapter ready, PWA-STORAGE resolved)*
+*Last updated: 2026-03-03 (02.1-02 complete — PWA manifest, service worker, build:web script ready)*
