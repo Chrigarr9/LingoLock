@@ -93,9 +93,9 @@ Plans:
 **Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 02.1-01-PLAN.md -- Web storage adapter (localStorage platform file)
+- [x] 02.1-01-PLAN.md -- Web storage adapter (localStorage platform file)
 - [x] 02.1-02-PLAN.md -- PWA config, service worker, and build pipeline
-- [ ] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
+- [x] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
 
 ### Phase 3: Notifications & Live Activities
 **Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen widget
@@ -152,10 +152,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2003-03-02 |
 | 2. Spaced Repetition & Progress | 5/5 | Complete   | 2003-03-02 |
-| 2.1 PWA Deployment & Content Integration | 1/3 | In progress | - |
+| 2.1 PWA Deployment & Content Integration | 3/3 | Complete | 2026-03-03 |
 | 3. Notifications & Live Activities | 0/TBD | Not started | - |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2003-03-01*
-*Last updated: 2026-03-03 (02.1-02 complete — PWA manifest, service worker, build:web script)*
+*Last updated: 2026-03-03 (Phase 02.1 complete — PWA deployed to Vercel)*

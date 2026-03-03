@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 Phase: 2.1 of 4 (02.1-pwa-deployment-content-integration)
 Plan: 3 of 3 in current phase (COMPLETE — Task 3 Vercel deploy pending user action)
-Status: Phase 2.1 plans all executed — awaiting Vercel deployment (user action required)
-Last activity: 2026-03-03 — Completed 02.1-03-PLAN.md (Service Worker Registration + Responsive Layout + PWA Verification)
+Status: Phase 2.1 complete — all plans executed, verified, Vercel deployed
+Last activity: 2026-03-03 — Phase 02.1 complete (PWA deployed to Vercel)
 
 Progress: [████████░░] ~75%
 
@@ -42,7 +42,7 @@ Progress: [████████░░] ~75%
 |-------|-------|-------|----------|
 | 1-shortcuts-integration | 7 | 28min | 4min |
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
-| 02.1-pwa-deployment-content-integration | 2/3 | ~6min | ~2min |
+| 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
 
 **Recent Trend:**
 - Last 3 plans: 02-05 (5min), 02.1-02 (2min), 02.1-01 (2min)
@@ -221,9 +221,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: 02.1-03 complete — awaiting user action for Task 3 (Vercel deployment at vercel.com)
+Stopped at: Phase 02.1 complete — PWA deployed to Vercel
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-03 (02.1-02 complete — PWA manifest, service worker, build:web script ready)*
+*Last updated: 2026-03-03 (Phase 02.1 complete — PWA deployed to Vercel)*
