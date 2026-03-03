@@ -77,6 +77,27 @@ Plans:
 - [ ] 02-04-PLAN.md — Cloze challenge screen UI + FSRS-driven session flow
 - [ ] 02-05-PLAN.md — Home screen wiring + end-to-end verification
 
+### Phase 02.2: App Polish & Missing Screens (INSERTED)
+
+**Goal:** Build three missing screens (Vocabulary browser, Stats detail, Settings), refactor practice sessions from fixed-count to continuous flow with daily new-word cap, and polish home screen with time-based greeting, wired navigation, and empty state handling.
+**Requirements**: POLISH-01 (settings storage), POLISH-02 (settings screen), POLISH-03 (daily new-word cap), POLISH-04 (vocabulary browser), POLISH-05 (vocabulary detail), POLISH-06 (continuous session flow), POLISH-07 (richer celebration), POLISH-08 (stats detail screen), POLISH-09 (home polish), POLISH-10 (empty state)
+**Depends on:** Phase 2, Phase 2.1
+**Success Criteria** (what must be TRUE):
+  1. Settings screen allows mute toggle and new-words-per-day adjustment (persisted in MMKV/localStorage)
+  2. Vocabulary browser shows all words grouped by chapter with search, mastery indicators, and detail view
+  3. Stats screen shows per-chapter mastery %, total/mastered/due counts, and cross-navigates to vocabulary
+  4. Practice sessions are continuous (all due reviews + daily-capped new words, not fixed 5-card bursts)
+  5. Session completion shows accuracy %, streak update, and motivational message
+  6. Home screen shows time-based Spanish greeting, wired tile navigation, and "Review anyway" empty state
+  7. Tutorial link hidden on web (Platform check)
+  8. All new storage functions have parallel web adapter implementations
+**Plans:** 3 plans in 2 waves
+
+Plans:
+- [ ] 02.2-01-PLAN.md -- Settings storage + daily cap in cardSelector + Settings screen + route registration
+- [ ] 02.2-02-PLAN.md -- Vocabulary browser + word detail view
+- [ ] 02.2-03-PLAN.md -- Continuous session flow + Stats detail + Home screen polish
+
 ### Phase 02.1: PWA Deployment & Content Integration (INSERTED)
 
 **Goal:** Deploy LingoLock as a Progressive Web App on Vercel with full FSRS scheduling, streaks, and stats via localStorage platform adapter. Mobile-first layout with max-width container for desktop.
