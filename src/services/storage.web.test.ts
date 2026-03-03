@@ -63,12 +63,10 @@ function makeCardState(cardId: string): CardState {
     stability: 1.0,
     difficulty: 5.0,
     due: '2026-03-03T00:00:00.000Z',
-    last_review: null,
     reps: 0,
     lapses: 0,
     elapsed_days: 0,
     scheduled_days: 0,
-    learning_steps: 0,
   };
 }
 
@@ -205,7 +203,7 @@ describe('saveStats / loadStats', () => {
   it('loadStats returns fresh perAppStats object (not shared reference)', () => {
     const result1 = loadStats();
     const result2 = loadStats();
-    result1.perAppStats['Instagram'] = { correct: 1, total: 2 };
+    result1.perAppStats['Instagram'] = { sessions: 1, cards: 2 };
     expect(result2.perAppStats).toEqual({});
   });
 });
