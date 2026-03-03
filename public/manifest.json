@@ -1,0 +1,17 @@
+{
+  "name": "LingoLock",
+  "short_name": "LingoLock",
+  "description": "Vocabulary learning with spaced repetition",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FFA056",
+  "background_color": "#fffcf2",
+  "icons": [
+    {
+      "src": "/assets/favicon.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    }
+  ]
+}
