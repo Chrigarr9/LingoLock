@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image } from 'react-native';
+import { View, StyleSheet, Platform, Image, type ImageSourcePropType } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { useAppTheme } from '../theme';
+import { cardImages } from '../content/bundle';
 import type { SessionCard } from '../types/vocabulary';
 
 interface ClozeCardDisplayProps {
@@ -100,44 +101,24 @@ export function ClozeCardDisplay({
     };
   }, []);
 
-  // --- Image error handling ---
+  // --- Image source resolution ---
+  // Bundled images: card.image is a key like "ch01_s00" → look up in cardImages
+  // URI fallback: if card.image is a URL string, use { uri } directly
+  const imageSource: ImageSourcePropType | null = card.image
+    ? (cardImages[card.image] ?? (card.image.startsWith('http') ? { uri: card.image } : null))
+    : null;
+
   const [imageError, setImageError] = useState(false);
   // Reset error state when card changes so a previous card's broken image
   // doesn't hide the next card's image
   useEffect(() => {
     setImageError(false);
   }, [card.id]);
-  const showImage = !!card.image && !imageError;
+  const showImage = !!imageSource && !imageError;
 
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.custom.glassBackground,
-          borderColor: theme.custom.glassBorder,
-        },
-        Platform.select({
-          web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-          default: {},
-        }),
-        // When image is present, remove top padding so image sits flush with card top
-        showImage && styles.cardWithImage,
-      ]}
-    >
-      {/* Sentence image — above the sentence, inside the card */}
-      {showImage && (
-        <Image
-          source={{ uri: card.image }}
-          style={[
-            styles.cardImage,
-            { borderColor: theme.custom.glassBorder },
-          ]}
-          resizeMode="cover"
-          onError={() => setImageError(true)}
-        />
-      )}
-
+  // Text content rendered below the image (or as sole card content)
+  const textContent = (
+    <>
       {/* Sentence with blank or answered word */}
       <View style={styles.sentenceRow}>
         {showAnswer ? (
@@ -204,9 +185,51 @@ export function ClozeCardDisplay({
           </Text>
         </>
       )}
+    </>
+  );
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.custom.glassBackground,
+          borderColor: theme.custom.glassBorder,
+        },
+        Platform.select({
+          web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+          default: {},
+        }),
+        showImage && { padding: 0 },
+      ]}
+    >
+      {/* Hero image — flush at top, full card width, ratio-enforcing wrapper */}
+      {showImage && (
+        <View style={styles.cardImageWrapper}>
+          <Image
+            source={imageSource!}
+            style={styles.cardImage}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        </View>
+      )}
+
+      {/* Text content — padded wrapper when image present, direct children otherwise */}
+      {showImage ? (
+        <View style={styles.cardTextContent}>{textContent}</View>
+      ) : (
+        textContent
+      )}
     </View>
   );
 }
+
+/**
+ * Card image aspect ratio — must match the pipeline output (config.py width/height).
+ * Pipeline generates at 768×512 = 3:2. Changing one? Change both.
+ */
+const CARD_IMAGE_RATIO = 3 / 2;
 
 const styles = StyleSheet.create({
   card: {
@@ -220,16 +243,21 @@ const styles = StyleSheet.create({
     gap: 4,
     overflow: 'hidden',
   },
-  cardWithImage: {
-    paddingTop: 0,
+  cardImageWrapper: {
+    width: '100%',
+    aspectRatio: CARD_IMAGE_RATIO,
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
-    maxHeight: 160,
-    aspectRatio: 16 / 9,
-    borderTopLeftRadius: 19,
-    borderTopRightRadius: 19,
-    marginBottom: 16,
+    height: '100%',
+  },
+  cardTextContent: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    gap: 4,
   },
   sentenceRow: {
     width: '100%',

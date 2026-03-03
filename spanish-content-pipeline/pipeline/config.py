@@ -25,12 +25,19 @@ class Protagonist(BaseModel):
     origin_country: str
     origin_city: str
     description: str = ""
+    visual_tag: str = ""
 
 
 class Destination(BaseModel):
     country: str
     city: str
     landmarks: list[str]
+
+
+class SecondaryCharacter(BaseModel):
+    name: str
+    visual_tag: str
+    chapters: list[int]  # 1-indexed chapter numbers where this character appears
 
 
 class ChapterDef(BaseModel):
@@ -56,9 +63,11 @@ class LLMConfig(BaseModel):
 class ImageGenerationConfig(BaseModel):
     enabled: bool = True
     provider: str = "together"
-    model: str = "black-forest-labs/FLUX.1-kontext-dev"
+    model: str = "black-forest-labs/FLUX.1-kontext-pro"
     cheap_model: str = "black-forest-labs/FLUX.1-schnell"
     style: str = "warm storybook illustration, semi-realistic modern picture book, soft lighting"
+    # width:height ratio must match CARD_IMAGE_RATIO in ClozeCard.tsx (currently 3:2).
+    # Changing the ratio here? Update the card component too.
     width: int = 768
     height: int = 512
 
@@ -71,6 +80,7 @@ class DeckConfig(BaseModel):
     story: StoryConfig
     llm: LLMConfig
     image_generation: ImageGenerationConfig | None = None
+    secondary_characters: list[SecondaryCharacter] = []
 
     @property
     def chapter_count(self) -> int:
