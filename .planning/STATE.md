@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T22:50:14.863Z"
+status: in_progress
+last_updated: "2026-03-04T13:31:28Z"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 19
+  completed_plans: 19
 ---
 
 # Project State
@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 ## Current Position
 
-Phase: 2.2 of 4 (02.2-app-polish-missing-screens)
-Plan: 1 of 3 complete in current phase
-Status: Phase 02.2 in progress — Plan 01 (Settings + daily cap) complete
-Last activity: 2026-03-03 — Phase 02.2 Plan 01 complete (Settings screen, storage functions, routes)
+Phase: 2.3 of 4 (02.3-audio-generation-pipeline)
+Plan: 1 of 1 complete in current phase
+Status: Phase 02.3 complete — Plan 01 (Audio generation module) complete
+Last activity: 2026-03-04 — Phase 02.3 Plan 01 complete (AudioGenerator, multi-provider TTS)
 
-Progress: [████████░░] ~80%
+Progress: [████████░░] ~81%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 19
 - Average duration: 4 min
-- Total execution time: 0.5 hours
+- Total execution time: 1.3 hours
 
 **By Phase:**
 
@@ -43,15 +43,18 @@ Progress: [████████░░] ~80%
 | 1-shortcuts-integration | 7 | 28min | 4min |
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
 | 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
+| 02.2-app-polish-missing-screens | 1/3 | ~7min | ~7min |
+| 02.3-audio-generation-pipeline | 1/1 | 4min | 4min |
 
 **Recent Trend:**
-- Last 3 plans: 02-05 (5min), 02.1-02 (2min), 02.1-01 (2min)
+- Last 3 plans: 02.2-01 (7min), 02.3-01 (4min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
 | Phase 02.2-app-polish-missing-screens P01 | 3 | 3 tasks | 7 files |
 | Phase 02.2-app-polish-missing-screens P02 | 5 | 2 tasks | 2 files |
 | Phase 02.2-app-polish-missing-screens P03 | 4 | 3 tasks | 3 files |
+| Phase 02.3-audio-generation-pipeline P01 | 2 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -198,11 +201,23 @@ Recent decisions affecting current work:
 - [Phase 02.2-app-polish-missing-screens]: Continuous mode default: mode param defaults to 'continuous' when absent — backward-compatible with existing deep links
 - [Phase 02.2-app-polish-missing-screens]: Abort guard: only fixed mode sessions call recordAbort; voluntary continuous exits do not break streak
 
+**From Plan 02.3-01 (Audio Generation Module):**
+- AudioGenerator class mirrors ImageGenerator pattern: same directory structure, manifest format, incremental generation logic
+- Multi-provider TTS support: Google Cloud TTS (primary) and OpenAI TTS (secondary) via config-driven selection
+- Manifest-based incremental generation: content hash (SHA-256 first 16 chars) enables skip of unchanged sentences on re-runs
+- Retry logic with exponential backoff: max 3 retries, 2 * (attempt + 1) seconds delay
+- Failed TTS calls produce failed manifest entries without crashing pipeline
+- Config-driven language selection: reads from config.languages.target_code (not hardcoded es-ES)
+- MP3 format chosen for universal browser support and native TTS provider support
+- Lazy client initialization enables mocking in tests without network dependencies
+- 8 comprehensive tests cover success, failure, skip, and regeneration scenarios
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
 - Phase 2.1 inserted after Phase 2: PWA Deployment & Content Integration (strategic pivot to PWA-first testing)
 - Phase 2.2 inserted after Phase 2: App Polish & Missing Screens (URGENT) — infinite practice session, Stats screen, Vocabulary browser, Settings screen, emoji→icon replacement
+- Phase 2.3 inserted after Phase 2.2: Audio Generation Pipeline (URGENT) — extend content pipeline with AI TTS for sentence audio generation
 
 ### Pending Todos
 
@@ -232,10 +247,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Phase 02.2 Plan 01 complete — Settings screen, daily new-word cap, routes registered
+Last session: 2026-03-04
+Stopped at: Phase 02.3 Plan 01 complete — Audio generation module (AudioGenerator, multi-provider TTS)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-03 (Phase 02.1 complete — PWA deployed to Vercel)*
+*Last updated: 2026-03-04 (Phase 02.3 Plan 01 complete — Audio generation module)*
