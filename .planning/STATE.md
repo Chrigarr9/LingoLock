@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-03-04T13:37:28Z"
+last_updated: "2026-03-04T18:42:43Z"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 21
+  completed_plans: 21
 ---
 
 # Project State
@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 ## Current Position
 
-Phase: 2.3 of 4 (02.3-audio-generation-pipeline)
-Plan: 2 of 2 complete in current phase
-Status: Phase 02.3 complete — Plan 02 (Audio pipeline integration) complete
-Last activity: 2026-03-04 — Phase 02.3 Plan 02 complete (Pass 6, audio bundling, playback)
+Phase: 3 of 4 (03-notifications-live-activities)
+Plan: 1 of 4 complete in current phase
+Status: Phase 03 in progress — Plan 01 (Notification Infrastructure) complete
+Last activity: 2026-03-04 — Phase 03 Plan 01 complete (expo-notifications setup, categories, permissions)
 
-Progress: [████████░░] ~83%
+Progress: [████████░░] ~84%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
-- Average duration: 3.9 min
-- Total execution time: 1.35 hours
+- Total plans completed: 21
+- Average duration: 3.8 min
+- Total execution time: 1.40 hours
 
 **By Phase:**
 
@@ -43,11 +43,12 @@ Progress: [████████░░] ~83%
 | 1-shortcuts-integration | 7 | 28min | 4min |
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
 | 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
-| 02.2-app-polish-missing-screens | 1/3 | ~7min | ~7min |
+| 02.2-app-polish-missing-screens | 3/3 | ~18min | ~6min |
 | 02.3-audio-generation-pipeline | 2/2 | 7min | 3.5min |
+| 03-notifications-live-activities | 1/4 | 3min | 3min |
 
 **Recent Trend:**
-- Last 3 plans: 02.2-01 (7min), 02.3-01 (4min), 02.3-02 (3min)
+- Last 3 plans: 02.3-01 (4min), 02.3-02 (3min), 03-01 (3min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -56,6 +57,7 @@ Progress: [████████░░] ~83%
 | Phase 02.2-app-polish-missing-screens P03 | 4 | 3 tasks | 3 files |
 | Phase 02.3-audio-generation-pipeline P01 | 2 | 2 tasks | 6 files |
 | Phase 02.3-audio-generation-pipeline P02 | 3 | 2 tasks | 6 files |
+| Phase 03-notifications-live-activities P01 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -222,6 +224,16 @@ Recent decisions affecting current work:
 - Asset bundling pattern: manifest.json → copy files → generate require() map → export for Metro
 - Audio playback pattern: cardAudios[card.audio] ?? URI fallback → Audio.Sound.createAsync()
 
+**From Plan 03-01 (Notification Infrastructure):**
+- expo-notifications configured with two categories: vocabulary-text (text input) and vocabulary-mc (A/B/C/D buttons)
+- iOS limitation: notification action button titles fixed at registration time, not per-notification
+- Multiple choice notification body lists choices as "A) word1  B) word2  C) word3  D) word4" matching button labels
+- mcMapping field in NotificationData maps action IDs to actual words: {"answer-a": "gato", "answer-b": "perro"}
+- Foreground notification handler configured at module top-level (before setupNotifications) to ensure handler active immediately
+- Permission flow: granted → true, denied → Settings alert, undetermined → request
+- setupNotifications() called in root layout useEffect with cleanup function for native platforms
+- Platform-specific service pattern: .web.ts files provide no-op stubs with matching exports
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
@@ -258,9 +270,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Phase 02.3 Plan 02 complete — Audio pipeline integration (Pass 6, audio bundling, playback)
+Stopped at: Phase 03 Plan 01 complete — Notification infrastructure (expo-notifications setup, categories, permissions)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-04 (Phase 02.3 Plan 02 complete — Audio pipeline integration)*
+*Last updated: 2026-03-04 (Phase 03 Plan 01 complete — Notification infrastructure)*
