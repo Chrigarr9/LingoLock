@@ -5,6 +5,7 @@ import { PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
 import { ChallengeParams } from '../src/types/vocabulary';
 import { lightTheme, darkTheme } from '../src/theme';
+import { setupNotifications } from '../src/services/notificationService';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -12,11 +13,22 @@ export default function RootLayout() {
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
 
   useEffect(() => {
+    // Web: Register service worker
     if (Platform.OS === 'web' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('[SW] Registration failed:', err);
       });
     }
+
+    // Native: Setup notifications
+    let cleanupNotifications: (() => void) | undefined;
+    if (Platform.OS !== 'web') {
+      cleanupNotifications = setupNotifications();
+    }
+
+    return () => {
+      cleanupNotifications?.();
+    };
   }, []);
 
   const handleDeepLink = (params: ChallengeParams) => {
