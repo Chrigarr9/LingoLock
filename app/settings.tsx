@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
@@ -8,13 +8,26 @@ import {
   saveAudioMuted,
   loadNewWordsPerDay,
   saveNewWordsPerDay,
+  loadNotificationsEnabled,
+  saveNotificationsEnabled,
+  loadNotificationInterval,
+  saveNotificationInterval,
 } from '../src/services/storage';
+import {
+  setNotificationInterval,
+  pauseNotifications,
+  resumeNotifications,
+  cancelAllNotifications,
+} from '../src/services/notificationScheduler';
+import { requestNotificationPermissions } from '../src/services/notificationService';
 
 export default function SettingsScreen() {
   const theme = useAppTheme();
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [newWordsPerDay, setNewWordsPerDay] = useState(() => loadNewWordsPerDay());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadNotificationsEnabled());
+  const [notificationInterval, setNotificationIntervalState] = useState(() => loadNotificationInterval());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -31,6 +44,34 @@ export default function SettingsScreen() {
     const next = Math.min(50, newWordsPerDay + 1);
     setNewWordsPerDay(next);
     saveNewWordsPerDay(next);
+  }
+
+  async function handleNotificationsToggle(value: boolean) {
+    if (value) {
+      // Enabling: request permissions
+      const granted = await requestNotificationPermissions();
+      if (granted) {
+        setNotificationsEnabled(true);
+        saveNotificationsEnabled(true);
+        await resumeNotifications();
+      } else {
+        // Permissions not granted, keep disabled
+        setNotificationsEnabled(false);
+        saveNotificationsEnabled(false);
+      }
+    } else {
+      // Disabling: pause and cancel all
+      setNotificationsEnabled(false);
+      saveNotificationsEnabled(false);
+      await pauseNotifications();
+      await cancelAllNotifications();
+    }
+  }
+
+  async function handleIntervalChange(seconds: number) {
+    setNotificationIntervalState(seconds);
+    saveNotificationInterval(seconds);
+    await setNotificationInterval(seconds);
   }
 
   return (
@@ -104,6 +145,98 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
+
+          {/* Notification Settings - Native Only */}
+          {Platform.OS !== 'web' && (
+            <>
+              {/* Separator */}
+              <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+
+              {/* Notifications Enable/Disable Toggle */}
+              <View style={styles.settingColumn}>
+                <View style={styles.settingRow}>
+                  <View style={styles.settingLabelGroup}>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                      Vocabulary Notifications
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      Receive reminders when screen is unlocked
+                    </Text>
+                  </View>
+                  <Switch
+                    value={notificationsEnabled}
+                    onValueChange={handleNotificationsToggle}
+                    color={theme.custom.brandOrange}
+                  />
+                </View>
+              </View>
+
+              {/* Notification Interval Selector - Only visible when enabled */}
+              {notificationsEnabled && (
+                <>
+                  {/* Separator */}
+                  <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+
+                  <View style={styles.settingColumn}>
+                    <View style={styles.settingLabelGroup}>
+                      <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                        Notification Interval
+                      </Text>
+                      <Text
+                        variant="bodySmall"
+                        style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                      >
+                        How often to send vocabulary reminders
+                      </Text>
+                    </View>
+                    <View style={styles.intervalSelector}>
+                      {[
+                        { seconds: 180, label: '3 min' },
+                        { seconds: 300, label: '5 min' },
+                        { seconds: 600, label: '10 min' },
+                      ].map((option) => (
+                        <Pressable
+                          key={option.seconds}
+                          style={[
+                            styles.intervalButton,
+                            {
+                              backgroundColor:
+                                notificationInterval === option.seconds
+                                  ? theme.custom.brandOrange
+                                  : theme.custom.glassBackground,
+                              borderColor:
+                                notificationInterval === option.seconds
+                                  ? theme.custom.brandOrange
+                                  : theme.custom.glassBorder,
+                            },
+                          ]}
+                          onPress={() => handleIntervalChange(option.seconds)}
+                        >
+                          <Text
+                            variant="bodyMedium"
+                            style={[
+                              styles.intervalButtonText,
+                              {
+                                color:
+                                  notificationInterval === option.seconds
+                                    ? '#FFFFFF'
+                                    : theme.colors.onSurface,
+                              },
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+            </>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -158,5 +291,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 32,
     textAlign: 'center',
+  },
+  intervalSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  intervalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  intervalButtonText: {
+    fontWeight: '600',
   },
 });
