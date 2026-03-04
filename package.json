@@ -17,6 +17,7 @@
     "expo-constants": "~55.0.7",
     "expo-dev-client": "~55.0.10",
     "expo-linking": "~55.0.7",
+    "expo-notifications": "~55.0.10",
     "expo-router": "~55.0.3",
     "fuse.js": "^7.1.0",
     "react": "19.2.0",
