@@ -12,9 +12,9 @@
  * All comparisons are pure string comparisons after slicing to date portion.
  */
 
-import { loadStats, saveStats, loadAllCardStates, loadCardState } from './storage';
+import { loadStats, saveStats, loadAllCardStates, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
 import { isCardMastered, isDue } from './fsrs';
-import { getChapterCards } from '../content/bundle';
+import { getChapterCards, CHAPTERS } from '../content/bundle';
 import { getCurrentChapter } from './cardSelector';
 
 // ---------------------------------------------------------------------------
@@ -154,12 +154,35 @@ export function getChapterMastery(chapterNumber: number): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the total number of cards that are currently due for review.
- * Loads all stored card states and filters by isDue().
+ * Returns the total number of cards available for the next session.
+ * Includes both FSRS-due review cards AND new cards within the daily budget.
+ * Mirrors buildSession's logic so the home screen count matches what a
+ * session would actually produce.
  */
 export function getCardsDueCount(): number {
+  // Due review cards (have stored state + FSRS says due)
   const states = loadAllCardStates();
-  return states.filter((state) => isDue(state)).length;
+  const dueReviews = states.filter((state) => isDue(state)).length;
+
+  // New cards available (no stored state yet), from current chapter onward
+  const currentChapterNumber = getCurrentChapter();
+  const currentChapterIndex = CHAPTERS.findIndex(
+    (ch) => ch.chapterNumber === currentChapterNumber,
+  );
+  let newCardsAvailable = 0;
+  for (let i = Math.max(0, currentChapterIndex); i < CHAPTERS.length; i++) {
+    for (const card of CHAPTERS[i].cards) {
+      if (loadCardState(card.id) === null) {
+        newCardsAvailable++;
+      }
+    }
+  }
+
+  // Apply daily new-word budget (same logic as buildSession)
+  const remainingBudget = Math.max(0, loadNewWordsPerDay() - loadNewWordsIntroducedToday());
+  const newCardsToIntroduce = Math.min(newCardsAvailable, remainingBudget);
+
+  return dueReviews + newCardsToIntroduce;
 }
 
 // ---------------------------------------------------------------------------

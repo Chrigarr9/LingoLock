@@ -33,8 +33,15 @@ export default function RootLayout() {
 
   useDeepLink(handleDeepLink);
 
+  const themedHeaderOptions = {
+    headerStyle: { backgroundColor: theme.colors.background },
+    headerTintColor: theme.colors.onSurface,
+    headerShadowVisible: false,
+    headerBackTitle: '',
+  };
+
   const content = (
-    <Stack>
+    <Stack screenOptions={themedHeaderOptions}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="challenge"
@@ -53,19 +60,19 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="settings"
-        options={{ title: 'Settings', headerBackTitle: '' }}
+        options={{ title: 'Settings' }}
       />
       <Stack.Screen
         name="vocabulary"
-        options={{ title: 'Vocabulary', headerBackTitle: '' }}
+        options={{ title: 'Vocabulary' }}
       />
       <Stack.Screen
         name="stats"
-        options={{ title: 'Progress', headerBackTitle: '' }}
+        options={{ title: 'Progress' }}
       />
       <Stack.Screen
         name="vocabulary/[id]"
-        options={{ title: 'Word Detail', headerBackTitle: '' }}
+        options={{ title: 'Word Detail' }}
       />
     </Stack>
   );

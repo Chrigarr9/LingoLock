@@ -151,26 +151,8 @@ export default function VocabularyScreen() {
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom']}
+      edges={['bottom']}
     >
-      {/* Screen title */}
-      <View style={[styles.screenHeader, { borderBottomColor: theme.custom.separator }]}>
-        <Text
-          variant="headlineSmall"
-          style={[styles.screenTitle, { color: theme.colors.onSurface }]}
-        >
-          Vocabulary
-        </Text>
-        {filterChapter !== null && (
-          <Text
-            variant="labelMedium"
-            style={{ color: theme.custom.brandOrange, marginTop: 2 }}
-          >
-            Chapter {filterChapter}
-          </Text>
-        )}
-      </View>
-
       {/* Search bar */}
       <View style={styles.searchContainer}>
         <Searchbar
@@ -210,16 +192,6 @@ export default function VocabularyScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-  },
-  screenHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  screenTitle: {
-    fontWeight: '700',
-    letterSpacing: -0.3,
   },
   searchContainer: {
     paddingHorizontal: 16,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Text, ProgressBar } from 'react-native-paper';
+import { Icon, Text, ProgressBar } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
 interface StatsCardProps {
@@ -37,7 +37,7 @@ export function StatsCard({ streak, progressPercent, cardsDue }: StatsCardProps)
           variant="bodyMedium"
           style={{ color: theme.colors.onSurfaceVariant, marginLeft: 6 }}
         >
-          day streak {streak > 0 ? '\uD83D\uDD25' : ''}
+          day streak
         </Text>
       </View>
 

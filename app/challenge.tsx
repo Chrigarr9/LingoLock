@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
-import { IconButton, Text } from 'react-native-paper';
+import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
@@ -418,12 +418,15 @@ export default function ChallengeScreen() {
                   {motivationalMessage}
                 </Text>
                 {streakCount > 1 && (
-                  <Text
-                    variant="labelLarge"
-                    style={[styles.streakLine, { color: theme.custom.brandOrange }]}
-                  >
-                    {'\uD83D\uDD25'} {streakCount} day streak!
-                  </Text>
+                  <View style={styles.streakRow}>
+                    <Icon source="fire" size={18} color={theme.custom.brandOrange} />
+                    <Text
+                      variant="labelLarge"
+                      style={[styles.streakLine, { color: theme.custom.brandOrange }]}
+                    >
+                      {streakCount} day streak!
+                    </Text>
+                  </View>
                 )}
               </View>
             )}
@@ -544,8 +547,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
-  streakLine: {
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginTop: 12,
+  },
+  streakLine: {
     fontWeight: '700',
     letterSpacing: 0.5,
   },

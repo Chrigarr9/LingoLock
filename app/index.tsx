@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
-import { IconButton, Text } from 'react-native-paper';
+import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { getTotalCards } from '../src/content/bundle';
+import { usePWAInstall } from '../src/hooks/usePWAInstall';
 
 function getSpanishGreeting(): string {
   const hour = new Date().getHours();
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const [cardsDue, setCardsDue] = useState(0);
   const [currentChapter, setCurrentChapter] = useState(1);
   const [greeting, setGreeting] = useState(getSpanishGreeting);
+  const promptInstall = usePWAInstall();
 
   // Refresh stats when screen gains focus (returning from challenge)
   useFocusEffect(
@@ -60,9 +62,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.logoContainer, { backgroundColor: theme.colors.primaryContainer }]}>
-              <Text style={[styles.logoIcon, { color: theme.custom.brandOrange }]}>
-                {'\uD83C\uDF0D'}
-              </Text>
+              <Icon source="earth" size={20} color={theme.custom.brandOrange} />
             </View>
             <Text
               variant="titleLarge"
@@ -91,9 +91,12 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
-              {'\uD83C\uDF0D'}  SPANISH
-            </Text>
+            <View style={styles.badgeContent}>
+              <Icon source="earth" size={12} color={theme.custom.labelMuted} />
+              <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
+                SPANISH
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -126,7 +129,7 @@ export default function HomeScreen() {
             <View
               style={[styles.fireCircle, { backgroundColor: theme.custom.brandOrange }]}
             >
-              <Text style={styles.fireIcon}>{'\uD83D\uDD25'}</Text>
+              <Icon source="fire" size={22} color="#FFFFFF" />
             </View>
           </View>
 
@@ -196,9 +199,7 @@ export default function HomeScreen() {
               accessibilityLabel="Vocabulary"
               accessibilityRole="button"
             >
-              <Text style={[styles.actionIcon, { color: theme.custom.brandOrange }]}>
-                {'\uD83D\uDCD6'}
-              </Text>
+              <Icon source="book-open-variant" size={24} color={theme.custom.brandOrange} />
               <Text
                 variant="labelSmall"
                 style={[styles.actionLabel, { color: theme.colors.onSurface }]}
@@ -212,9 +213,7 @@ export default function HomeScreen() {
               accessibilityLabel="Stats"
               accessibilityRole="button"
             >
-              <Text style={[styles.actionIcon, { color: theme.custom.brandOrange }]}>
-                {'\uD83D\uDCCA'}
-              </Text>
+              <Icon source="chart-bar" size={24} color={theme.custom.brandOrange} />
               <Text
                 variant="labelSmall"
                 style={[styles.actionLabel, { color: theme.colors.onSurface }]}
@@ -224,13 +223,26 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
+          {/* PWA install prompt — web only, when browser supports it */}
+          {promptInstall && (
+            <Pressable
+              onPress={promptInstall}
+              style={[styles.installBanner, { backgroundColor: theme.custom.brandOrange }]}
+              accessibilityLabel="Install app"
+              accessibilityRole="button"
+            >
+              <Icon source="download" size={18} color="#FFFFFF" />
+              <Text style={styles.installText}>Install LingoLock</Text>
+            </Pressable>
+          )}
+
           {/* Tutorial link — hidden on web */}
           {Platform.OS !== 'web' && (
             <Pressable
               onPress={() => router.push('/tutorial')}
               style={[styles.tutorialLink, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
             >
-              <Text style={{ color: theme.custom.brandOrange, fontSize: 18 }}>{'\uD83D\uDCD6'}</Text>
+              <Icon source="book-open-variant" size={18} color={theme.custom.brandOrange} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
                 Setup Tutorial
               </Text>
@@ -269,9 +281,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoIcon: {
-    fontSize: 20,
-  },
   appTitle: {
     fontWeight: '700',
     letterSpacing: -0.3,
@@ -288,6 +297,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  badgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   badgeText: {
     fontSize: 10,
@@ -333,9 +347,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  fireIcon: {
-    fontSize: 20,
   },
   halfCard: {
     flex: 1,
@@ -397,13 +408,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  actionIcon: {
-    fontSize: 22,
-  },
   actionLabel: {
     fontWeight: '700',
     letterSpacing: 1.5,
     fontSize: 10,
+  },
+  installBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 20,
+  },
+  installText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   tutorialLink: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Image, type ImageSourcePropType } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Icon, Text } from 'react-native-paper';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { useAppTheme } from '../theme';
 import { cardImages } from '../content/bundle';
@@ -171,12 +171,15 @@ export function ClozeCardDisplay({
       {!showAnswer && (
         <>
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-          <Text
-            variant="bodyLarge"
-            style={[styles.germanHint, { color: theme.custom.brandOrange }]}
-          >
-            {'\uD83D\uDCA1 '}{card.germanHint}
-          </Text>
+          <View style={styles.hintRow}>
+            <Icon source="lightbulb-outline" size={18} color={theme.custom.brandOrange} />
+            <Text
+              variant="bodyLarge"
+              style={[styles.germanHint, { color: theme.custom.brandOrange }]}
+            >
+              {card.germanHint}
+            </Text>
+          </View>
           <Text
             variant="labelSmall"
             style={[styles.answerTypeLabel, { color: theme.colors.onSurfaceVariant }]}
@@ -278,6 +281,11 @@ const styles = StyleSheet.create({
     height: 2,
     borderRadius: 1,
     marginVertical: 12,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   germanHint: {
     fontWeight: '600',
