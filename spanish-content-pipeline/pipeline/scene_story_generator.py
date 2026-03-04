@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pipeline.config import DeckConfig
 from pipeline.llm import LLMClient
-from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
+from pipeline.models import ChapterScene, ImageManifest, ImagePrompt, Scene, Shot, ShotSentence
 
 
 SYSTEM_PROMPT = """\
@@ -96,6 +96,68 @@ def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScen
             shot.image_prompt = f"{style}. {raw}. {suffix}"
 
     return chapter_data
+
+
+def extract_flat_text(chapter: ChapterScene) -> str:
+    """Extract all sentences as a flat newline-separated string for the translator."""
+    sentences = []
+    for scene in chapter.scenes:
+        for shot in scene.shots:
+            for sent in shot.sentences:
+                sentences.append((sent.sentence_index, sent.source))
+    sentences.sort(key=lambda x: x[0])
+    return "\n".join(source for _, source in sentences)
+
+
+def extract_image_prompts(chapter: ChapterScene) -> list[ImagePrompt]:
+    """Extract one ImagePrompt per SHOT, keyed to the first sentence.
+
+    The image generator generates one image per shot. After generation,
+    run_all.py calls expand_manifest_for_shared_shots() to add manifest
+    entries for all other sentences in multi-sentence shots, pointing to
+    the same image file.
+    """
+    prompts = []
+    for scene in chapter.scenes:
+        for shot in scene.shots:
+            if not shot.sentences:
+                continue
+            first_sent = shot.sentences[0]
+            prompts.append(
+                ImagePrompt(
+                    chapter=chapter.chapter,
+                    sentence_index=first_sent.sentence_index,
+                    source=first_sent.source,
+                    image_type="scene_only",
+                    characters=[],
+                    prompt=shot.image_prompt,
+                    setting=scene.setting,
+                )
+            )
+    return prompts
+
+
+def expand_manifest_for_shared_shots(
+    manifest: ImageManifest,
+    chapters: dict[int, ChapterScene],
+) -> None:
+    """Add manifest entries for sentences that share a shot with another sentence.
+
+    For a shot with sentences [0, 1], if ch01_s00 has an image, this adds
+    ch01_s01 pointing to the same file. Modifies manifest in place.
+    """
+    for chapter in chapters.values():
+        ch = str(chapter.chapter).zfill(2)
+        for scene in chapter.scenes:
+            for shot in scene.shots:
+                if len(shot.sentences) <= 1:
+                    continue
+                first_key = f"ch{ch}_s{str(shot.sentences[0].sentence_index).zfill(2)}"
+                first_entry = manifest.images.get(first_key)
+                if first_entry and first_entry.status == "success":
+                    for sent in shot.sentences[1:]:
+                        alias_key = f"ch{ch}_s{str(sent.sentence_index).zfill(2)}"
+                        manifest.images[alias_key] = first_entry
 
 
 class SceneStoryGenerator:

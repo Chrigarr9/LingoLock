@@ -210,3 +210,114 @@ def test_secondary_characters_in_prompt_for_relevant_chapter(tmp_path):
     prompt = call_args.kwargs.get("prompt") or call_args.args[0]
     assert "Taxi Driver" in prompt
     assert "gray flat cap" in prompt
+
+
+# --- Extraction helper tests ---
+
+from pipeline.models import ChapterScene, Scene, Shot, ShotSentence, ImagePrompt
+
+
+def make_chapter_scene() -> ChapterScene:
+    """Build a sample ChapterScene for extraction tests."""
+    return ChapterScene(
+        chapter=1,
+        scenes=[
+            Scene(
+                setting="bedroom_berlin",
+                description="A cozy bedroom",
+                shots=[
+                    Shot(
+                        focus="suitcase",
+                        image_prompt="style. A bedroom with a large suitcase. no text, no writing, no letters.",
+                        sentences=[
+                            ShotSentence(source="Charlotte está en su habitación.", sentence_index=0),
+                            ShotSentence(source="Ella tiene una maleta grande.", sentence_index=1),
+                        ],
+                    ),
+                    Shot(
+                        focus="travel guide",
+                        image_prompt="style. A nightstand with a travel guide. no text, no writing, no letters.",
+                        sentences=[
+                            ShotSentence(source="Hay una guía de viaje.", sentence_index=2),
+                        ],
+                    ),
+                ],
+            ),
+            Scene(
+                setting="kitchen_berlin",
+                description="A bright kitchen",
+                shots=[
+                    Shot(
+                        focus="coffee cups",
+                        image_prompt="style. Kitchen table with two coffee cups. no text, no writing, no letters.",
+                        sentences=[
+                            ShotSentence(source="Su madre está en la cocina.", sentence_index=3),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def test_extract_flat_text():
+    from pipeline.scene_story_generator import extract_flat_text
+
+    chapter = make_chapter_scene()
+    text = extract_flat_text(chapter)
+
+    lines = text.strip().split("\n")
+    assert len(lines) == 4
+    assert lines[0] == "Charlotte está en su habitación."
+    assert lines[1] == "Ella tiene una maleta grande."
+    assert lines[2] == "Hay una guía de viaje."
+    assert lines[3] == "Su madre está en la cocina."
+
+
+def test_extract_image_prompts():
+    from pipeline.scene_story_generator import extract_image_prompts
+
+    chapter = make_chapter_scene()
+    prompts = extract_image_prompts(chapter)
+
+    # 3 shots = 3 image prompts (one per shot, keyed to first sentence)
+    assert len(prompts) == 3
+
+    assert prompts[0].chapter == 1
+    assert prompts[0].sentence_index == 0  # first sentence in shot 1
+    assert prompts[0].image_type == "scene_only"
+    assert "suitcase" in prompts[0].prompt
+    assert prompts[0].setting == "bedroom_berlin"
+
+    assert prompts[1].sentence_index == 2  # first sentence in shot 2
+    assert "travel guide" in prompts[1].prompt
+
+    assert prompts[2].sentence_index == 3  # first sentence in shot 3 (different scene)
+    assert prompts[2].setting == "kitchen_berlin"
+
+
+def test_expand_manifest_for_shared_shots():
+    """Sentences sharing a shot get alias entries in the manifest."""
+    from pipeline.scene_story_generator import expand_manifest_for_shared_shots
+    from pipeline.models import ImageManifest, ImageManifestEntry
+
+    chapter = make_chapter_scene()
+    manifest = ImageManifest(
+        reference="",
+        model_character="test",
+        model_scene="test",
+        images={
+            "ch01_s00": ImageManifestEntry(file="images/ch01_s00.webp", status="success"),
+            "ch01_s02": ImageManifestEntry(file="images/ch01_s02.webp", status="success"),
+            "ch01_s03": ImageManifestEntry(file="images/ch01_s03.webp", status="success"),
+        },
+    )
+
+    expand_manifest_for_shared_shots(manifest, {0: chapter})
+
+    # Sentence 1 shares shot with sentence 0 → alias added
+    assert "ch01_s01" in manifest.images
+    assert manifest.images["ch01_s01"].file == "images/ch01_s00.webp"
+    # Original entries unchanged
+    assert manifest.images["ch01_s00"].file == "images/ch01_s00.webp"
+    assert manifest.images["ch01_s02"].file == "images/ch01_s02.webp"
