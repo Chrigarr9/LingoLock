@@ -250,6 +250,35 @@ Recent decisions affecting current work:
 - Platform-specific widget stubs: .web.ts files provide no-op stubs for web builds
 
 **From Plan 03-03 (Notification Scheduling System):**
+- Screen unlock detection uses AppState timing heuristic: < 50ms = unlock, ~800ms = app switch
+- 10-second debounce prevents rapid repeated unlock detections
+- Notification scheduler picks due repetition cards (only words seen at least once)
+- Notification interval configurable (default 300s = 5 min), persisted to storage
+- MC notification body format: "El gato ___ en la mesa. A) come B) bebe C) duerme D) corre"
+- mcMapping in NotificationData maps button IDs to actual words for validation
+- 1-minute response window: answers >1 min after delivery trigger handleSwipeAway (streak lost)
+- Swipe-away detection: 1-minute timeout is intentional (not true swipe-away events, which iOS doesn't provide)
+- Notifications pause during in-app practice (challenge.tsx calls pauseNotifications/resumeNotifications)
+- Widget refreshes after notification answers and in-app session completion
+- Notification answer processing: validates with fuzzy matching (text) or mcMapping (MC), updates FSRS + stats
+- Feedback notifications: correct → "Correct! [germanHint]", incorrect → "[correctAnswer] -- [translation]"
+
+**From Plan 03-04 (Settings Integration):**
+- Notification settings UI: enable/disable toggle + interval selector (3/5/10 min per NOTF-01)
+- Settings changes call both storage save AND scheduler update for immediate effect
+- Notification controls hidden on web via Platform.OS !== 'web' guard
+- All notification/widget services have .web.ts stubs for web compatibility
+- Challenge screen, notification service, and widget service all call updateWidgetData() after answers
+- Cross-context FSRS queue verified: all practice contexts use same loadCardState + isDue logic
+
+**Phase 03 Gap Closure:**
+- Widget answer deep link handler added: parseDeepLink returns discriminated union (challenge | widget-answer)
+- WidgetAnswerParams interface: { cardId, choice }
+- parseWidgetAnswerLink function extracts params from lingolock://widget-answer URLs
+- _layout.tsx routes widget-answer links to processWidgetAnswer → FSRS update → widget refresh
+- Deep link flow: widget button tap → URL scheme → app background handler → FSRS + widget refresh (no app open)
+
+**From Plan 03-03 (Notification Scheduling System):**
 - Screen unlock detection via AppState timing heuristic: inactive→active < 50ms = unlock (vs ~800ms for app switch)
 - 10-second debounce prevents rapid repeated unlock detections
 - Notification scheduler picks due repetition cards only (conservative: no new cards on Lock Screen)

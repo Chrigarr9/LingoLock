@@ -199,11 +199,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2003-03-02 |
 | 2. Spaced Repetition & Progress | 5/5 | Complete   | 2003-03-02 |
 | 2.1 PWA Deployment & Content Integration | 3/3 | Complete | 2026-03-03 |
-| 2.2 App Polish & Missing Screens | 1/3 | In progress | - |
+| 2.2 App Polish & Missing Screens | 3/3 | Complete | 2026-03-04 |
 | 2.3 Audio Generation Pipeline | 2/2 | Complete | 2026-03-04 |
-| 3. Notifications & Live Activities | 0/4 | Not started | - |
+| 3. Notifications & Live Activities | 4/4 | Complete | 2026-03-04 |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2003-03-01*
-*Last updated: 2026-03-04 (Phase 03 planned — 4 plans in 3 waves for notifications + widgets)*
+*Last updated: 2026-03-04 (Phase 03 complete — notifications, widgets, settings integration)*
