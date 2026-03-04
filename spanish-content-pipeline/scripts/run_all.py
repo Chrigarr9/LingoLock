@@ -52,6 +52,7 @@ def main():
     parser.add_argument("--config", required=True, help="Path to deck config YAML")
     parser.add_argument("--chapters", default=None, help="Chapter range (e.g. '1-3' or '1'). Defaults to all.")
     parser.add_argument("--frequency-file", default=None, help="Path to FrequencyWords file (e.g. data/frequency/es_50k.txt)")
+    parser.add_argument("--skip-audio", action="store_true", help="Skip audio generation even if API key is configured")
     args = parser.parse_args()
 
     load_dotenv()
@@ -169,6 +170,39 @@ def main():
             success = sum(1 for e in manifest.images.values() if e.status == "success")
             failed = sum(1 for e in manifest.images.values() if e.status == "failed")
             print(f"  {success} images generated, {failed} failed")
+
+    # Pass 6: Audio Generation
+    print("\n=== Pass 6: Audio Generation ===")
+    if args.skip_audio:
+        print("  Skipped (--skip-audio flag)")
+    elif not config.audio_generation or not config.audio_generation.enabled:
+        print("  Audio generation disabled in config — skipping")
+    else:
+        audio_api_key = None
+        if config.audio_generation.provider == "google":
+            audio_api_key = os.environ.get("GOOGLE_TTS_API_KEY")
+            if not audio_api_key:
+                print("  WARNING: GOOGLE_TTS_API_KEY not set — skipping audio generation")
+        elif config.audio_generation.provider == "openai":
+            audio_api_key = os.environ.get("OPENAI_API_KEY")
+            if not audio_api_key:
+                print("  WARNING: OPENAI_API_KEY not set — skipping audio generation")
+        else:
+            print(f"  WARNING: Unknown audio provider '{config.audio_generation.provider}' — skipping")
+
+        if audio_api_key:
+            from pipeline.audio_generator import AudioGenerator
+
+            # Collect all sentence pairs across chapters
+            all_sentences = []
+            for i in chapter_range:
+                all_sentences.extend(all_pairs[i])
+
+            generator = AudioGenerator(config, api_key=audio_api_key, output_base=output_base)
+            manifest = generator.generate_all(all_sentences)
+            success = sum(1 for e in manifest.audio.values() if e.status == "success")
+            failed = sum(1 for e in manifest.audio.values() if e.status == "failed")
+            print(f"  {success} audio files generated, {failed} failed")
 
     # REPORT: Coverage Analysis
     if frequency_data:
