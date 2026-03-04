@@ -652,45 +652,47 @@ def test_extract_image_prompts():
     chapter = make_chapter_scene()
     prompts = extract_image_prompts(chapter)
 
-    # 4 sentences = 4 image prompts (one per sentence, NOT one per shot)
-    # This ensures every sentence_index has an image entry in the manifest,
-    # which is critical for build-content.ts to find images for every card.
-    assert len(prompts) == 4
+    # 3 shots = 3 image prompts (one per shot, keyed to first sentence)
+    assert len(prompts) == 3
 
-    # Sentence 0 and 1 share the same shot → same image prompt text
     assert prompts[0].chapter == 1
-    assert prompts[0].sentence_index == 0
+    assert prompts[0].sentence_index == 0  # first sentence in shot 1
     assert prompts[0].image_type == "scene_only"
     assert "suitcase" in prompts[0].prompt
     assert prompts[0].setting == "bedroom_berlin"
 
-    assert prompts[1].sentence_index == 1
-    assert prompts[1].prompt == prompts[0].prompt  # Same shot → same prompt
+    assert prompts[1].sentence_index == 2  # first sentence in shot 2
+    assert "travel guide" in prompts[1].prompt
 
-    # Sentence 2 is in a different shot
-    assert prompts[2].sentence_index == 2
-    assert "travel guide" in prompts[2].prompt
-
-    # Sentence 3 is in a different scene
-    assert prompts[3].sentence_index == 3
-    assert prompts[3].setting == "kitchen_berlin"
+    assert prompts[2].sentence_index == 3  # first sentence in shot 3 (different scene)
+    assert prompts[2].setting == "kitchen_berlin"
 
 
-def test_extract_image_prompts_dedup_enables_image_reuse():
-    """Sentences sharing a shot get identical prompts, so image_generator dedup
-    will generate the image once and reuse it for all sentences in the shot."""
-    from pipeline.scene_story_generator import extract_image_prompts
+def test_expand_manifest_for_shared_shots():
+    """Sentences sharing a shot get alias entries in the manifest."""
+    from pipeline.scene_story_generator import expand_manifest_for_shared_shots
+    from pipeline.models import ImageManifest, ImageManifestEntry
 
     chapter = make_chapter_scene()
-    prompts = extract_image_prompts(chapter)
+    manifest = ImageManifest(
+        reference="",
+        model_character="test",
+        model_scene="test",
+        images={
+            "ch01_s00": ImageManifestEntry(file="images/ch01_s00.webp", status="success"),
+            "ch01_s02": ImageManifestEntry(file="images/ch01_s02.webp", status="success"),
+            "ch01_s03": ImageManifestEntry(file="images/ch01_s03.webp", status="success"),
+        },
+    )
 
-    # Shot 1 has sentences 0 and 1 — both have identical prompt text
-    shot1_prompts = [p for p in prompts if p.sentence_index in (0, 1)]
-    assert len(shot1_prompts) == 2
-    assert shot1_prompts[0].prompt == shot1_prompts[1].prompt
+    expand_manifest_for_shared_shots(manifest, {0: chapter})
 
-    # Different shots have different prompts
-    assert prompts[0].prompt != prompts[2].prompt
+    # Sentence 1 shares shot with sentence 0 → alias added
+    assert "ch01_s01" in manifest.images
+    assert manifest.images["ch01_s01"].file == "images/ch01_s00.webp"
+    # Original entries unchanged
+    assert manifest.images["ch01_s00"].file == "images/ch01_s00.webp"
+    assert manifest.images["ch01_s02"].file == "images/ch01_s02.webp"
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -718,30 +720,54 @@ def extract_flat_text(chapter: ChapterScene) -> str:
 
 
 def extract_image_prompts(chapter: ChapterScene) -> list[ImagePrompt]:
-    """Extract one ImagePrompt per SENTENCE (not per shot).
+    """Extract one ImagePrompt per SHOT, keyed to the first sentence.
 
-    Sentences sharing a shot get the same image_prompt text. This ensures
-    every sentence_index has an entry in the image manifest, so
-    build-content.ts can find an image for every card. The image generator's
-    existing dedup logic (prompt_to_entry) will generate the image once and
-    reuse the file for all sentences in the same shot.
+    The image generator generates one image per shot. After generation,
+    run_all.py calls expand_manifest_for_shared_shots() to add manifest
+    entries for all other sentences in multi-sentence shots, pointing to
+    the same image file.
     """
     prompts = []
     for scene in chapter.scenes:
         for shot in scene.shots:
-            for sent in shot.sentences:
-                prompts.append(
-                    ImagePrompt(
-                        chapter=chapter.chapter,
-                        sentence_index=sent.sentence_index,
-                        source=sent.source,
-                        image_type="scene_only",
-                        characters=[],
-                        prompt=shot.image_prompt,
-                        setting=scene.setting,
-                    )
+            if not shot.sentences:
+                continue
+            first_sent = shot.sentences[0]
+            prompts.append(
+                ImagePrompt(
+                    chapter=chapter.chapter,
+                    sentence_index=first_sent.sentence_index,
+                    source=first_sent.source,
+                    image_type="scene_only",
+                    characters=[],
+                    prompt=shot.image_prompt,
+                    setting=scene.setting,
                 )
+            )
     return prompts
+
+
+def expand_manifest_for_shared_shots(
+    manifest: "ImageManifest",
+    chapters: dict[int, ChapterScene],
+) -> None:
+    """Add manifest entries for sentences that share a shot with another sentence.
+
+    For a shot with sentences [0, 1], if ch01_s00 has an image, this adds
+    ch01_s01 pointing to the same file. Modifies manifest in place.
+    """
+    for chapter in chapters.values():
+        ch = str(chapter.chapter).zfill(2)
+        for scene in chapter.scenes:
+            for shot in scene.shots:
+                if len(shot.sentences) <= 1:
+                    continue
+                first_key = f"ch{ch}_s{str(shot.sentences[0].sentence_index).zfill(2)}"
+                first_entry = manifest.images.get(first_key)
+                if first_entry and first_entry.status == "success":
+                    for sent in shot.sentences[1:]:
+                        alias_key = f"ch{ch}_s{str(sent.sentence_index).zfill(2)}"
+                        manifest.images[alias_key] = first_entry
 ```
 
 **Step 4: Run tests to verify they pass**
@@ -1143,7 +1169,7 @@ from pipeline.story_generator import StoryGenerator
 ```
 with:
 ```python
-from pipeline.scene_story_generator import SceneStoryGenerator, extract_flat_text, extract_image_prompts
+from pipeline.scene_story_generator import SceneStoryGenerator, extract_flat_text, extract_image_prompts, expand_manifest_for_shared_shots
 from pipeline.models import ImagePromptResult
 ```
 
@@ -1227,9 +1253,18 @@ with:
             output_base=output_base,
         )
         manifest = generator.generate_all(image_prompt_result)
+
+        # Expand manifest: add alias entries for sentences sharing a shot
+        expand_manifest_for_shared_shots(manifest, chapter_scenes)
+        # Rewrite manifest with aliases
+        manifest_path = output_base / config.deck.id / "image_manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest.model_dump(), ensure_ascii=False, indent=2)
+        )
+
         success = sum(1 for e in manifest.images.values() if e.status == "success")
         failed = sum(1 for e in manifest.images.values() if e.status == "failed")
-        print(f"  {success} images generated, {failed} failed")
+        print(f"  {success} image entries in manifest ({len(all_image_prompts)} shots), {failed} failed")
 ```
 
 **Step 4: Run the CLI test**
@@ -1410,7 +1445,7 @@ The new scene-first pipeline fixes this in two ways:
 
 1. **No chapter titles in sentence list** — `SceneStoryGenerator` only produces dialogue/narration sentences, never chapter titles. `sentence_index` starts at 0 for the first real sentence.
 
-2. **One image prompt per sentence** — `extract_image_prompts()` creates an entry for every sentence, not just one per shot. Sentences sharing a shot get identical `image_prompt` text, and the image generator's dedup (`prompt_to_entry`) generates the image file once and reuses it. This guarantees every `sentence_index` has a corresponding image in the manifest, so `build-content.ts` can always find an image for every card.
+2. **Manifest expansion for shared shots** — `extract_image_prompts()` creates one entry per shot (keyed to first sentence). After image generation, `expand_manifest_for_shared_shots()` adds alias entries for all other sentences in multi-sentence shots, pointing to the same image file. This guarantees every `sentence_index` has a corresponding image in the manifest, so `build-content.ts` can always find an image for every card.
 
 ---
 
