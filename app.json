@@ -43,7 +43,8 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-widgets"
     ],
     "experiments": {
       "typedRoutes": true
