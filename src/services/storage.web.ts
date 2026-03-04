@@ -189,6 +189,64 @@ export function recordNewWordsIntroduced(count: number): void {
 }
 
 // ---------------------------------------------------------------------------
+// Notification preferences
+// ---------------------------------------------------------------------------
+
+const NOTIFICATION_INTERVAL_KEY = 'll.notification_interval';
+const NOTIFICATION_SWIPE_AWAY_DATE_KEY = 'll.notification_swipe_away_date';
+const NOTIFICATIONS_ENABLED_KEY = 'll.notifications_enabled';
+
+/**
+ * Load the notification interval in seconds.
+ * Returns 300 (5 minutes) if never set.
+ */
+export function loadNotificationInterval(): number {
+  const raw = localStorage.getItem(NOTIFICATION_INTERVAL_KEY);
+  if (raw === null) return 300;
+  const parsed = parseInt(raw, 10);
+  return isNaN(parsed) ? 300 : parsed;
+}
+
+/**
+ * Persist the notification interval in seconds.
+ */
+export function saveNotificationInterval(seconds: number): void {
+  localStorage.setItem(NOTIFICATION_INTERVAL_KEY, String(seconds));
+}
+
+/**
+ * Load the date when user last swiped away a notification.
+ * Returns null if never set or not today.
+ */
+export function loadNotificationSwipeAwayDate(): string | null {
+  return localStorage.getItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY) ?? null;
+}
+
+/**
+ * Persist the swipe-away date (YYYY-MM-DD format).
+ */
+export function saveNotificationSwipeAwayDate(date: string): void {
+  localStorage.setItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY, date);
+}
+
+/**
+ * Load whether notifications are enabled.
+ * Returns true (enabled) if never set.
+ */
+export function loadNotificationsEnabled(): boolean {
+  const raw = localStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+  if (raw === null) return true;
+  return raw === 'true';
+}
+
+/**
+ * Persist notification enabled state.
+ */
+export function saveNotificationsEnabled(enabled: boolean): void {
+  localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 

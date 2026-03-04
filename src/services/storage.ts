@@ -172,6 +172,59 @@ export function recordNewWordsIntroduced(count: number): void {
 }
 
 // ---------------------------------------------------------------------------
+// Notification preferences
+// ---------------------------------------------------------------------------
+
+const NOTIFICATION_INTERVAL_KEY = 'notification_interval';
+const NOTIFICATION_SWIPE_AWAY_DATE_KEY = 'notification_swipe_away_date';
+const NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
+
+/**
+ * Load the notification interval in seconds.
+ * Returns 300 (5 minutes) if never set.
+ */
+export function loadNotificationInterval(): number {
+  return statsStorage.getNumber(NOTIFICATION_INTERVAL_KEY) ?? 300;
+}
+
+/**
+ * Persist the notification interval in seconds.
+ */
+export function saveNotificationInterval(seconds: number): void {
+  statsStorage.set(NOTIFICATION_INTERVAL_KEY, seconds);
+}
+
+/**
+ * Load the date when user last swiped away a notification.
+ * Returns null if never set or not today.
+ */
+export function loadNotificationSwipeAwayDate(): string | null {
+  return statsStorage.getString(NOTIFICATION_SWIPE_AWAY_DATE_KEY) ?? null;
+}
+
+/**
+ * Persist the swipe-away date (YYYY-MM-DD format).
+ */
+export function saveNotificationSwipeAwayDate(date: string): void {
+  statsStorage.set(NOTIFICATION_SWIPE_AWAY_DATE_KEY, date);
+}
+
+/**
+ * Load whether notifications are enabled.
+ * Returns true (enabled) if never set.
+ */
+export function loadNotificationsEnabled(): boolean {
+  return statsStorage.getBoolean(NOTIFICATIONS_ENABLED_KEY) ?? true;
+}
+
+/**
+ * Persist notification enabled state.
+ */
+export function saveNotificationsEnabled(enabled: boolean): void {
+  statsStorage.set(NOTIFICATIONS_ENABLED_KEY, enabled);
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 
