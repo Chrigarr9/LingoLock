@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-03-04T13:31:28Z"
+last_updated: "2026-03-04T13:37:28Z"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
 ---
 
 # Project State
@@ -23,18 +23,18 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2.3 of 4 (02.3-audio-generation-pipeline)
-Plan: 1 of 1 complete in current phase
-Status: Phase 02.3 complete — Plan 01 (Audio generation module) complete
-Last activity: 2026-03-04 — Phase 02.3 Plan 01 complete (AudioGenerator, multi-provider TTS)
+Plan: 2 of 2 complete in current phase
+Status: Phase 02.3 complete — Plan 02 (Audio pipeline integration) complete
+Last activity: 2026-03-04 — Phase 02.3 Plan 02 complete (Pass 6, audio bundling, playback)
 
-Progress: [████████░░] ~81%
+Progress: [████████░░] ~83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 4 min
-- Total execution time: 1.3 hours
+- Total plans completed: 20
+- Average duration: 3.9 min
+- Total execution time: 1.35 hours
 
 **By Phase:**
 
@@ -44,10 +44,10 @@ Progress: [████████░░] ~81%
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
 | 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
 | 02.2-app-polish-missing-screens | 1/3 | ~7min | ~7min |
-| 02.3-audio-generation-pipeline | 1/1 | 4min | 4min |
+| 02.3-audio-generation-pipeline | 2/2 | 7min | 3.5min |
 
 **Recent Trend:**
-- Last 3 plans: 02.2-01 (7min), 02.3-01 (4min)
+- Last 3 plans: 02.2-01 (7min), 02.3-01 (4min), 02.3-02 (3min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -55,6 +55,7 @@ Progress: [████████░░] ~81%
 | Phase 02.2-app-polish-missing-screens P02 | 5 | 2 tasks | 2 files |
 | Phase 02.2-app-polish-missing-screens P03 | 4 | 3 tasks | 3 files |
 | Phase 02.3-audio-generation-pipeline P01 | 2 | 2 tasks | 6 files |
+| Phase 02.3-audio-generation-pipeline P02 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -212,6 +213,15 @@ Recent decisions affecting current work:
 - Lazy client initialization enables mocking in tests without network dependencies
 - 8 comprehensive tests cover success, failure, skip, and regeneration scenarios
 
+**From Plan 02.3-02 (Audio Pipeline Integration):**
+- Pass 6 uses lazy AudioGenerator import (only when API key present) to avoid ImportError without google-cloud-texttospeech
+- Audio manifest loading mirrors image manifest pattern exactly for consistency
+- cardAudios map uses static require() calls for Metro bundler (same as cardImages)
+- ClozeCard audio resolution checks bundled assets first, falls back to HTTP URI
+- Pipeline Pass pattern: Check flag → check config → check API key → lazy import → graceful skip on any failure
+- Asset bundling pattern: manifest.json → copy files → generate require() map → export for Metro
+- Audio playback pattern: cardAudios[card.audio] ?? URI fallback → Audio.Sound.createAsync()
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
@@ -248,9 +258,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Phase 02.3 Plan 01 complete — Audio generation module (AudioGenerator, multi-provider TTS)
+Stopped at: Phase 02.3 Plan 02 complete — Audio pipeline integration (Pass 6, audio bundling, playback)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-04 (Phase 02.3 Plan 01 complete — Audio generation module)*
+*Last updated: 2026-03-04 (Phase 02.3 Plan 02 complete — Audio pipeline integration)*
