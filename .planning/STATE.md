@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-03-04T18:42:43Z"
+last_updated: "2026-03-04T18:48:08Z"
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 21
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -23,18 +23,18 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 3 of 4 (03-notifications-live-activities)
-Plan: 1 of 4 complete in current phase
-Status: Phase 03 in progress — Plan 01 (Notification Infrastructure) complete
-Last activity: 2026-03-04 — Phase 03 Plan 01 complete (expo-notifications setup, categories, permissions)
+Plan: 2 of 4 complete in current phase
+Status: Phase 03 in progress — Plan 02 (Widget Integration) complete
+Last activity: 2026-03-04 — Phase 03 Plan 02 complete (Home/Lock Screen widgets, MC answer buttons, widget data service)
 
-Progress: [████████░░] ~84%
+Progress: [████████░░] ~85%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 3.8 min
-- Total execution time: 1.40 hours
+- Total execution time: 1.47 hours
 
 **By Phase:**
 
@@ -45,10 +45,10 @@ Progress: [████████░░] ~84%
 | 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
 | 02.2-app-polish-missing-screens | 3/3 | ~18min | ~6min |
 | 02.3-audio-generation-pipeline | 2/2 | 7min | 3.5min |
-| 03-notifications-live-activities | 1/4 | 3min | 3min |
+| 03-notifications-live-activities | 2/4 | 7min | 3.5min |
 
 **Recent Trend:**
-- Last 3 plans: 02.3-01 (4min), 02.3-02 (3min), 03-01 (3min)
+- Last 3 plans: 02.3-02 (3min), 03-01 (3min), 03-02 (4min)
 - Trend: Excellent velocity, tasks well-scoped
 
 *Updated after each plan completion*
@@ -58,6 +58,7 @@ Progress: [████████░░] ~84%
 | Phase 02.3-audio-generation-pipeline P01 | 2 | 2 tasks | 6 files |
 | Phase 02.3-audio-generation-pipeline P02 | 3 | 2 tasks | 6 files |
 | Phase 03-notifications-live-activities P01 | 3 | 2 tasks | 6 files |
+| Phase 03-notifications-live-activities P02 | 4 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -234,6 +235,18 @@ Recent decisions affecting current work:
 - setupNotifications() called in root layout useEffect with cleanup function for native platforms
 - Platform-specific service pattern: .web.ts files provide no-op stubs with matching exports
 
+**From Plan 03-02 (Widget Integration):**
+- expo-widgets installed and configured in app.json with widget families (systemSmall, systemMedium, accessoryRectangular)
+- Widget service pattern: getWidgetCardData, updateWidgetData, processWidgetAnswer, clearWidgetData
+- Conservative widget content filtering: repetition-only cards (no new cards on Lock Screen without images)
+- MC cards (mc2/mc4) show A/B/C/D answer buttons directly on widget (iOS 17+ Button support)
+- Text cards show tap-to-open deep link (iOS widgets cannot have text input fields)
+- Widget button taps use deep links: `lingolock://widget-answer?cardId=xxx&choice=gato`
+- processWidgetAnswer handles MC button taps and updates FSRS state without opening app
+- Widget data service reads from shared FSRS queue (same logic as buildSession)
+- updateWidgetData() placeholder for timeline refresh (expo-widgets SDK 55 API TBD)
+- Platform-specific widget stubs: .web.ts files provide no-op stubs for web builds
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
@@ -270,9 +283,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Phase 03 Plan 01 complete — Notification infrastructure (expo-notifications setup, categories, permissions)
+Stopped at: Phase 03 Plan 02 complete — Widget integration (Home/Lock Screen widgets, MC answer buttons, widget data service)
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-04 (Phase 03 Plan 01 complete — Notification infrastructure)*
+*Last updated: 2026-03-04 (Phase 03 Plan 02 complete — Widget integration)*
