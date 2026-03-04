@@ -44,7 +44,21 @@
       "expo-router",
       "expo-dev-client",
       "expo-notifications",
-      "expo-widgets"
+      [
+        "expo-widgets",
+        {
+          "ios": {
+            "widgets": [
+              {
+                "name": "VocabularyWidget",
+                "displayName": "LingoLock Practice",
+                "description": "Practice vocabulary directly from your Home Screen or Lock Screen",
+                "families": ["systemSmall", "systemMedium", "accessoryRectangular"]
+              }
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
