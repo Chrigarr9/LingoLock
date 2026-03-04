@@ -45,6 +45,9 @@ export const cardImages: Record<string, number> = {
   'ch02_s19': require('../../assets/images/cards/ch02_s19.webp'),
 };
 
+/** Audio assets keyed by sentence ID — use cardAudios[card.audio] for playback */
+export const cardAudios: Record<string, number> = {};
+
 export const CHAPTERS: ChapterData[] = [
   {
     chapterNumber: 1,
