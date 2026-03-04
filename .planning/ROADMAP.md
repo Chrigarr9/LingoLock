@@ -98,6 +98,26 @@ Plans:
 - [ ] 02.2-02-PLAN.md -- Vocabulary browser + word detail view
 - [ ] 02.2-03-PLAN.md -- Continuous session flow + Stats detail + Home screen polish
 
+### Phase 02.3: Audio Generation Pipeline (INSERTED)
+
+**Goal:** Extend Spanish content pipeline with AI text-to-speech generation for sentence audio, enabling audio playback in vocabulary cards
+**Depends on:** Phase 2.2
+**Requirements**: AUDIO-01 (TTS API integration), AUDIO-02 (audio file generation), AUDIO-03 (audio storage), AUDIO-04 (content bundle integration), AUDIO-05 (playback logic wiring)
+**Success Criteria** (what must be TRUE):
+  1. Content pipeline includes Pass 6: Audio Generation using AI text-to-speech API
+  2. For each sentence in the content, system generates Spanish audio file (MP3/OGG format)
+  3. Audio files are saved to appropriate directory structure (by chapter/sentence)
+  4. build-content.ts script includes audio file paths in generated bundle.ts
+  5. ClozeCard type includes optional audioUrl field
+  6. Challenge screen plays sentence audio when audio button is tapped (if audioUrl present)
+  7. Audio generation is skippable if TTS API key not configured (graceful degradation)
+  8. All existing content pipeline tests still pass
+**Plans:** 2 plans in 2 waves
+
+Plans:
+- [ ] 02.3-01-PLAN.md — Audio generator core: config, models, AudioGenerator class + tests
+- [ ] 02.3-02-PLAN.md — Pipeline wiring (run_all.py Pass 6) + build-content.ts audio bundling + ClozeCard audio resolution
+
 ### Phase 02.1: PWA Deployment & Content Integration (INSERTED)
 
 **Goal:** Deploy LingoLock as a Progressive Web App on Vercel with full FSRS scheduling, streaks, and stats via localStorage platform adapter. Mobile-first layout with max-width container for desktop.
@@ -174,6 +194,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2003-03-02 |
 | 2. Spaced Repetition & Progress | 5/5 | Complete   | 2003-03-02 |
 | 2.1 PWA Deployment & Content Integration | 3/3 | Complete | 2026-03-03 |
+| 2.2 App Polish & Missing Screens | 1/3 | In progress | - |
+| 2.3 Audio Generation Pipeline | 0/2 | Planned | - |
 | 3. Notifications & Live Activities | 0/TBD | Not started | - |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
