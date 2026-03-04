@@ -84,6 +84,12 @@ image_generation:
   width: 768
   height: 512
 
+audio_generation:
+  enabled: true
+  provider: "google"
+  voice_gender: "male"
+  speaking_rate: 1.0
+
 secondary_characters:
   - name: "Taxi Driver"
     visual_tag: "a stocky middle-aged man with a gray flat cap, thick dark mustache, olive-green jacket"

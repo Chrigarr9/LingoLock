@@ -85,3 +85,16 @@ class ImageManifest(BaseModel):
     model_character: str
     model_scene: str
     images: dict[str, ImageManifestEntry]  # Key: "ch{NN}_s{NN}"
+
+
+class AudioManifestEntry(BaseModel):
+    file: str | None       # "audio/ch01_s01.mp3" or None if failed
+    status: str            # "success" or "failed"
+    error: str | None = None
+    content_hash: str      # SHA-256 first 16 chars of sentence text
+
+
+class AudioManifest(BaseModel):
+    provider: str          # "google" or "openai"
+    language: str          # e.g. "es"
+    audio: dict[str, AudioManifestEntry]  # Key: "ch{NN}_s{NN}"

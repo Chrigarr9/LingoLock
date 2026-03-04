@@ -72,6 +72,13 @@ class ImageGenerationConfig(BaseModel):
     height: int = 512
 
 
+class AudioGenerationConfig(BaseModel):
+    enabled: bool = True
+    provider: str = "google"  # "google" or "openai"
+    voice_gender: str = "male"  # For future configurability
+    speaking_rate: float = 1.0
+
+
 class DeckConfig(BaseModel):
     deck: DeckInfo
     languages: Languages
@@ -80,6 +87,7 @@ class DeckConfig(BaseModel):
     story: StoryConfig
     llm: LLMConfig
     image_generation: ImageGenerationConfig | None = None
+    audio_generation: AudioGenerationConfig | None = None
     secondary_characters: list[SecondaryCharacter] = []
 
     @property
