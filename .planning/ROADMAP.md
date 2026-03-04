@@ -139,26 +139,31 @@ Plans:
 - [x] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
 
 ### Phase 3: Notifications & Live Activities
-**Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen widget
+**Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen/Home Screen widget
 **Depends on**: Phase 2 (needs FSRS scheduling and card data)
-**Requirements**: NOTF-01 through NOTF-05 (timed notifications), INOT-01 through INOT-05 (interactive notifications), LIVE-01 through LIVE-04 (Live Activities)
+**Requirements**: NOTF-01 through NOTF-05 (timed notifications), INOT-01 through INOT-05 (interactive notifications), LIVE-01 through LIVE-04 (Home Screen/Lock Screen widgets)
 **Success Criteria** (what must be TRUE):
-  1. System schedules local notifications every configurable interval (3/5/10 min)
-  2. Notifications show: "Time for vocabulary! 🧠" with vocabulary word preview
-  3. User tapping notification opens LingoLock with full vocabulary challenge
-  4. Notifications include interactive buttons (A/B/C/D for multiple choice)
-  5. User can answer vocabulary directly from notification without opening app
-  6. System provides immediate feedback on notification (✓ Correct / ✗ Try again)
-  7. Answered cards via notification count toward progress/streak
-  8. Live Activity appears on Lock Screen showing current vocabulary card
-  9. User can answer vocabulary directly on Lock Screen (swipe down for options)
-  10. Live Activity updates in real-time with new card after correct answer
-  11. Live Activity shows streak count and daily progress
-  12. Notifications only appear during active hours (9 AM - 10 PM, configurable)
-**Plans**: TBD
+  1. System schedules local notifications every configurable interval (5/10/15/30 min)
+  2. Notifications show cloze sentence with gap (minimal, text-only)
+  3. User can answer vocabulary directly from notification via text input without opening app
+  4. User tapping notification opens LingoLock with full vocabulary challenge
+  5. Answered cards via notification update FSRS state and count toward progress/streak
+  6. System provides feedback after notification answer (correct/incorrect + next card)
+  7. Notifications triggered on screen unlock via AppState timing heuristic
+  8. Swiping away notification breaks streak and pauses notifications until next day
+  9. Notifications stop when all due cards (per FSRS) are completed
+  10. Home Screen widget displays current vocabulary card with progress indicator
+  11. Lock Screen widget shows vocabulary card (text-only, compact)
+  12. Widget shows empty state when no cards due
+  13. User can configure notification interval and enable/disable in settings
+  14. All practice contexts (in-app, notification, widget) share same FSRS queue
+**Plans:** 4 plans in 3 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 03-01-PLAN.md -- Notification infrastructure (expo-notifications, categories, permissions, handler)
+- [ ] 03-02-PLAN.md -- Widget foundation + practice UI (expo-widgets, Home/Lock Screen widget, data service)
+- [ ] 03-03-PLAN.md -- Notification scheduling + response handling + FSRS wiring
+- [ ] 03-04-PLAN.md -- Settings integration + cross-context wiring + verification
 
 ### Phase 3: Configuration & Settings
 **Goal**: User can customize app behavior per Shortcut automation and manage preferences
@@ -196,9 +201,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2.1 PWA Deployment & Content Integration | 3/3 | Complete | 2026-03-03 |
 | 2.2 App Polish & Missing Screens | 1/3 | In progress | - |
 | 2.3 Audio Generation Pipeline | 2/2 | Complete | 2026-03-04 |
-| 3. Notifications & Live Activities | 0/TBD | Not started | - |
+| 3. Notifications & Live Activities | 0/4 | Not started | - |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2003-03-01*
-*Last updated: 2026-03-04 (Phase 02.3 complete — Audio generation pipeline operational)*
+*Last updated: 2026-03-04 (Phase 03 planned — 4 plans in 3 waves for notifications + widgets)*
