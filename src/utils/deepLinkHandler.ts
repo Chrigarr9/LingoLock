@@ -1,26 +1,46 @@
 /**
  * Deep link URL parser for lingolock:// scheme
- * Extracts challenge parameters from URLs like:
- * lingolock://challenge?source=Instagram&count=3&type=app_open
+ * Extracts parameters from URLs like:
+ * - lingolock://challenge?source=Instagram&count=3&type=app_open
+ * - lingolock://widget-answer?cardId=gato-ch01-s03&choice=gato
  */
 
 import * as Linking from 'expo-linking';
-import { ChallengeParams } from '../types/vocabulary';
+import { ChallengeParams, WidgetAnswerParams } from '../types/vocabulary';
+
+export type DeepLinkParams =
+  | { type: 'challenge'; params: ChallengeParams }
+  | { type: 'widget-answer'; params: WidgetAnswerParams };
 
 /**
- * Parses a deep link URL and extracts challenge parameters
- * @param url - The deep link URL to parse (e.g., "lingolock://challenge?source=Instagram&count=3&type=app_open")
- * @returns ChallengeParams object if URL is valid, null otherwise
+ * Parses a deep link URL and extracts parameters
+ * @param url - The deep link URL to parse
+ * @returns DeepLinkParams object with discriminated type, or null if invalid
  */
-export function parseDeepLink(url: string): ChallengeParams | null {
+export function parseDeepLink(url: string): DeepLinkParams | null {
   try {
     const parsed = Linking.parse(url);
 
-    // Validate hostname is "challenge"
-    if (parsed.hostname !== 'challenge') {
-      console.warn(`[DeepLink] Invalid hostname: ${parsed.hostname}, expected "challenge"`);
+    // Route based on hostname
+    if (parsed.hostname === 'challenge') {
+      return parseChallengeLink(parsed);
+    } else if (parsed.hostname === 'widget-answer') {
+      return parseWidgetAnswerLink(parsed);
+    } else {
+      console.warn(`[DeepLink] Invalid hostname: ${parsed.hostname}, expected "challenge" or "widget-answer"`);
       return null;
     }
+  } catch (error) {
+    console.error('[DeepLink] Failed to parse URL:', url, error);
+    return null;
+  }
+}
+
+/**
+ * Parses a challenge deep link
+ */
+function parseChallengeLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkParams | null {
+  try {
 
     // Extract and validate parameters
     const source = parsed.queryParams?.source as string;
@@ -28,7 +48,7 @@ export function parseDeepLink(url: string): ChallengeParams | null {
     const type = parsed.queryParams?.type as string;
 
     if (!source || !countStr || !type) {
-      console.warn('[DeepLink] Missing required parameters:', { source, count: countStr, type });
+      console.warn('[DeepLink] Missing required challenge parameters:', { source, count: countStr, type });
       return null;
     }
 
@@ -44,12 +64,42 @@ export function parseDeepLink(url: string): ChallengeParams | null {
     }
 
     return {
-      source,
-      count,
-      type: type as 'unlock' | 'app_open'
+      type: 'challenge',
+      params: {
+        source,
+        count,
+        type: type as 'unlock' | 'app_open'
+      }
     };
   } catch (error) {
-    console.error('[DeepLink] Failed to parse URL:', url, error);
+    console.error('[DeepLink] Failed to parse challenge link:', error);
+    return null;
+  }
+}
+
+/**
+ * Parses a widget answer deep link
+ */
+function parseWidgetAnswerLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkParams | null {
+  try {
+    // Extract and validate parameters
+    const cardId = parsed.queryParams?.cardId as string;
+    const choice = parsed.queryParams?.choice as string;
+
+    if (!cardId || !choice) {
+      console.warn('[DeepLink] Missing required widget-answer parameters:', { cardId, choice });
+      return null;
+    }
+
+    return {
+      type: 'widget-answer',
+      params: {
+        cardId,
+        choice
+      }
+    };
+  } catch (error) {
+    console.error('[DeepLink] Failed to parse widget-answer link:', error);
     return null;
   }
 }

@@ -5,14 +5,13 @@
 
 import { useEffect } from 'react';
 import * as Linking from 'expo-linking';
-import { parseDeepLink } from '../utils/deepLinkHandler';
-import { ChallengeParams } from '../types/vocabulary';
+import { parseDeepLink, DeepLinkParams } from '../utils/deepLinkHandler';
 
 /**
- * Hook to listen for deep link events and extract challenge parameters
+ * Hook to listen for deep link events and route to appropriate handlers
  * @param onDeepLink - Callback function invoked when a valid deep link is received
  */
-export function useDeepLink(onDeepLink: (params: ChallengeParams) => void) {
+export function useDeepLink(onDeepLink: (params: DeepLinkParams) => void) {
   useEffect(() => {
     // Handle initial URL (app opened from deep link - cold start)
     const handleInitialURL = async () => {

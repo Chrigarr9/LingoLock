@@ -48,6 +48,18 @@ export interface ChallengeParams {
 
   /** ID of the card to display (optional, for specific card navigation) */
   cardId?: string;
+}
+
+/**
+ * Parameters for widget answer deep linking
+ * Used when user taps an answer button on the Home Screen or Lock Screen widget
+ */
+export interface WidgetAnswerParams {
+  /** ID of the card being answered */
+  cardId: string;
+
+  /** The answer choice selected by the user */
+  choice: string;
 
   /** Whether this was triggered by app blocking (affects UI/behavior) */
   fromBlocking?: boolean;

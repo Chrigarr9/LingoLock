@@ -3,9 +3,10 @@ import { Stack, useRouter } from 'expo-router';
 import { Platform, View, useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
-import { ChallengeParams } from '../src/types/vocabulary';
+import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
 import { setupNotifications } from '../src/services/notificationService';
+import { processWidgetAnswer, updateWidgetData } from '../src/services/widgetService';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -31,16 +32,33 @@ export default function RootLayout() {
     };
   }, []);
 
-  const handleDeepLink = (params: ChallengeParams) => {
-    console.log('[App] Deep link received:', params);
-    router.push({
-      pathname: '/challenge',
-      params: {
-        source: params.source,
-        count: params.count.toString(),
-        type: params.type,
-      },
-    });
+  const handleDeepLink = (deepLink: DeepLinkParams) => {
+    console.log('[App] Deep link received:', deepLink);
+
+    if (deepLink.type === 'challenge') {
+      // Navigate to challenge screen
+      router.push({
+        pathname: '/challenge',
+        params: {
+          source: deepLink.params.source,
+          count: deepLink.params.count.toString(),
+          type: deepLink.params.type,
+        },
+      });
+    } else if (deepLink.type === 'widget-answer') {
+      // Process widget answer without opening app
+      const { cardId, choice } = deepLink.params;
+      console.log('[App] Processing widget answer:', { cardId, choice });
+
+      try {
+        const result = processWidgetAnswer(cardId, choice);
+        console.log('[App] Widget answer processed:', result);
+        // Refresh widget with next card
+        updateWidgetData();
+      } catch (error) {
+        console.error('[App] Failed to process widget answer:', error);
+      }
+    }
   };
 
   useDeepLink(handleDeepLink);
