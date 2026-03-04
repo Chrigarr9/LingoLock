@@ -136,3 +136,33 @@ export function isCardMastered(cardState: CardState): boolean {
 export function isDue(cardState: CardState): boolean {
   return new Date(cardState.due) <= new Date();
 }
+
+// ---------------------------------------------------------------------------
+// Granular progress levels (for chapter progress bars)
+// ---------------------------------------------------------------------------
+
+/** Number of learning phases a card progresses through. */
+export const PROGRESS_LEVELS = 5;
+
+/**
+ * Returns a card's learning progress level (0-5) based on FSRS stability.
+ *
+ * Each level roughly corresponds to one successful review:
+ *   0 = never seen (null state)
+ *   1 = seen but fragile / after lapse (stability < 1.5)
+ *   2 = first correct, MC4 difficulty (stability 1.5–4.0)
+ *   3 = solid recall, text input level (stability 4.0–10)
+ *   4 = strong recall (stability 10–21)
+ *   5 = long-term mastery (stability >= 21)
+ *
+ * Wrong answers reduce stability via FSRS, naturally dropping the level.
+ */
+export function getCardProgressLevel(cardState: CardState | null): number {
+  if (cardState === null) return 0;
+  const { stability } = cardState;
+  if (stability < 1.5) return 1;
+  if (stability < 4.0) return 2;
+  if (stability < 10) return 3;
+  if (stability < 21) return 4;
+  return 5;
+}

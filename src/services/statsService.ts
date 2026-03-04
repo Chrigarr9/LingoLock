@@ -13,7 +13,7 @@
  */
 
 import { loadStats, saveStats, loadAllCardStates, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
-import { isCardMastered, isDue } from './fsrs';
+import { isCardMastered, isDue, getCardProgressLevel, PROGRESS_LEVELS } from './fsrs';
 import { getChapterCards, CHAPTERS } from '../content/bundle';
 import { getCurrentChapter } from './cardSelector';
 
@@ -132,21 +132,25 @@ export function getSuccessRate(): number {
 /**
  * Returns mastery percentage for a chapter (0-100, integer).
  *
- * Mastery = (cards in State.Review / total chapter cards) * 100
- * Uses isCardMastered to check each card's FSRS state.
- * Cards with no stored state are counted as not mastered.
+ * Uses granular progress levels (0-5) based on FSRS stability so
+ * each card contributes fractionally to chapter progress:
+ *   - Never seen = 0% of its share
+ *   - Each of 5 learning phases = +20% of its share
+ *   - Chapter is 100% only when ALL cards reach long-term mastery (level 5)
+ *
+ * Wrong answers reduce a card's stability → its level drops → progress decreases.
  */
 export function getChapterMastery(chapterNumber: number): number {
   const cards = getChapterCards(chapterNumber);
   if (cards.length === 0) return 0;
 
-  const masteredCount = cards.reduce((count, card) => {
+  const totalPoints = cards.reduce((sum, card) => {
     const state = loadCardState(card.id);
-    if (state === null) return count;
-    return isCardMastered(state) ? count + 1 : count;
+    return sum + getCardProgressLevel(state);
   }, 0);
 
-  return Math.round((masteredCount / cards.length) * 100);
+  const maxPoints = cards.length * PROGRESS_LEVELS;
+  return Math.round((totalPoints / maxPoints) * 100);
 }
 
 // ---------------------------------------------------------------------------
