@@ -85,3 +85,34 @@ class ImageManifest(BaseModel):
     model_character: str
     model_scene: str
     images: dict[str, ImageManifestEntry]  # Key: "ch{NN}_s{NN}"
+
+
+# --- Scene hierarchy (scene-first pipeline) ---
+
+
+class ShotSentence(BaseModel):
+    source: str          # Sentence in target language
+    sentence_index: int  # Global index within chapter (0-based)
+
+
+class Shot(BaseModel):
+    focus: str              # What the camera focuses on (vocab-driven)
+    image_prompt: str       # English image description (before style/tag injection)
+    sentences: list[ShotSentence]
+
+
+class Scene(BaseModel):
+    setting: str         # Reusable location tag (e.g. "maria_bedroom_berlin")
+    description: str     # Overall environment description
+    shots: list[Shot]
+
+
+class ChapterScene(BaseModel):
+    chapter: int
+    scenes: list[Scene]
+
+
+class ImagePromptResult(BaseModel):
+    protagonist_prompt: str = ""  # Optional — empty when no reference image needed
+    style: str
+    sentences: list[ImagePrompt]

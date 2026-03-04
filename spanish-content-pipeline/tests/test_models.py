@@ -238,3 +238,66 @@ def test_image_manifest():
         images={"ch01_s00": ImageManifestEntry(file="images/ch01_s00.webp", status="success")},
     )
     assert manifest.images["ch01_s00"].status == "success"
+
+
+# --- Scene hierarchy models ---
+
+from pipeline.models import (
+    ShotSentence, Shot, Scene, ChapterScene, ImagePromptResult,
+)
+
+
+def test_chapter_scene_round_trip():
+    """ChapterScene can be constructed and serialized."""
+    chapter = ChapterScene(
+        chapter=1,
+        scenes=[
+            Scene(
+                setting="maria_bedroom_berlin",
+                description="A cozy bedroom with warm lamp light",
+                shots=[
+                    Shot(
+                        focus="open suitcase on bed",
+                        image_prompt="A cozy bedroom with a large open suitcase on the bed, clothes spilling out",
+                        sentences=[
+                            ShotSentence(source="María está en su habitación.", sentence_index=0),
+                            ShotSentence(source="Ella tiene una maleta grande.", sentence_index=1),
+                        ],
+                    ),
+                    Shot(
+                        focus="travel guide on nightstand",
+                        image_prompt="A nightstand with a brightly colored travel guide book prominently placed",
+                        sentences=[
+                            ShotSentence(source="Hay una guía de Buenos Aires.", sentence_index=2),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+    data = chapter.model_dump()
+    assert data["chapter"] == 1
+    assert len(data["scenes"]) == 1
+    assert len(data["scenes"][0]["shots"]) == 2
+    assert data["scenes"][0]["shots"][0]["sentences"][0]["source"] == "María está en su habitación."
+
+    # Round-trip
+    restored = ChapterScene(**data)
+    assert restored == chapter
+
+
+def test_image_prompt_result_in_models():
+    """ImagePromptResult is importable from models and works as Pydantic model."""
+    result = ImagePromptResult(
+        style="warm storybook illustration",
+        sentences=[
+            ImagePrompt(
+                chapter=1, sentence_index=0,
+                source="Test.", image_type="scene_only",
+                prompt="A test scene", setting="test",
+            ),
+        ],
+    )
+    assert result.style == "warm storybook illustration"
+    assert result.protagonist_prompt == ""
+    assert len(result.sentences) == 1

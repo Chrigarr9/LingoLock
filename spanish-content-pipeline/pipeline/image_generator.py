@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 
 from pipeline.config import DeckConfig
-from pipeline.image_prompter import ImagePromptResult
+from pipeline.models import ImagePromptResult
 from pipeline.models import ImageManifest, ImageManifestEntry, ImagePrompt
 
 TOGETHER_API_URL = "https://api.together.xyz/v1/images/generations"

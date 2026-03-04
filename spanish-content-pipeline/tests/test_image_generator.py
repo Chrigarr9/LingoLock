@@ -8,7 +8,7 @@ import yaml
 
 from pipeline.config import load_config
 from pipeline.image_generator import ImageGenerator
-from pipeline.image_prompter import ImagePromptResult
+from pipeline.models import ImagePromptResult
 from pipeline.models import ImagePrompt, ImageManifestEntry
 
 
