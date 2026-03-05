@@ -141,6 +141,8 @@ class AudioGenerator:
             entry = self.generate_sentence_audio(sentence)
             all_audio[key] = entry
             print(entry.status)
+            # Stay under preview model RPM quota (typically ~10 RPM)
+            time.sleep(4)
 
         manifest = AudioManifest(
             provider="google-gemini",
