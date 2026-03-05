@@ -14,10 +14,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pipeline.config import DeckConfig, load_config
 from pipeline.coverage_checker import check_coverage, load_frequency_data
 from pipeline.image_generator import ImageGenerator
-from pipeline.image_prompter import ImagePrompter
 from pipeline.llm import create_client
+from pipeline.models import ImagePromptResult
+from pipeline.scene_story_generator import SceneStoryGenerator, expand_manifest_for_shared_shots, extract_flat_text, extract_image_prompts
 from pipeline.sentence_translator import SentenceTranslator
-from pipeline.story_generator import StoryGenerator
 from pipeline.vocabulary_builder import build_vocabulary
 from pipeline.word_extractor import WordExtractor
 
@@ -78,15 +78,19 @@ def main():
     print(f"Model: {config.llm.model}")
     print()
 
-    # Pass 1: Story Generation
-    print("=== Pass 1: Story Generation ===")
-    story_gen = StoryGenerator(config, llm, output_base=output_base)
-    stories = {}
+    # Pass 1: Scene-First Story Generation (stories + image prompts)
+    print("=== Pass 1: Scene-First Story Generation ===")
+    scene_gen = SceneStoryGenerator(config, llm, output_base=output_base)
+    chapter_scenes = {}
+    stories = {}  # Flat text for downstream passes
     for i in chapter_range:
         ch = config.story.chapters[i]
         print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        stories[i] = story_gen.generate_chapter(i)
-        print("done")
+        chapter_scenes[i] = scene_gen.generate_chapter(i)
+        stories[i] = extract_flat_text(chapter_scenes[i])
+        scenes_count = len(chapter_scenes[i].scenes)
+        shots_count = sum(len(s.shots) for s in chapter_scenes[i].scenes)
+        print(f"done ({scenes_count} scenes, {shots_count} shots)")
 
     # Pass 2: Sentence Translation
     print("\n=== Pass 2: Sentence Translation ===")
@@ -137,38 +141,55 @@ def main():
     )
     print(f"  {deck.total_words} unique vocabulary entries saved to {vocab_path}")
 
-    # Pass 4: Image Prompt Generation
+    # Image Generation (prompts already embedded in scene data from Pass 1)
     if config.image_generation and config.image_generation.enabled:
-        print("\n=== Pass 4: Image Prompt Generation ===")
-        prompter = ImagePrompter(config, llm, output_base=output_base)
+        print("\n=== Image Generation ===")
 
-        # Collect all stories, translations, and words for full-context prompting
-        all_stories = {}
-        all_translations = {}
-        all_words: dict[int, list[dict]] = {}
+        # Extract image prompts from scene data
+        all_image_prompts = []
         for i in chapter_range:
-            all_stories[i] = stories[i]
-            trans_path = output_base / config.deck.id / "translations" / f"chapter_{i + 1:02d}.json"
-            if trans_path.exists():
-                all_translations[i] = json.loads(trans_path.read_text())
-            words_path = output_base / config.deck.id / "words" / f"chapter_{i + 1:02d}.json"
-            if words_path.exists():
-                all_words[i] = json.loads(words_path.read_text()).get("words", [])
+            all_image_prompts.extend(extract_image_prompts(chapter_scenes[i]))
 
-        image_prompts = prompter.generate_prompts(all_stories, all_translations, all_words)
-        print(f"  {len(image_prompts.sentences)} image prompts generated")
+        style = config.image_generation.style
+        image_prompt_result = ImagePromptResult(
+            style=style,
+            sentences=all_image_prompts,
+        )
+        print(f"  {len(all_image_prompts)} image prompts from scene data")
 
-        # Pass 5: Image Generation
-        print("\n=== Pass 5: Image Generation ===")
-        image_api_key = os.environ.get("TOGETHER_API_KEY")
-        if not image_api_key:
-            print("  WARNING: TOGETHER_API_KEY not set — skipping image generation")
-        else:
-            generator = ImageGenerator(config, api_key=image_api_key, output_base=output_base)
-            manifest = generator.generate_all(image_prompts)
-            success = sum(1 for e in manifest.images.values() if e.status == "success")
-            failed = sum(1 for e in manifest.images.values() if e.status == "failed")
-            print(f"  {success} images generated, {failed} failed")
+        # Also write image_prompts.json for compatibility/inspection
+        prompts_path = output_base / config.deck.id / "image_prompts.json"
+        prompts_path.parent.mkdir(parents=True, exist_ok=True)
+        prompts_data = {
+            "protagonist_prompt": "",
+            "style": style,
+            "sentences": [p.model_dump() for p in all_image_prompts],
+        }
+        prompts_path.write_text(json.dumps(prompts_data, ensure_ascii=False, indent=2))
+
+        # Determine API keys for image generation
+        together_key = os.environ.get("TOGETHER_API_KEY")
+        gemini_key = os.environ.get("GEMINI_API_KEY") or api_key  # Reuse LLM key
+
+        generator = ImageGenerator(
+            config,
+            together_api_key=together_key,
+            gemini_api_key=gemini_key,
+            output_base=output_base,
+        )
+        manifest = generator.generate_all(image_prompt_result)
+
+        # Expand manifest: add alias entries for sentences sharing a shot
+        expand_manifest_for_shared_shots(manifest, chapter_scenes)
+        # Rewrite manifest with aliases
+        manifest_path = output_base / config.deck.id / "image_manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest.model_dump(), ensure_ascii=False, indent=2)
+        )
+
+        success = sum(1 for e in manifest.images.values() if e.status == "success")
+        failed = sum(1 for e in manifest.images.values() if e.status == "failed")
+        print(f"  {success} image entries in manifest ({len(all_image_prompts)} shots), {failed} failed")
 
     # REPORT: Coverage Analysis
     if frequency_data:
