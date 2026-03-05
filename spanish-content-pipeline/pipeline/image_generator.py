@@ -92,7 +92,7 @@ class ImageGenerator:
         response = self._call_with_retry(url, payload, headers)
         data = response.json()
         part = data["candidates"][0]["content"]["parts"][0]
-        inline = part["inline_data"]
+        inline = part.get("inlineData") or part["inline_data"]
         image_bytes = base64.b64decode(inline["data"])
         mime = inline.get("mime_type", "image/png")
         ext = ".png" if "png" in mime else ".webp" if "webp" in mime else ".jpg"

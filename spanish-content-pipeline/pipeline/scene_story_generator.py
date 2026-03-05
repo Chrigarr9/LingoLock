@@ -8,11 +8,17 @@ from pipeline.llm import LLMClient
 from pipeline.models import ChapterScene, ImageManifest, ImagePrompt, Scene, Shot, ShotSentence
 
 
-SYSTEM_PROMPT = """\
-You are a film director creating a visual screenplay for a language learning app.
-Think VISUALLY FIRST: imagine each scene as a location, then plan camera shots \
-that highlight specific vocabulary words, then write sentences describing what's \
-visible in each shot.
+_SYSTEM_PROMPT_TEMPLATE = """\
+You are both a storyteller and a film director creating a chapter of an illustrated \
+language learning story.
+
+## Two jobs at once
+1. STORY: Write natural, flowing narrative prose — as if from a short story or novel. \
+   Sentences tell the story from the protagonist's perspective, with her thoughts, \
+   feelings, actions, and dialogue. They must flow naturally from one to the next. \
+   They must NOT read like isolated image captions or vocabulary drills.
+2. VISUAL: Organise those sentences into shots (camera setups) so an illustrator \
+   knows exactly what to draw for each group of sentences.
 
 ## Output Format
 Return a JSON object with a "scenes" array. Each scene has:
@@ -21,31 +27,66 @@ Return a JSON object with a "scenes" array. Each scene has:
 - "shots": array of camera shots within this scene
 
 Each shot has:
-- "focus": what the camera focuses on (should highlight a vocabulary word)
+- "focus": what the camera focuses on (a specific object or action, e.g. "red suitcase", \
+"blue jeans", "phone screen")
 - "image_prompt": English description of what's visible in this shot. Describe:
   - The environment (from the scene description)
-  - The specific focal object/action (make it dramatically prominent — oversized, \
-brightly lit, central, like a picture book)
+  - The focal object/action — exaggerate size, color, and expression like a children's \
+picture book. E.g. "a HUGE bright-red suitcase overflowing with clothes", "vivid cobalt-blue \
+jeans held up dramatically". Make the key object impossible to miss.
   - Any characters present (describe by role and appearance, e.g. "a young woman \
 with light-brown hair")
-  - Camera angle and framing (mix wide, medium, and close-up across the chapter)
+  - Camera angle: prefer close-up or medium shots. Avoid wide/establishing shots.
   Do NOT include art style prefixes or "no text" suffixes — these are added later.
   Keep under 200 characters.
-- "sentences": array of 1-3 sentences for this shot. Each has:
-  - "source": the sentence in the target language
+- "sentences": array of 1-2 sentences for this shot. Each has:
+  - "source": EXACTLY ONE sentence in the target language — one subject-verb pair, \
+one terminating punctuation mark. Never combine two sentences into one source field.
   - "sentence_index": sequential 0-based index across ALL scenes in the chapter
 
-## Rules
+## Sentence rules (most important)
+- ONE grammatical sentence per "source" field. End with ONE period, exclamation mark, or \
+question mark. Never write "Sentence one. Sentence two." in a single source — split into \
+two separate sentences with their own sentence_index.
+- Write in third person about the protagonist by name (e.g. "Maria öffnet…").
+- Sentences must read like a novel excerpt, not a textbook or caption.
+- Each sentence should advance the story: action, reaction, thought, or dialogue.
+- Consecutive sentences within a shot must connect — avoid repeating the same idea.
+- Include vivid color and size vocabulary: "una maleta roja enorme", "unos pantalones \
+azul brillante". Match the exaggerated cartoon style of the images.
+- Include emotions, internal thoughts, and small narrative details (smells, sounds).
+- Use simple vocabulary appropriate for the CEFR level, but keep a natural story rhythm.
+- Dialogue is allowed and encouraged.
+
+## Visual rules
 1. Every shot MUST visually highlight 1-2 vocabulary words from the focus areas.
 2. Consecutive shots MUST focus on different objects/angles for variety.
-3. Vary SUBJECT, ANGLE, COLOR PALETTE, and FRAMING across the whole chapter.
-4. Characters can be prominent when the scene calls for it.
+3. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
+4. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
+5. Vary SUBJECT, ANGLE, and COLOR PALETTE across shots to avoid visual repetition.
+6. Characters can be prominent when the scene calls for it.
 5. Phone calls: show only the caller's side (their room, the phone).
 6. No text, labels, signs, or writing of any kind in the image descriptions.
 7. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
 8. Two places mentioned → pick ONE, show it as a single scene.
 9. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
-10. sentence_index must be sequential starting from 0 with no gaps."""
+10. sentence_index must be sequential starting from 0 with no gaps.
+
+## Character consistency
+The protagonist's exact visual tag is: {protagonist_visual_tag}
+When {protagonist_name} appears in a shot's image_prompt, do NOT invent your own \
+description. Write the word "PROTAGONIST" and nothing else for her appearance — \
+post-processing will replace it with the canonical tag. Example:
+  image_prompt: "Close-up of PROTAGONIST holding a red suitcase."
+If {protagonist_name} is NOT in the shot (pure object close-up), omit PROTAGONIST."""
+
+
+def _build_system_prompt(config: DeckConfig) -> str:
+    p = config.protagonist
+    return _SYSTEM_PROMPT_TEMPLATE.format(
+        protagonist_name=p.name,
+        protagonist_visual_tag=p.visual_tag,
+    )
 
 
 def _build_chapter_prompt(config: DeckConfig, chapter_index: int) -> str:
@@ -83,13 +124,24 @@ Ensure sentence_index values are sequential starting from 0."""
 
 
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:
-    """Inject style prefix, visual_tags, and 'no text' suffix into image prompts."""
+    """Inject style prefix, character tag, and 'no text' suffix into image prompts."""
     style = config.image_generation.style if config.image_generation else ""
     suffix = "no text, no writing, no letters."
+    p = config.protagonist
+    visual_tag = p.visual_tag
 
     for scene in chapter_data.scenes:
         for shot in scene.shots:
             raw = shot.image_prompt.strip()
+
+            # Replace LLM placeholder with canonical visual_tag
+            raw = raw.replace("PROTAGONIST", visual_tag)
+
+            # Safety net: if protagonist name appears but tag wasn't injected,
+            # prepend the visual_tag so the image model gets a consistent anchor.
+            if p.name in raw and visual_tag not in raw:
+                raw = raw.replace(p.name, f"{p.name} ({visual_tag})", 1)
+
             # Remove any trailing period to avoid double-period
             if raw.endswith("."):
                 raw = raw[:-1]
@@ -181,7 +233,8 @@ class SceneStoryGenerator:
             return ChapterScene(**data)
 
         prompt = _build_chapter_prompt(self._config, chapter_index)
-        result = self._llm.complete_json(prompt, system=SYSTEM_PROMPT)
+        system = _build_system_prompt(self._config)
+        result = self._llm.complete_json(prompt, system=system)
         parsed = result.parsed
 
         chapter_data = ChapterScene(

@@ -14,8 +14,8 @@ protagonist:
   gender: "female"
   origin_country: "Germany"
   origin_city: "Berlin"
-  description: "mid-20s, shoulder-length wavy light-brown hair with a side part, warm brown eyes, slim build, wears a cozy dark-teal cardigan over a white t-shirt and light blue jeans"
-  visual_tag: "a slim young woman with wavy shoulder-length light-brown hair, dark-teal cardigan, white shirt"
+  description: "mid-20s, shoulder-length wavy light-brown hair with a side part, warm brown eyes, light freckles across the nose and cheeks, slim build, wears a cozy dark-teal cardigan over a white t-shirt and light blue jeans"
+  visual_tag: "Maria: slim young woman, mid-20s, wavy shoulder-length light-brown hair with side part, warm brown eyes, light freckles on nose and cheeks, dark-teal cardigan over white t-shirt, light blue jeans"
 
 destination:
   country: "Argentina"
@@ -77,8 +77,8 @@ llm:
 
 image_generation:
   enabled: true
-  model: "black-forest-labs/FLUX.1-schnell"
-  cheap_model: "black-forest-labs/FLUX.1-schnell"
+  model: "gemini-2.5-flash-image"
+  cheap_model: "gemini-2.5-flash-image"
   style: "modern cartoon illustration, crisp outlines, vibrant flat colors, cel-shaded, warm palette"
   width: 768
   height: 512

@@ -19,7 +19,7 @@ class WordAnnotation(BaseModel):
     target: str        # Contextual translation in native language
     lemma: str         # Base/dictionary form
     pos: str           # Part of speech
-    context_note: str  # Grammar note (e.g. "3rd person singular present")
+    context_note: str = ""  # Grammar note (e.g. "3rd person singular present")
     similar_words: list[str] = []  # 6-8 semantically similar words in target language
 
 
