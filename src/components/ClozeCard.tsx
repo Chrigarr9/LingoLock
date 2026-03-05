@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform, Image, type ImageSourcePropType } from 'rea
 import { Icon, Text } from 'react-native-paper';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { useAppTheme } from '../theme';
-import { cardImages } from '../content/bundle';
+import { cardImages, cardAudios } from '../content/bundle';
 import type { SessionCard } from '../types/vocabulary';
 
 interface ClozeCardDisplayProps {
@@ -58,8 +58,9 @@ export function ClozeCardDisplay({
 
     const playAudio = async () => {
       try {
+        const audioSource = cardAudios[card.audio!] ?? { uri: card.audio! };
         const { sound } = await Audio.Sound.createAsync(
-          { uri: card.audio! },
+          audioSource,
           { shouldPlay: true },
         );
         if (cancelled) {

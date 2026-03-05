@@ -72,6 +72,13 @@ class ImageGenerationConfig(BaseModel):
     height: int = 512
 
 
+class AudioGenerationConfig(BaseModel):
+    enabled: bool = True
+    model: str = "gemini-2.5-flash-preview-tts"
+    voice_name: str = "Aoede"  # Gemini TTS prebuilt voice name
+    speaking_rate: float = 1.0  # Reserved for future use
+
+
 class DeckConfig(BaseModel):
     deck: DeckInfo
     languages: Languages
@@ -80,6 +87,7 @@ class DeckConfig(BaseModel):
     story: StoryConfig
     llm: LLMConfig
     image_generation: ImageGenerationConfig | None = None
+    audio_generation: AudioGenerationConfig | None = None
     secondary_characters: list[SecondaryCharacter] = []
 
     @property

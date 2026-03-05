@@ -52,6 +52,7 @@ def main():
     parser.add_argument("--config", required=True, help="Path to deck config YAML")
     parser.add_argument("--chapters", default=None, help="Chapter range (e.g. '1-3' or '1'). Defaults to all.")
     parser.add_argument("--frequency-file", default=None, help="Path to FrequencyWords file (e.g. data/frequency/es_50k.txt)")
+    parser.add_argument("--skip-audio", action="store_true", help="Skip audio generation")
     args = parser.parse_args()
 
     load_dotenv()
@@ -203,6 +204,20 @@ def main():
         print(f"  With frequency data: {report.frequency_matched}")
         print(f"  Top 1000 coverage: {report.top_1000_covered}/{report.top_1000_total} ({report.coverage_percent}%)")
         print(f"  Report saved to {report_path}")
+
+    # Pass 4: Audio Generation
+    if not args.skip_audio and config.audio_generation and config.audio_generation.enabled:
+        print("\n=== Pass 4: Audio Generation ===")
+        gemini_key = os.environ.get("GEMINI_API_KEY") or api_key
+        from pipeline.audio_generator import AudioGenerator
+        all_sentences = []
+        for i in chapter_range:
+            all_sentences.extend(all_pairs[i])
+        audio_gen = AudioGenerator(config, api_key=gemini_key, output_base=output_base)
+        audio_manifest = audio_gen.generate_all(all_sentences)
+        success = sum(1 for e in audio_manifest.audio.values() if e.status == "success")
+        failed = sum(1 for e in audio_manifest.audio.values() if e.status == "failed")
+        print(f"  {success} audio files generated, {failed} failed")
 
     print("\nPipeline complete!")
 
