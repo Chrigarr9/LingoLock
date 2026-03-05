@@ -48,15 +48,33 @@ one terminating punctuation mark. Never combine two sentences into one source fi
 - ONE grammatical sentence per "source" field. End with ONE period, exclamation mark, or \
 question mark. Never write "Sentence one. Sentence two." in a single source — split into \
 two separate sentences with their own sentence_index.
-- Write in third person about the protagonist by name (e.g. "Maria öffnet…").
-- Sentences must read like a novel excerpt, not a textbook or caption.
-- Each sentence should advance the story: action, reaction, thought, or dialogue.
+- Write in third person about the protagonist by name (e.g. "Maria lleva…").
+- Each sentence must advance the story: action, reaction, thought, or direct dialogue.
 - Consecutive sentences within a shot must connect — avoid repeating the same idea.
-- Include vivid color and size vocabulary: "una maleta roja enorme", "unos pantalones \
-azul brillante". Match the exaggerated cartoon style of the images.
-- Include emotions, internal thoughts, and small narrative details (smells, sounds).
-- Use simple vocabulary appropriate for the CEFR level, but keep a natural story rhythm.
-- Dialogue is allowed and encouraged.
+- Include vivid color and size vocabulary: "una maleta roja enorme". Match the cartoon style.
+- Include emotions and small narrative details (smells, sounds) where natural.
+
+## CEFR grammar constraints (strictly enforced)
+Apply these rules based on the chapter's CEFR level:
+
+**A1** — Max 8 words per sentence. Simple present tense only. \
+Subject + verb + object. No subordinate clauses (avoid: que, porque, cuando, si). \
+No indirect object pronouns (le, les). Use only vocabulary a beginner learns in their \
+first two weeks of class. If in doubt, choose the simpler word.
+Good A1 examples: "Maria abre la maleta." / "Ella tiene miedo." / "El taxi es rápido." \
+/ "Maria lleva una maleta roja."
+
+**A2** — Max 12 words. Simple past (pretérito) allowed. Basic connectors \
+(pero, y, también). Light use of common pronouns. One dependent clause at most.
+
+## Direct dialogue (mandatory)
+Whenever two or more characters share a scene, at least 1 in 3 sentences MUST be \
+direct quoted speech using «guillemets». Format exactly like this:
+  «¡Hola!», dice el conductor.
+  «¿Adónde vas?», pregunta él.
+  «Voy a Buenos Aires», responde Maria.
+NEVER use reported speech ("Ella dice que...", "Él pregunta adónde...", \
+"Maria responde con una sonrisa"). Show the words, not the description of words.
 
 ## Visual rules
 1. Every shot MUST visually highlight 1-2 vocabulary words from the focus areas.
@@ -95,7 +113,6 @@ def _build_chapter_prompt(config: DeckConfig, chapter_index: int) -> str:
     d = config.destination
     min_sentences, max_sentences = config.story.sentences_per_chapter
 
-    landmarks_str = ", ".join(d.landmarks[:5])
     vocab_str = ", ".join(chapter.vocab_focus)
 
     # Secondary characters for this chapter (1-indexed)
@@ -112,9 +129,8 @@ Language: {config.languages.target} ({config.languages.dialect} dialect)
 CEFR Level: {config.story.cefr_level}
 Length: {min_sentences}-{max_sentences} sentences total
 
-Protagonist: {p.name} — {p.description}
+Protagonist: {p.name} — {p.visual_tag}
 Destination: {d.city}, {d.country}
-Notable places: {landmarks_str}
 
 Chapter context: {chapter.context}
 Vocabulary focus: {vocab_str}{secondary_section}

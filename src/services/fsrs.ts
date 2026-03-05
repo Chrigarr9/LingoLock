@@ -21,7 +21,7 @@ const params = generatorParameters({
   request_retention: 0.9,   // Target 90% recall probability
   maximum_interval: 365,     // Cap intervals at 1 year
   enable_fuzz: true,         // Add ±randomness to intervals (prevents batch bunching)
-  enable_short_term: false,  // No intra-day learning steps; wrong answers re-queued in session
+  enable_short_term: true,   // Intra-day learning steps (1min → 10min → 1day for new cards)
 });
 
 const scheduler = fsrs(params);
@@ -41,7 +41,7 @@ function toFSRSCard(cardState: CardState): Card {
     difficulty: cardState.difficulty,
     elapsed_days: cardState.elapsed_days,
     scheduled_days: cardState.scheduled_days,
-    learning_steps: 0,  // Not persisted in CardState; ts-fsrs recomputes from state
+    learning_steps: cardState.learning_steps ?? 0,
     reps: cardState.reps,
     lapses: cardState.lapses,
     state: cardState.state as State,
@@ -61,6 +61,7 @@ function fromFSRSCard(cardId: string, card: Card): CardState {
     difficulty: card.difficulty,
     elapsed_days: card.elapsed_days,
     scheduled_days: card.scheduled_days,
+    learning_steps: card.learning_steps,
     reps: card.reps,
     lapses: card.lapses,
     state: card.state as number,
@@ -120,14 +121,40 @@ export function getAnswerType(cardState: CardState | null): 'mc2' | 'mc4' | 'tex
 }
 
 /**
- * Check if a card has reached mastery (survived at least one full review cycle).
- *
- * Definition: card.state === State.Review
- * Cards in New/Learning/Relearning states are not yet mastered.
- * Used to compute chapter mastery percentage for unlock gates.
+ * Check if a card has completed its initial learning cycle (entered Review state).
+ * Used for chapter progression gating — a chapter unlocks when 80% of cards are learned.
+ * This is a lower bar than isCardMastered: one successful pass through learning steps.
+ */
+export function isCardLearned(cardState: CardState): boolean {
+  return cardState.state === (State.Review as number);
+}
+
+/**
+ * Check if a card is truly mastered: high long-term stability (≥21 days).
+ * Stability ≥21 means the card has survived multiple review cycles and the
+ * forgetting curve has genuinely flattened. Used for stats and progress display.
  */
 export function isCardMastered(cardState: CardState): boolean {
-  return cardState.state === (State.Review as number);
+  return cardState.stability >= 21;
+}
+
+/**
+ * Human-readable label for a card's current learning progress.
+ *   New        — never seen
+ *   Seen       — answered once, still fragile
+ *   Recognized — building recall, showing as MC4
+ *   Remembered — solid recall, showing as free text
+ *   Mastered   — long-term memory, stability ≥21 days
+ */
+export function getProgressLabel(
+  cardState: CardState | null,
+): 'New' | 'Seen' | 'Recognized' | 'Remembered' | 'Mastered' {
+  if (cardState === null) return 'New';
+  const { stability } = cardState;
+  if (stability < 1.5) return 'Seen';
+  if (stability < 4.0) return 'Recognized';
+  if (stability < 21) return 'Remembered';
+  return 'Mastered';
 }
 
 /**

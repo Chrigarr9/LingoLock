@@ -70,14 +70,21 @@ export default function ChallengeScreen() {
   useEffect(() => {
     let session: SessionCard[];
     if (mode === 'continuous') {
+      // Respect the daily new-word preference, but if the budget is exhausted
+      // and there are no due reviews, still offer new vocabulary rather than
+      // blocking the user entirely. The daily limit is a pacing preference,
+      // not a hard gate.
       session = buildSession(loadNewWordsPerDay(), params.source);
+      if (session.length === 0) {
+        session = buildSession(Infinity, params.source);
+      }
     } else {
       // fixed mode: use count param
       session = buildSession(parseInt(params.count || '3', 10), params.source);
     }
 
     if (session.length === 0) {
-      // No due cards and daily budget exhausted — show "all caught up" screen
+      // Truly nothing left: all cards mastered and no new vocabulary available
       setIsEmpty(true);
       setIsComplete(true);
     } else {

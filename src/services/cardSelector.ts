@@ -11,7 +11,7 @@
  * ahead so the user sees them again soon without stopping the session flow.
  */
 
-import { isDue, getAnswerType, isCardMastered } from './fsrs';
+import { isDue, getAnswerType, isCardLearned } from './fsrs';
 import { loadCardState, loadNewWordsIntroducedToday } from './storage';
 import { CHAPTERS, getChapterCards } from '../content/bundle';
 import type { SessionCard, ClozeCard } from '../types/vocabulary';
@@ -87,7 +87,7 @@ export function getCurrentChapter(): number {
     const masteredCount = cards.reduce((count, card) => {
       const state = loadCardState(card.id);
       if (state === null) return count;
-      return isCardMastered(state) ? count + 1 : count;
+      return isCardLearned(state) ? count + 1 : count;
     }, 0);
 
     const masteryPct = (masteredCount / totalCards) * 100;

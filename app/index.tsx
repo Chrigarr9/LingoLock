@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, ScrollView } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -57,7 +57,12 @@ export default function HomeScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top', 'bottom']}
     >
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -250,7 +255,7 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -259,9 +264,12 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   header: {
     flexDirection: 'row',
@@ -390,9 +398,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   bottomSection: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 8,
+    marginTop: 16,
     gap: 10,
   },
   quickActions: {

@@ -23,15 +23,12 @@ class Protagonist(BaseModel):
     name: str
     gender: str
     origin_country: str
-    origin_city: str
-    description: str = ""
     visual_tag: str = ""
 
 
 class Destination(BaseModel):
     country: str
     city: str
-    landmarks: list[str]
 
 
 class SecondaryCharacter(BaseModel):

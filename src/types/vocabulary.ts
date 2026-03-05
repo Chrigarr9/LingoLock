@@ -139,6 +139,7 @@ export interface CardState {
   difficulty: number;
   elapsed_days: number;
   scheduled_days: number;
+  learning_steps?: number; // ts-fsrs intra-day step counter (needed for enable_short_term)
   reps: number;
   lapses: number;
   state: number;         // ts-fsrs State enum value
