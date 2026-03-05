@@ -77,9 +77,8 @@ llm:
 
 image_generation:
   enabled: true
-  provider: "together"
-  model: "black-forest-labs/FLUX.1-kontext-pro"
-  cheap_model: "black-forest-labs/FLUX.2-dev"
+  model: "black-forest-labs/FLUX.1-schnell"
+  cheap_model: "black-forest-labs/FLUX.1-schnell"
   style: "modern cartoon illustration, crisp outlines, vibrant flat colors, cel-shaded, warm palette"
   width: 768
   height: 512

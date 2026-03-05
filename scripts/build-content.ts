@@ -185,7 +185,7 @@ interface ImageManifest {
 }
 
 let imageManifest: ImageManifest | null = null;
-const imageKeys = new Set<string>();
+const imageKeys = new Map<string, string>();
 
 if (fs.existsSync(IMAGE_MANIFEST_FILE)) {
   imageManifest = JSON.parse(fs.readFileSync(IMAGE_MANIFEST_FILE, 'utf-8'));
@@ -195,10 +195,11 @@ if (fs.existsSync(IMAGE_MANIFEST_FILE)) {
   for (const [key, entry] of Object.entries(imageManifest!.images)) {
     if (entry.status === 'success' && entry.file) {
       const src = path.join(PIPELINE_DIR, entry.file);
-      const dest = path.join(IMAGES_DEST_DIR, `${key}.webp`);
+      const ext = path.extname(entry.file) || '.webp';
+      const dest = path.join(IMAGES_DEST_DIR, `${key}${ext}`);
       if (fs.existsSync(src)) {
         fs.copyFileSync(src, dest);
-        imageKeys.add(key);
+        imageKeys.set(key, ext);
       }
     }
   }
@@ -371,8 +372,8 @@ for (const ch of allChapters) {
 // Generate cardImages map (static require() calls for Metro bundler)
 let imageMapBlock: string;
 if (imageKeys.size > 0) {
-  const entries = [...imageKeys].sort().map(
-    key => `  '${key}': require('../../assets/images/cards/${key}.webp'),`
+  const entries = [...imageKeys.entries()].sort(([a], [b]) => a.localeCompare(b)).map(
+    ([key, ext]) => `  '${key}': require('../../assets/images/cards/${key}${ext}'),`
   ).join('\n');
   imageMapBlock = `/** Image assets keyed by sentence ID — use cardImages[card.image] as Image source */
 export const cardImages: Record<string, number> = {
