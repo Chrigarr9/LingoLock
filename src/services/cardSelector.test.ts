@@ -14,11 +14,14 @@ jest.mock('./storage', () => ({
   loadCardState: jest.fn(),
   loadAllCardStates: jest.fn(),
   saveCardState: jest.fn(),
+  loadNewWordsIntroducedToday: jest.fn().mockReturnValue(0),
 }));
 
 jest.mock('./fsrs', () => ({
   isDue: jest.fn(),
   getAnswerType: jest.fn(),
+  getHintLevel: jest.fn(),
+  isCardLearned: jest.fn(),
   isCardMastered: jest.fn(),
   createNewCardState: jest.fn(),
   scheduleReview: jest.fn(),
@@ -76,11 +79,13 @@ jest.mock('../content/bundle', () => {
 
 import { buildSession, handleWrongAnswer, getCurrentChapter } from './cardSelector';
 import { loadCardState, loadAllCardStates } from './storage';
-import { isDue, getAnswerType, isCardMastered } from './fsrs';
+import { isDue, getAnswerType, getHintLevel, isCardLearned, isCardMastered } from './fsrs';
 
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
 const mockGetAnswerType = getAnswerType as jest.MockedFunction<typeof getAnswerType>;
+const mockGetHintLevel = getHintLevel as jest.MockedFunction<typeof getHintLevel>;
+const mockIsCardLearned = isCardLearned as jest.MockedFunction<typeof isCardLearned>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
 
 // Helper: create a minimal CardState
@@ -102,11 +107,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Default: no card states in storage (all cards are new)
   mockLoadCardState.mockReturnValue(null);
-  // Default: getAnswerType for null returns 'mc2'
-  mockGetAnswerType.mockReturnValue('mc2');
+  // Default: getAnswerType for null returns 'mc4' (no more mc2)
+  mockGetAnswerType.mockReturnValue('mc4');
+  // Default: getHintLevel returns 'full'
+  mockGetHintLevel.mockReturnValue('full');
   // Default: isDue returns false
   mockIsDue.mockReturnValue(false);
-  // Default: isCardMastered returns false
+  // Default: isCardLearned/isCardMastered returns false
+  mockIsCardLearned.mockReturnValue(false);
   mockIsCardMastered.mockReturnValue(false);
 });
 
@@ -126,14 +134,14 @@ describe('buildSession', () => {
     for (const sc of session) {
       expect(sc.card.chapter).toBe(1);
     }
-    // All should be mc2 (new cards)
+    // All should be mc4 (new cards)
     for (const sc of session) {
-      expect(sc.answerType).toBe('mc2');
+      expect(sc.answerType).toBe('mc4');
     }
   });
 
-  test('with 3 due reviews returns 3 due + 2 new (including at least 1 new)', () => {
-    // word1, word2, word3 are due; rest are new
+  test('with 3 due reviews and budget of 2 returns 3 due + 2 new', () => {
+    // word1, word2, word3 are due; word4, word5 (ch1) + word6-8 (ch2) are new
     const dueIds = ['word1-ch01-s00', 'word2-ch01-s01', 'word3-ch01-s02'];
 
     mockLoadCardState.mockImplementation((id) => {
@@ -141,9 +149,10 @@ describe('buildSession', () => {
       return null;
     });
     mockIsDue.mockImplementation((state) => dueIds.includes(state.cardId));
-    mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc2'));
+    mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc4'));
 
-    const session = buildSession(5);
+    // Budget of 2 new words → 3 due + 2 new = 5
+    const session = buildSession(2);
 
     expect(session).toHaveLength(5);
     const dueInSession = session.filter((sc: import('../types/vocabulary').SessionCard) => dueIds.includes(sc.card.id));
@@ -152,9 +161,9 @@ describe('buildSession', () => {
     expect(newInSession).toHaveLength(2);
   });
 
-  test('with 10 due reviews returns 4 due + 1 new (always 1 new guaranteed)', () => {
-    // All 5 ch1 cards and 3 ch2 cards could be "due", but we only have 5 ch1 + 3 ch2 = 8 cards total
-    // Let's set word1-word5 as due, request 5 — expect 4 due + 1 new
+  test('all due reviews + new words up to daily budget', () => {
+    // word1-word5 are due, ch2 cards (word6-word8) are new
+    // buildSession(5) = ALL due (5) + up to 5 new (3 available) = 8 total
     const dueIds = [
       'word1-ch01-s00',
       'word2-ch01-s01',
@@ -168,15 +177,20 @@ describe('buildSession', () => {
       return null;
     });
     mockIsDue.mockImplementation((state) => dueIds.includes(state.cardId));
-    mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc2'));
+    mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc4'));
 
     const session = buildSession(5);
 
-    expect(session).toHaveLength(5);
+    // All 5 due + 3 new from ch2 = 8
+    expect(session).toHaveLength(8);
+    const dueInSession = session.filter(sc => dueIds.includes(sc.card.id));
     const newInSession = session.filter(sc => !dueIds.includes(sc.card.id));
-    expect(newInSession).toHaveLength(1);
-    // The new card must come from chapter 2 (ch1 is all due, no new in ch1)
-    expect(newInSession[0].card.chapter).toBe(2);
+    expect(dueInSession).toHaveLength(5);
+    expect(newInSession).toHaveLength(3);
+    // New cards come from chapter 2 (ch1 is all due)
+    for (const sc of newInSession) {
+      expect(sc.card.chapter).toBe(2);
+    }
   });
 
   test('with 0 due and only 3 new in ch1 (ch2 unlocked), returns 3 from ch1 + 2 from ch2', () => {
@@ -222,7 +236,7 @@ describe('buildSession', () => {
     });
     mockIsDue.mockReturnValue(false); // none are due
     mockIsCardMastered.mockReturnValue(false); // none mastered (for getCurrentChapter, ch1 is current)
-    mockGetAnswerType.mockReturnValue('mc2');
+    mockGetAnswerType.mockReturnValue('mc4');
 
     const session = buildSession(5);
 
@@ -231,20 +245,6 @@ describe('buildSession', () => {
     const ch2InSession = session.filter(sc => sc.card.chapter === 2);
     expect(ch1InSession).toHaveLength(3);
     expect(ch2InSession).toHaveLength(2);
-  });
-
-  test('MC2 card has 2 choices (correct + 1 distractor), shuffled', () => {
-    mockLoadCardState.mockReturnValue(null);
-    mockGetAnswerType.mockReturnValue('mc2');
-
-    const session = buildSession(1);
-
-    expect(session).toHaveLength(1);
-    const sc = session[0];
-    expect(sc.answerType).toBe('mc2');
-    expect(sc.choices).toHaveLength(2);
-    // Choices must contain the correct word
-    expect(sc.choices).toContain(sc.card.wordInContext);
   });
 
   test('MC4 card has 4 choices (correct + 3 distractors), shuffled', () => {
@@ -293,8 +293,8 @@ describe('handleWrongAnswer', () => {
         cefrLevel: 'A1',
         distractors: [],
       },
-      answerType: 'mc2',
-      choices: [id, 'other'],
+      answerType: 'mc4',
+      choices: [id, 'other', 'd1', 'd2'],
     };
   }
 
@@ -348,15 +348,15 @@ describe('handleWrongAnswer', () => {
 describe('getCurrentChapter', () => {
   test('returns 1 when no cards reviewed', () => {
     mockLoadCardState.mockReturnValue(null);
-    mockIsCardMastered.mockReturnValue(false);
+    mockIsCardLearned.mockReturnValue(false);
 
     const chapter = getCurrentChapter();
 
     expect(chapter).toBe(1);
   });
 
-  test('returns 2 when chapter 1 is >= 80% mastered', () => {
-    // ch1 has 5 cards. 4/5 = 80% mastered.
+  test('returns 2 when chapter 1 is >= 80% learned', () => {
+    // ch1 has 5 cards. 4/5 = 80% learned.
     const ch1Cards = [
       'word1-ch01-s00',
       'word2-ch01-s01',
@@ -365,13 +365,13 @@ describe('getCurrentChapter', () => {
       'word5-ch01-s04',
     ];
 
-    const masteredIds = ch1Cards.slice(0, 4); // 4 mastered = 80%
+    const learnedIds = ch1Cards.slice(0, 4); // 4 learned = 80%
 
     mockLoadCardState.mockImplementation((id) => {
       if (ch1Cards.includes(id)) return makeCardState(id);
       return null;
     });
-    mockIsCardMastered.mockImplementation((state) => masteredIds.includes(state.cardId));
+    mockIsCardLearned.mockImplementation((state) => learnedIds.includes(state.cardId));
 
     const chapter = getCurrentChapter();
 

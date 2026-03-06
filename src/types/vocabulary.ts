@@ -20,8 +20,8 @@ export interface VocabularyCard {
   /** Optional media URL (image/audio) - Phase 3+ */
   media?: string;
 
-  /** Answer input type: text input, 2-choice MC, or 4-choice MC */
-  answerType?: 'text' | 'mc2' | 'mc4';
+  /** Answer input type: text input or 4-choice MC */
+  answerType?: 'text' | 'mc4';
 
   /** Answer choices for multiple-choice cards (includes the correct answer) */
   choices?: string[];
@@ -149,9 +149,13 @@ export interface CardState {
 /** Card in the active session queue — combines content + state + answer type */
 export interface SessionCard {
   card: ClozeCard;
-  answerType: 'mc2' | 'mc4' | 'text';
-  /** Choices for MC modes (includes correct answer + distractors) */
+  answerType: 'mc4' | 'text';
+  /** Choices for MC mode (includes correct answer + 3 distractors) */
   choices?: string[];
+  /** True when card has never been seen before (cardState was null) */
+  isFirstEncounter?: boolean;
+  /** Hint level for text mode — controls progressive hint generosity */
+  hintLevel?: 'full' | 'medium' | 'minimal';
 }
 
 /** Stats persisted in MMKV */

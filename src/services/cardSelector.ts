@@ -11,7 +11,7 @@
  * ahead so the user sees them again soon without stopping the session flow.
  */
 
-import { isDue, getAnswerType, isCardLearned } from './fsrs';
+import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
 import { loadCardState, loadNewWordsIntroducedToday } from './storage';
 import { CHAPTERS, getChapterCards } from '../content/bundle';
 import type { SessionCard, ClozeCard } from '../types/vocabulary';
@@ -33,14 +33,10 @@ function shuffle<T>(arr: T[]): T[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Build MC choices for a card: correct word + N distractors, shuffled.
- *   - MC2: correct + 1 distractor (2 choices total)
- *   - MC4: correct + 3 distractors (4 choices total)
+ * Build MC4 choices for a card: correct word + 3 distractors, shuffled.
  */
-function buildChoices(card: ClozeCard, answerType: 'mc2' | 'mc4'): string[] {
-  const distractorCount = answerType === 'mc2' ? 1 : 3;
-  // Take the first N distractors available (pipeline guarantees at least 3)
-  const distractors = card.distractors.slice(0, distractorCount);
+function buildChoices(card: ClozeCard): string[] {
+  const distractors = card.distractors.slice(0, 3);
   const choices = [card.wordInContext, ...distractors];
   return shuffle(choices);
 }
@@ -52,15 +48,22 @@ function buildChoices(card: ClozeCard, answerType: 'mc2' | 'mc4'): string[] {
 function toSessionCard(card: ClozeCard): SessionCard {
   const cardState = loadCardState(card.id); // null = new card
   const answerType = getAnswerType(cardState);
+  const isFirstEncounter = cardState === null;
 
   if (answerType === 'text') {
-    return { card, answerType };
+    return {
+      card,
+      answerType,
+      isFirstEncounter,
+      hintLevel: getHintLevel(cardState!),
+    };
   }
 
   return {
     card,
     answerType,
-    choices: buildChoices(card, answerType),
+    choices: buildChoices(card),
+    isFirstEncounter,
   };
 }
 

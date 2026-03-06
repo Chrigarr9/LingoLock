@@ -41,7 +41,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-004',
     front: 'Goodbye',
     back: 'Auf Wiedersehen',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Auf Wiedersehen', 'Guten Tag'],
   },
   {
@@ -60,7 +60,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-007',
     front: 'The book',
     back: 'Das Buch',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Das Buch', 'Die Schule'],
   },
   {
@@ -79,7 +79,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-010',
     front: 'To eat',
     back: 'Essen',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Essen', 'Trinken'],
   },
   {
@@ -103,7 +103,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-014',
     front: 'Yesterday',
     back: 'Gestern',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Gestern', 'Morgen'],
   },
   {
@@ -127,7 +127,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-018',
     front: 'The mother',
     back: 'Die Mutter',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Die Mutter', 'Der Vater'],
   },
   {
@@ -151,7 +151,7 @@ export const PLACEHOLDER_CARDS: VocabularyCard[] = [
     id: 'card-022',
     front: 'The school',
     back: 'Die Schule',
-    answerType: 'mc2',
+    answerType: 'mc4',
     choices: ['Die Schule', 'Das Haus'],
   },
   {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image, type ImageSourcePropType } from 'react-native';
-import { Icon, Text } from 'react-native-paper';
+import { View, StyleSheet, Platform, Image, Pressable, type ImageSourcePropType } from 'react-native';
+import { Icon, IconButton, Text } from 'react-native-paper';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { useAppTheme } from '../theme';
 import { cardImages, cardAudios } from '../content/bundle';
@@ -14,6 +14,14 @@ interface ClozeCardDisplayProps {
   isMuted: boolean;
   /** Called when sentence audio finishes playing. Challenge screen uses this for advance timing. */
   onAudioFinish?: () => void;
+  /** Pre-generated hint text (e.g., "P _ _ _ _ _ _ A") */
+  hintText?: string;
+  /** Whether hint has been used for this card presentation */
+  hintUsed?: boolean;
+  /** Called when user taps the hint button */
+  onHintRequest?: () => void;
+  /** Called when user taps "Already know this?" */
+  onAlreadyKnow?: () => void;
 }
 
 /**
@@ -29,6 +37,10 @@ export function ClozeCardDisplay({
   isCorrect,
   isMuted,
   onAudioFinish,
+  hintText,
+  hintUsed,
+  onHintRequest,
+  onAlreadyKnow,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { card, answerType } = sessionCard;
@@ -40,12 +52,7 @@ export function ClozeCardDisplay({
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
 
-  const answerTypeLabel =
-    answerType === 'mc2'
-      ? 'Choose 1 of 2'
-      : answerType === 'mc4'
-        ? 'Choose 1 of 4'
-        : 'Type answer';
+  const answerTypeLabel = answerType === 'mc4' ? 'Choose 1 of 4' : 'Type answer';
 
   const sentenceParts = card.sentence.split('_____');
 
@@ -181,12 +188,48 @@ export function ClozeCardDisplay({
               {card.germanHint}
             </Text>
           </View>
-          <Text
-            variant="labelSmall"
-            style={[styles.answerTypeLabel, { color: theme.colors.onSurfaceVariant }]}
-          >
-            {answerTypeLabel}
-          </Text>
+
+          {/* Spelling hint (text mode only) — shown after user taps hint button */}
+          {answerType === 'text' && hintUsed && hintText && (
+            <Text
+              variant="bodyMedium"
+              style={[styles.spellingHint, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {hintText}
+            </Text>
+          )}
+
+          {/* Hint button + answer type label row */}
+          <View style={styles.hintActionRow}>
+            {answerType === 'text' && !hintUsed && onHintRequest && (
+              <IconButton
+                icon="lightbulb-on-outline"
+                size={20}
+                iconColor={theme.colors.onSurfaceVariant}
+                onPress={onHintRequest}
+                accessibilityLabel="Show spelling hint"
+                style={styles.hintButton}
+              />
+            )}
+            <Text
+              variant="labelSmall"
+              style={[styles.answerTypeLabel, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {answerTypeLabel}
+            </Text>
+          </View>
+
+          {/* "Already know this?" — first encounter only */}
+          {sessionCard.isFirstEncounter && onAlreadyKnow && (
+            <Pressable onPress={onAlreadyKnow} accessibilityRole="button">
+              <Text
+                variant="labelSmall"
+                style={[styles.alreadyKnowLink, { color: theme.colors.onSurfaceVariant }]}
+              >
+                Already know this?
+              </Text>
+            </Pressable>
+          )}
         </>
       )}
     </>
@@ -292,11 +335,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  spellingHint: {
+    fontFamily: Platform.OS === 'web' ? 'monospace' : 'monospace',
+    fontSize: 18,
+    letterSpacing: 4,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  hintActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    marginTop: 2,
+  },
+  hintButton: {
+    margin: 0,
+  },
   answerTypeLabel: {
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: '700',
-    marginTop: 4,
+  },
+  alreadyKnowLink: {
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.7,
   },
   feedbackText: {
     fontWeight: '700',

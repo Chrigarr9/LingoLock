@@ -11,7 +11,8 @@ import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { buildSession, handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
-import { scheduleReview, createNewCardState } from '../src/services/fsrs';
+import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
+import type { ReviewGrade } from '../src/services/fsrs';
 import {
   saveCardState,
   loadCardState,
@@ -63,6 +64,7 @@ export default function ChallengeScreen() {
   const [showReveal, setShowReveal] = useState(false);
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [isEmpty, setIsEmpty] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
 
   // --------------------------------------------------------------------------
   // Session initialization
@@ -114,8 +116,8 @@ export default function ChallengeScreen() {
   // Derived values
   // --------------------------------------------------------------------------
   const currentCard: SessionCard | undefined = queue[currentIndex];
-  const answerType = currentCard?.answerType ?? 'mc2';
-  const isMC = answerType === 'mc2' || answerType === 'mc4';
+  const answerType = currentCard?.answerType ?? 'mc4';
+  const isMC = answerType === 'mc4';
 
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -137,6 +139,7 @@ export default function ChallengeScreen() {
       setIsCorrect(null);
       setAnsweredChoice(null);
       setShowReveal(false);
+      setHintUsed(false);
     } else {
       updateStatsAfterSession(correctCount, originalCardCount.current, params.source ?? 'unknown');
       // Record new words introduced during this session
@@ -161,19 +164,19 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   // FSRS state update helper
   // --------------------------------------------------------------------------
-  const updateCardFSRS = (sessionCard: SessionCard, correct: boolean) => {
+  const updateCardFSRS = (sessionCard: SessionCard, grade: ReviewGrade) => {
     const cardId = sessionCard.card.id;
     const existing = loadCardState(cardId);
     const currentState = existing ?? createNewCardState(cardId);
-    const nextState = scheduleReview(currentState, correct);
+    const nextState = scheduleReview(currentState, grade);
     saveCardState(cardId, nextState);
   };
 
   // --------------------------------------------------------------------------
   // Answer handlers
   // --------------------------------------------------------------------------
-  const handleCorrect = (sessionCard: SessionCard) => {
-    updateCardFSRS(sessionCard, true);
+  const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade) => {
+    updateCardFSRS(sessionCard, grade);
     setIsCorrect(true);
     setShowAnswer(true);
     setShowReveal(true);
@@ -188,7 +191,7 @@ export default function ChallengeScreen() {
   };
 
   const handleIncorrect = (sessionCard: SessionCard) => {
-    updateCardFSRS(sessionCard, false);
+    updateCardFSRS(sessionCard, 'again');
     setIsCorrect(false);
     setShowAnswer(true);
     setShowReveal(true);
@@ -201,7 +204,8 @@ export default function ChallengeScreen() {
     if (!currentCard) return;
     const correct = validateAnswer(userAnswer, currentCard.card.wordInContext);
     if (correct) {
-      handleCorrect(currentCard);
+      // Hint used → Hard (shorter interval), otherwise Good
+      handleCorrect(currentCard, hintUsed ? 'hard' : 'good');
     } else {
       handleIncorrect(currentCard);
     }
@@ -212,11 +216,26 @@ export default function ChallengeScreen() {
     setAnsweredChoice(choice);
     const correct = choice === currentCard.card.wordInContext;
     if (correct) {
-      handleCorrect(currentCard);
+      handleCorrect(currentCard, 'good');
     } else {
       handleIncorrect(currentCard);
     }
   };
+
+  const handleHintRequest = () => {
+    setHintUsed(true);
+  };
+
+  const handleAlreadyKnow = () => {
+    if (!currentCard) return;
+    // Rate as Easy — large stability boost, card will return as text mode
+    handleCorrect(currentCard, 'easy');
+  };
+
+  // Generate hint text for current card (text mode only)
+  const currentHintText = currentCard?.answerType === 'text' && currentCard.hintLevel
+    ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
+    : undefined;
 
   // --------------------------------------------------------------------------
   // Glass style (reuse from Phase 1 pattern)
@@ -311,15 +330,15 @@ export default function ChallengeScreen() {
         {!isComplete && currentCard && (
           <>
             {isMC ? (
-              /* Multiple Choice mode (MC2 or MC4) */
+              /* Multiple Choice mode (MC4) */
               <View style={styles.mcArea}>
-                {/* Cloze card replaces old front/back question text */}
                 <ClozeCardDisplay
                   sessionCard={currentCard}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
                   onAudioFinish={handleAudioFinish}
+                  onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -350,6 +369,9 @@ export default function ChallengeScreen() {
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
                   onAudioFinish={handleAudioFinish}
+                  hintText={currentHintText}
+                  hintUsed={hintUsed}
+                  onHintRequest={handleHintRequest}
                 />
 
                 {/* Answer reveal — shown after answering */}
