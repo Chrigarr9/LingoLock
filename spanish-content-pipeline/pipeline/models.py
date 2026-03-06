@@ -62,6 +62,11 @@ class CoverageReport(BaseModel):
     top_1000_total: int
     coverage_percent: float
     missing_top_100: list[str]  # Most frequent missing words
+    # Multi-threshold coverage: key = "top_N", value = {"covered": int, "total": int, "percent": float}
+    thresholds: dict[str, dict[str, float]] = {}
+    # Vocabulary entries outside the highest threshold (rare/specialised words)
+    outside_top_n: int = 0
+    outside_top_n_label: str = ""
 
 
 class ImagePrompt(BaseModel):
@@ -130,3 +135,20 @@ class AudioManifest(BaseModel):
     model: str             # TTS model name
     language: str          # e.g. "es"
     audio: dict[str, AudioManifestEntry]  # Key: "ch{NN}_s{NN}"
+
+
+class FrequencyLemmaEntry(BaseModel):
+    lemma: str        # Dictionary/base form
+    appropriate: bool # True if relevant to deck domain (no violence, slang, junk)
+
+
+class GapWordAnnotation(BaseModel):
+    target: str       # Translation in native language
+    pos: str          # Part of speech
+
+
+class GapSentence(BaseModel):
+    source: str                              # Spanish sentence
+    target: str                              # German translation
+    covers: list[str]                        # Lemmas this sentence is intended to cover
+    word_annotations: dict[str, GapWordAnnotation] = {}  # New words introduced
