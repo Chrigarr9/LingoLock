@@ -61,7 +61,7 @@ class CoverageReport(BaseModel):
     top_1000_covered: int
     top_1000_total: int
     coverage_percent: float
-    missing_top_100: list[str]  # Most frequent missing words
+    missing_words: list[str]  # All appropriate missing words, sorted by frequency
     # Multi-threshold coverage: key = "top_N", value = {"covered": int, "total": int, "percent": float}
     thresholds: dict[str, dict[str, float]] = {}
     # Vocabulary entries outside the highest threshold (rare/specialised words)

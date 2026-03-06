@@ -119,7 +119,7 @@ def test_coverage_report():
         top_1000_covered=85,
         top_1000_total=1000,
         coverage_percent=8.5,
-        missing_top_100=[],
+        missing_words=[],
     )
     assert report.coverage_percent == 8.5
 

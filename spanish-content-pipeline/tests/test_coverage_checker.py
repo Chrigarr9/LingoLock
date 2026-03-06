@@ -35,8 +35,8 @@ def test_check_coverage():
     # "de" and "la" are function words and filtered out — only 3 content words remain
     assert report.top_1000_total == 3
     assert report.coverage_percent == round(2 / 3 * 100, 1)  # 66.7%
-    assert "de" not in report.missing_top_100
-    assert "tener" in report.missing_top_100
+    assert "de" not in report.missing_words
+    assert "tener" in report.missing_words
 
 
 def test_check_coverage_empty_vocab():
@@ -110,6 +110,6 @@ def test_check_coverage_filters_inappropriate_words():
                             frequency_lemmas=frequency_lemmas)
 
     # disparar and asesino filtered out; only restaurante is a genuine gap
-    assert "disparar" not in report.missing_top_100
-    assert "asesino" not in report.missing_top_100
-    assert "restaurante" in report.missing_top_100
+    assert "disparar" not in report.missing_words
+    assert "asesino" not in report.missing_words
+    assert "restaurante" in report.missing_words

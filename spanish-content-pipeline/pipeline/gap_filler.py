@@ -74,7 +74,7 @@ class GapFiller:
         report = check_coverage(
             deck, frequency_data, top_n=top_n, frequency_lemmas=frequency_lemmas
         )
-        missing = report.missing_top_100
+        missing = report.missing_words
 
         if not missing:
             return {}

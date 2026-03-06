@@ -40,8 +40,8 @@ def main():
     print(f"  Total vocabulary: {report.total_vocabulary}")
     print(f"  With frequency data: {report.frequency_matched}")
     print(f"  Top {args.top_n} coverage: {report.top_1000_covered}/{report.top_1000_total} ({report.coverage_percent}%)")
-    if report.missing_top_100:
-        print(f"  Top missing words: {', '.join(report.missing_top_100[:10])}")
+    if report.missing_words:
+        print(f"  Top missing words: {', '.join(report.missing_words[:10])}")
     print(f"  Report saved to {report_path}")
 
 

@@ -171,7 +171,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
             n = key.replace("top_", "")
             print(f"  Top {int(n):5d}: {int(data['covered']):3d}/{int(data['total'])} ({data['percent']}%)")
         print(f"  Outside {report.outside_top_n_label}: {report.outside_top_n} words ({report.outside_top_n / report.total_vocabulary * 100:.1f}% of vocab)")
-        missing_preview = ", ".join(report.missing_top_100[:20])
+        missing_preview = ", ".join(report.missing_words[:20])
         print(f"  Top missing content words: {missing_preview}")
 
     out_dir = output_base / config.deck.id

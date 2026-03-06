@@ -365,7 +365,7 @@ def check_coverage(
         top_1000_covered=len(covered),
         top_1000_total=len(top_words),
         coverage_percent=round(coverage_pct, 1),
-        missing_top_100=missing_sorted[:100],
+        missing_words=missing_sorted,
         thresholds=thresholds,
         outside_top_n=outside_top,
         outside_top_n_label=f"top_{max_threshold}",
