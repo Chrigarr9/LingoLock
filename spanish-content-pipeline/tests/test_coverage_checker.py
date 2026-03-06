@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from pipeline.coverage_checker import load_frequency_data, check_coverage
-from pipeline.models import VocabularyEntry, OrderedDeck, DeckChapter
+from pipeline.models import FrequencyLemmaEntry, VocabularyEntry, OrderedDeck, DeckChapter
 
 
 def test_load_frequency_data(tmp_path):
@@ -31,10 +31,11 @@ def test_check_coverage():
 
     assert report.total_vocabulary == 3
     assert report.frequency_matched == 2  # estar and ser have ranks
-    assert report.top_1000_covered == 2   # estar(3) and ser(4) are in top 5
-    assert report.top_1000_total == 5
-    assert report.coverage_percent == 40.0  # 2/5 = 40%
-    assert "de" in report.missing_top_100
+    assert report.top_1000_covered == 2   # estar(3) and ser(4) are content words in top 5
+    # "de" and "la" are function words and filtered out — only 3 content words remain
+    assert report.top_1000_total == 3
+    assert report.coverage_percent == round(2 / 3 * 100, 1)  # 66.7%
+    assert "de" not in report.missing_top_100
     assert "tener" in report.missing_top_100
 
 
@@ -71,4 +72,44 @@ def test_check_coverage_with_ordered_deck():
     assert report.total_vocabulary == 2
     assert report.frequency_matched == 2
     assert report.top_1000_covered == 2
-    assert report.coverage_percent == 40.0
+    # "de" and "la" are function words — filtered to 3 content words
+    assert report.top_1000_total == 3
+    assert report.coverage_percent == round(2 / 3 * 100, 1)  # 66.7%
+
+
+def test_check_coverage_uses_frequency_lemmas():
+    """frequency_lemmas provides lemma resolution for inflected forms."""
+    vocab = [
+        VocabularyEntry(id="ir", source="ir", target=["gehen"], pos="verb",
+                        frequency_rank=10, cefr_level="A1", examples=[]),
+    ]
+    frequency_data = {"voy": 1, "vas": 2, "ir": 3, "restaurante": 4}
+    frequency_lemmas = {
+        "voy": FrequencyLemmaEntry(lemma="ir", appropriate=True),
+        "vas": FrequencyLemmaEntry(lemma="ir", appropriate=True),
+    }
+
+    report = check_coverage(vocab, frequency_data, top_n=10,
+                            frequency_lemmas=frequency_lemmas)
+
+    # voy and vas resolve to "ir" which we have — should be covered
+    assert report.top_1000_covered == 3  # ir, voy, vas all resolve to "ir"
+
+
+def test_check_coverage_filters_inappropriate_words():
+    """Words marked appropriate=False are excluded from missing list."""
+    vocab = []
+    frequency_data = {"restaurante": 1, "disparar": 2, "asesino": 3}
+    frequency_lemmas = {
+        "restaurante": FrequencyLemmaEntry(lemma="restaurante", appropriate=True),
+        "disparar": FrequencyLemmaEntry(lemma="disparar", appropriate=False),
+        "asesino": FrequencyLemmaEntry(lemma="asesino", appropriate=False),
+    }
+
+    report = check_coverage(vocab, frequency_data, top_n=10,
+                            frequency_lemmas=frequency_lemmas)
+
+    # disparar and asesino filtered out; only restaurante is a genuine gap
+    assert "disparar" not in report.missing_top_100
+    assert "asesino" not in report.missing_top_100
+    assert "restaurante" in report.missing_top_100
