@@ -1,7 +1,7 @@
 """BUILD step: Produce a story-ordered, chapter-grouped vocabulary deck."""
 
 from pipeline.models import (
-    ChapterWords, DeckChapter, OrderedDeck, SentencePair,
+    ChapterWords, DeckChapter, GapSentence, OrderedDeck, SentencePair,
     VocabularyEntry, WordAnnotation,
 )
 
@@ -117,4 +117,81 @@ def build_vocabulary(
         deck_name=deck_name,
         total_words=global_order,
         chapters=deck_chapters,
+    )
+
+
+def merge_gap_sentences(
+    deck: OrderedDeck,
+    gap_sentences: dict[int, list[GapSentence]],
+    frequency_data: dict[str, int] | None = None,
+) -> OrderedDeck:
+    """Merge gap-filling sentences into an existing vocabulary deck.
+
+    - Words in `covers` that already exist get the gap sentence appended as example.
+    - New words (not yet in the deck) get a new VocabularyEntry created from
+      word_annotations and appended to the assigned chapter.
+
+    Returns a new OrderedDeck (does not mutate the input).
+    """
+    if frequency_data is None:
+        frequency_data = {}
+
+    # Build flat lookup: lemma -> VocabularyEntry (mutable copy)
+    all_entries: dict[str, VocabularyEntry] = {}
+    new_chapters = []
+    for ch in deck.chapters:
+        new_words = list(ch.words)  # shallow copy of list
+        for w in new_words:
+            all_entries[w.id] = w
+        new_chapters.append(DeckChapter(chapter=ch.chapter, title=ch.title, words=new_words))
+
+    next_order = deck.total_words + 1
+
+    for chapter_num, sentences in gap_sentences.items():
+        # Find matching chapter in new_chapters
+        ch_idx = next(
+            (i for i, c in enumerate(new_chapters) if c.chapter == chapter_num), None
+        )
+        if ch_idx is None:
+            continue
+
+        for gap_sent in sentences:
+            # Build a SentencePair to use as example
+            example = SentencePair(
+                chapter=chapter_num,
+                sentence_index=-1,  # Gap sentence marker
+                source=gap_sent.source,
+                target=gap_sent.target,
+            )
+
+            for lemma in gap_sent.covers:
+                lemma = lemma.lower().strip()
+                if lemma in all_entries:
+                    # Add example to existing entry
+                    entry = all_entries[lemma]
+                    if example not in entry.examples:
+                        entry.examples.append(example)
+                elif lemma in gap_sent.word_annotations:
+                    # Create new entry from annotation
+                    ann = gap_sent.word_annotations[lemma]
+                    new_entry = VocabularyEntry(
+                        id=lemma,
+                        source=lemma,
+                        target=[ann.target],
+                        pos=ann.pos,
+                        frequency_rank=frequency_data.get(lemma),
+                        cefr_level=assign_cefr_level(frequency_data.get(lemma)),
+                        first_chapter=chapter_num,
+                        order=next_order,
+                        examples=[example],
+                    )
+                    next_order += 1
+                    all_entries[lemma] = new_entry
+                    new_chapters[ch_idx].words.append(new_entry)
+
+    return OrderedDeck(
+        deck_id=deck.deck_id,
+        deck_name=deck.deck_name,
+        total_words=next_order - 1,
+        chapters=new_chapters,
     )

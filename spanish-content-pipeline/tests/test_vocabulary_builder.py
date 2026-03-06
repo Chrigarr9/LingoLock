@@ -269,3 +269,70 @@ def test_chapter_with_all_function_words():
     assert len(deck.chapters) == 1
     assert len(deck.chapters[0].words) == 0
     assert deck.total_words == 0
+
+
+# --- merge_gap_sentences ---
+
+from pipeline.vocabulary_builder import merge_gap_sentences
+from pipeline.models import GapSentence, GapWordAnnotation
+
+
+def test_merge_gap_sentences_adds_new_word():
+    """New words from gap sentences become new VocabularyEntries."""
+    deck = OrderedDeck(
+        deck_id="test", deck_name="Test", total_words=1,
+        chapters=[
+            DeckChapter(chapter=1, title="Ch1", words=[
+                VocabularyEntry(id="comer", source="comer", target=["essen"],
+                                pos="verb", first_chapter=1, order=1, examples=[])
+            ])
+        ],
+    )
+    gap_sentences = {
+        1: [
+            GapSentence(
+                source="Vamos al restaurante.",
+                target="Wir gehen ins Restaurant.",
+                covers=["restaurante"],
+                word_annotations={
+                    "restaurante": GapWordAnnotation(target="Restaurant", pos="noun")
+                },
+            )
+        ]
+    }
+
+    updated = merge_gap_sentences(deck, gap_sentences)
+
+    ch1_lemmas = {w.id for w in updated.chapters[0].words}
+    assert "restaurante" in ch1_lemmas
+
+
+def test_merge_gap_sentences_adds_example_to_existing_word():
+    """If the covered word already exists, the gap sentence is added as an example."""
+    existing = SentencePair(chapter=1, sentence_index=0,
+                            source="Me gusta comer.", target="Ich esse gern.")
+    deck = OrderedDeck(
+        deck_id="test", deck_name="Test", total_words=1,
+        chapters=[
+            DeckChapter(chapter=1, title="Ch1", words=[
+                VocabularyEntry(id="comer", source="comer", target=["essen"],
+                                pos="verb", first_chapter=1, order=1,
+                                examples=[existing])
+            ])
+        ],
+    )
+    gap_sentences = {
+        1: [
+            GapSentence(
+                source="Quiero comer algo rico.",
+                target="Ich möchte etwas Leckeres essen.",
+                covers=["comer"],
+                word_annotations={},
+            )
+        ]
+    }
+
+    updated = merge_gap_sentences(deck, gap_sentences)
+
+    comer_entry = next(w for w in updated.chapters[0].words if w.id == "comer")
+    assert len(comer_entry.examples) == 2
