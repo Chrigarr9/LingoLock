@@ -78,19 +78,42 @@ def get_api_key(config: DeckConfig) -> str:
 def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None):
     """Passes 1-3 + vocabulary. All output cached to disk for review."""
 
-    # Pass 1: Story generation
+    # Pass 0b: Vocabulary Planning
+    from pipeline.vocabulary_planner import plan_vocabulary
+    vocab_plans = {}
+    companion = config.secondary_characters[0].name if config.secondary_characters else "a friend"
+    chapter_defs = [
+        {"title": ch.title, "cefr_level": ch.cefr_level or config.story.cefr_level,
+         "context": ch.context, "vocab_focus": ch.vocab_focus}
+        for ch in config.story.chapters
+    ]
+    vocab_plans = plan_vocabulary(
+        chapters=chapter_defs,
+        target_language=config.languages.target,
+        protagonist_name=config.protagonist.name,
+        companion_name=companion,
+    )
+    if vocab_plans:
+        print("=== Pass 0b: Vocabulary Planning ===")
+        for ch_num, plan in sorted(vocab_plans.items()):
+            cats = ", ".join(plan.must_include_categories)
+            print(f"  Chapter {ch_num}: {cats}")
+        print()
+
+    # Pass 1: Story generation (with summaries + vocab plans)
     print("=== Pass 1: Scene-First Story Generation ===")
     scene_gen = SceneStoryGenerator(config, llm, output_base=output_base)
     chapter_scenes = {}
     stories = {}
-    for i in chapter_range:
+    # Use generate_all for cross-chapter summaries, then extract text
+    all_chapters = scene_gen.generate_all(chapter_range=chapter_range)
+    for idx, i in enumerate(chapter_range):
         ch = config.story.chapters[i]
-        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        chapter_scenes[i] = scene_gen.generate_chapter(i)
+        chapter_scenes[i] = all_chapters[idx]
         stories[i] = extract_flat_text(chapter_scenes[i])
         scenes_count = len(chapter_scenes[i].scenes)
         shots_count = sum(len(s.shots) for s in chapter_scenes[i].scenes)
-        print(f"done ({scenes_count} scenes, {shots_count} shots)")
+        print(f"  Chapter {i+1}: {ch.title} ({scenes_count} scenes, {shots_count} shots)")
 
     # Pass 2: Translation
     print("\n=== Pass 2: Sentence Translation ===")
@@ -112,6 +135,34 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
         chapter_words = extractor.extract_chapter(i, all_pairs[i])
         all_chapters.append(chapter_words)
         print(f"done ({len(chapter_words.words)} words)")
+
+    # Pass 3c: Grammar Audit (optional)
+    if config.story.grammar_targets:
+        from pipeline.grammar_auditor import audit_grammar
+
+        print("\n=== Pass 3c: Grammar Audit ===")
+        chapters_by_cefr: dict[str, list[str]] = {}
+        for i in chapter_range:
+            ch = config.story.chapters[i]
+            cefr = ch.cefr_level or config.story.cefr_level
+            sentences = stories[i].split("\n")
+            chapters_by_cefr.setdefault(cefr, []).extend(sentences)
+
+        grammar_report = audit_grammar(
+            chapters_by_cefr=chapters_by_cefr,
+            grammar_targets=config.story.grammar_targets,
+            llm=llm,
+        )
+
+        for cefr, level_report in sorted(grammar_report.levels.items()):
+            present = sum(1 for t in level_report.targets if t.present)
+            total = len(level_report.targets)
+            print(f"  {cefr}: {present}/{total} grammar targets present ({level_report.coverage:.0%})")
+            for t in level_report.targets:
+                status = "OK" if t.present else "MISSING"
+                print(f"    [{status}] {t.target}")
+                if t.present and t.example:
+                    print(f"           Example: {t.example}")
 
     # Vocabulary DB
     print("\n=== Building Vocabulary Database ===")

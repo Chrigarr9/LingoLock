@@ -152,7 +152,8 @@ def test_function_words_filtered_out():
     assert "en" not in ids
 
 
-def test_pronouns_filtered():
+def test_pronouns_kept_in_vocabulary():
+    """Pronouns are vocabulary that must be taught — they are NOT filtered."""
     s1 = _sentence(1, 0, "Yo tengo un gato.", "Ich habe eine Katze.")
 
     ch1 = _chapter(1, [s1], [
@@ -165,7 +166,7 @@ def test_pronouns_filtered():
     deck = build_vocabulary([ch1], chapter_titles=chapter_titles, deck_id="test", deck_name="Test")
 
     ids = [w.id for w in deck.chapters[0].words]
-    assert "yo" not in ids
+    assert "yo" in ids  # Pronouns are now kept!
     assert "tener" in ids
     assert "gato" in ids
 

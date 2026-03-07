@@ -64,8 +64,20 @@ first two weeks of class. If in doubt, choose the simpler word.
 Good A1 examples: "Maria abre la maleta." / "Ella tiene miedo." / "El taxi es rápido." \
 / "Maria lleva una maleta roja."
 
-**A2** — Max 12 words. Simple past (pretérito) allowed. Basic connectors \
-(pero, y, también). Light use of common pronouns. One dependent clause at most.
+**A2** — Max 12 words. Simple past (pretérito indefinido) and imperfect (imperfecto) \
+allowed. Basic connectors (pero, y, también, porque). Light use of common pronouns. \
+One dependent clause at most. Reflexive verbs (levantarse, llamarse) encouraged.
+
+**B1** — Up to 18 words. All indicative tenses freely used (present, past, future, \
+conditional). Relative clauses (que, donde, quien). Object pronouns (lo, la, le, se). \
+Expressions of frequency/duration. Subjunctive only in fixed phrases (ojalá, quizás).
+Good B1 examples: "Le dijo que la ciudad le parecía enorme." / "Cuando llegó al \
+mercado, ya había cerrado." / "Prefiere ir en subte porque es más rápido."
+
+**B2** — Up to 25 words. Full subjunctive freely used (querer que, esperar que, \
+dudar que). Complex conditionals (si hubiera…). Passive voice occasionally. \
+Abstract vocabulary, idiomatic expressions, nuanced connectors (sin embargo, a pesar \
+de, dado que). Rich descriptions, implied emotion, cultural references.
 
 ## Direct dialogue (mandatory)
 Whenever two or more characters share a scene, at least 1 in 3 sentences MUST be \
@@ -96,7 +108,14 @@ When {protagonist_name} appears in a shot's image_prompt, do NOT invent your own
 description. Write the word "PROTAGONIST" and nothing else for her appearance — \
 post-processing will replace it with the canonical tag. Example:
   image_prompt: "Close-up of PROTAGONIST holding a red suitcase."
-If {protagonist_name} is NOT in the shot (pure object close-up), omit PROTAGONIST."""
+If {protagonist_name} is NOT in the shot (pure object close-up), omit PROTAGONIST.
+
+## Secondary character consistency
+When any named secondary character appears in a shot's image_prompt, write their \
+name in ALL CAPS (e.g. SOFIA, LUCAS, ROBERTO). Do NOT describe their appearance — \
+post-processing will replace the name with the canonical visual tag. Example:
+  image_prompt: "Close-up of PROTAGONIST and SOFIA sharing mate on a park bench."
+If a secondary character is NOT in the shot, do not mention them."""
 
 
 def _build_system_prompt(config: DeckConfig) -> str:
@@ -107,7 +126,64 @@ def _build_system_prompt(config: DeckConfig) -> str:
     )
 
 
-def _build_chapter_prompt(config: DeckConfig, chapter_index: int) -> str:
+def _extract_all_sentences(chapter_data: ChapterScene) -> list[str]:
+    """Extract all source sentences from a chapter in order."""
+    sentences = []
+    for scene in chapter_data.scenes:
+        for shot in scene.shots:
+            for sent in shot.sentences:
+                sentences.append(sent.source)
+    return sentences
+
+
+def _generate_summary(chapter_data: ChapterScene, llm: LLMClient) -> str:
+    """Generate a concise chapter summary via LLM for cross-chapter continuity."""
+    sentences = _extract_all_sentences(chapter_data)
+    if not sentences:
+        return ""
+
+    sentences_text = "\n".join(f"  - {s}" for s in sentences)
+    settings = [scene.setting.replace("_", " ") for scene in chapter_data.scenes]
+
+    prompt = (
+        f"Summarize this chapter in 2-3 sentences for continuity with the next chapter.\n"
+        f"Focus on: what happened, character relationships, key objects/places, "
+        f"emotional state, and any unresolved plot threads.\n\n"
+        f"Settings: {', '.join(dict.fromkeys(settings))}\n"
+        f"Sentences:\n{sentences_text}\n\n"
+        f"Write a plain text summary (no JSON, no bullet points)."
+    )
+
+    response = llm.complete(prompt, system="You are a story continuity assistant. Write concise summaries.")
+    return response.content.strip()
+
+
+def _format_vocab_plan(vocabulary_plan) -> str:
+    """Format vocabulary plan for injection into the chapter prompt."""
+    if not vocabulary_plan:
+        return ""
+    parts = []
+    if vocabulary_plan.mandatory_words:
+        words_str = ", ".join(vocabulary_plan.mandatory_words)
+        parts.append(
+            f"\n\nMANDATORY vocabulary — you MUST use each of these words "
+            f"in at least one sentence: {words_str}\n"
+            f"These are high-frequency words critical for the learner. "
+            f"Weave them naturally into the story."
+        )
+    if vocabulary_plan.teaching_scenes:
+        parts.append("\n\nAdditional scene suggestions (incorporate naturally):")
+        for scene_desc in vocabulary_plan.teaching_scenes:
+            parts.append(f"\n- {scene_desc}")
+    return "".join(parts)
+
+
+def _build_chapter_prompt(
+    config: DeckConfig,
+    chapter_index: int,
+    previous_summaries: list[str] | None = None,
+    vocabulary_plan=None,  # VocabularyPlan or None
+) -> str:
     chapter = config.story.chapters[chapter_index]
     p = config.protagonist
     d = config.destination
@@ -115,25 +191,39 @@ def _build_chapter_prompt(config: DeckConfig, chapter_index: int) -> str:
 
     vocab_str = ", ".join(chapter.vocab_focus)
 
-    # Secondary characters for this chapter (1-indexed)
+    # Secondary characters for this chapter (1-indexed) — MANDATORY presence
     secondary_section = ""
     for sc in config.secondary_characters:
         if (chapter_index + 1) in sc.chapters:
-            secondary_section += f"\nSecondary character: {sc.name} — {sc.visual_tag}"
+            secondary_section += f"\n- {sc.name}: MUST appear in at least one scene and speak at least one line of dialogue. Visual tag: {sc.visual_tag}"
     if secondary_section:
-        secondary_section = "\n" + secondary_section
+        secondary_section = (
+            "\n\nMANDATORY characters in this chapter "
+            "(each MUST appear in at least one shot and speak at least once):"
+            + secondary_section
+        )
+
+    effective_cefr = chapter.cefr_level or config.story.cefr_level
+
+    story_so_far = ""
+    if previous_summaries:
+        story_so_far = (
+            "\n\nStory so far (maintain consistency with all details — "
+            "object colors, character relationships, established facts):\n"
+            + "\n".join(previous_summaries)
+        )
 
     return f"""Write Chapter {chapter_index + 1}: "{chapter.title}"
 
 Language: {config.languages.target} ({config.languages.dialect} dialect)
-CEFR Level: {config.story.cefr_level}
+CEFR Level: {effective_cefr}
 Length: {min_sentences}-{max_sentences} sentences total
 
 Protagonist: {p.name} — {p.visual_tag}
 Destination: {d.city}, {d.country}
 
 Chapter context: {chapter.context}
-Vocabulary focus: {vocab_str}{secondary_section}
+Vocabulary focus: {vocab_str}{secondary_section}{story_so_far}{_format_vocab_plan(vocabulary_plan)}
 
 Return the chapter as a JSON object with a "scenes" array following the format above.
 Ensure sentence_index values are sequential starting from 0."""
@@ -157,6 +247,15 @@ def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScen
             # prepend the visual_tag so the image model gets a consistent anchor.
             if p.name in raw and visual_tag not in raw:
                 raw = raw.replace(p.name, f"{p.name} ({visual_tag})", 1)
+
+            # Replace secondary character placeholders with canonical visual_tags
+            for sc in config.secondary_characters:
+                name_upper = sc.name.upper()
+                if name_upper in raw:
+                    raw = raw.replace(name_upper, sc.visual_tag)
+                elif sc.name in raw and sc.visual_tag not in raw:
+                    # Safety net: mixed-case name without tag
+                    raw = raw.replace(sc.name, f"{sc.name} ({sc.visual_tag})", 1)
 
             # Remove any trailing period to avoid double-period
             if raw.endswith("."):
@@ -240,7 +339,7 @@ class SceneStoryGenerator:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._story_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def generate_chapter(self, chapter_index: int) -> ChapterScene:
+    def generate_chapter(self, chapter_index: int, previous_summaries: list[str] | None = None, vocabulary_plan=None) -> ChapterScene:
         path = self._chapter_path(chapter_index)
 
         # Skip if already generated (cached)
@@ -248,7 +347,7 @@ class SceneStoryGenerator:
             data = json.loads(path.read_text())
             return ChapterScene(**data)
 
-        prompt = _build_chapter_prompt(self._config, chapter_index)
+        prompt = _build_chapter_prompt(self._config, chapter_index, previous_summaries=previous_summaries, vocabulary_plan=vocabulary_plan)
         system = _build_system_prompt(self._config)
         result = self._llm.complete_json(prompt, system=system)
         parsed = result.parsed
@@ -286,7 +385,23 @@ class SceneStoryGenerator:
             chapter_range = range(self._config.chapter_count)
 
         chapters = []
+        summaries = []
+
         for i in chapter_range:
-            chapter = self.generate_chapter(i)
+            # Load cached summary if it exists (for already-generated chapters)
+            summary_path = self._story_dir() / f"summary_{i + 1:02d}.txt"
+
+            chapter = self.generate_chapter(i, previous_summaries=summaries if summaries else None)
             chapters.append(chapter)
+
+            # Generate and cache summary
+            if summary_path.exists():
+                summary = summary_path.read_text()
+            else:
+                summary = _generate_summary(chapter, self._llm)
+                summary_path.parent.mkdir(parents=True, exist_ok=True)
+                summary_path.write_text(summary)
+
+            summaries.append(f"Chapter {i + 1}: {summary}")
+
         return chapters

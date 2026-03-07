@@ -321,3 +321,195 @@ def test_expand_manifest_for_shared_shots():
     # Original entries unchanged
     assert manifest.images["ch01_s00"].file == "images/ch01_s00.webp"
     assert manifest.images["ch01_s02"].file == "images/ch01_s02.webp"
+
+
+def test_post_process_replaces_secondary_character_placeholders(tmp_path):
+    """Secondary character names in CAPS are replaced with their visual_tag."""
+    from pipeline.scene_story_generator import _post_process
+    from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
+
+    config = make_config(tmp_path)
+    chapter = ChapterScene(
+        chapter=2,
+        scenes=[Scene(
+            setting="street",
+            description="A street",
+            shots=[Shot(
+                focus="taxi",
+                image_prompt="Close-up of TAXI DRIVER standing by a yellow taxi",
+                sentences=[ShotSentence(source="El taxista espera.", sentence_index=0)],
+            )],
+        )],
+    )
+
+    result = _post_process(chapter, config)
+    prompt = result.scenes[0].shots[0].image_prompt
+
+    # Should contain the full visual_tag from config
+    assert "a stocky man with a gray flat cap" in prompt
+    # Should NOT contain the CAPS placeholder
+    assert "TAXI DRIVER" not in prompt
+
+
+def test_post_process_secondary_character_safety_net(tmp_path):
+    """If LLM writes character name in mixed case (not CAPS), still inject tag."""
+    from pipeline.scene_story_generator import _post_process
+    from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
+
+    config = make_config(tmp_path)
+    chapter = ChapterScene(
+        chapter=2,
+        scenes=[Scene(
+            setting="street",
+            description="A street",
+            shots=[Shot(
+                focus="taxi",
+                image_prompt="Close-up of Taxi Driver waving from a car",
+                sentences=[ShotSentence(source="El taxista saluda.", sentence_index=0)],
+            )],
+        )],
+    )
+
+    result = _post_process(chapter, config)
+    prompt = result.scenes[0].shots[0].image_prompt
+
+    assert "a stocky man with a gray flat cap" in prompt
+
+
+def test_generate_all_passes_summaries_to_later_chapters(tmp_path):
+    """Chapter 2's prompt includes a summary of chapter 1."""
+    from pipeline.scene_story_generator import SceneStoryGenerator
+
+    config = make_config(tmp_path)
+    mock_llm = MagicMock()
+
+    # Chapter generation uses complete_json, summary uses complete
+    chapter_response = LLMResponse(
+        content=json.dumps(MOCK_CHAPTER_RESPONSE),
+        usage=Usage(prompt_tokens=500, completion_tokens=300, total_tokens=800),
+        parsed=MOCK_CHAPTER_RESPONSE,
+    )
+    mock_llm.complete_json.return_value = chapter_response
+
+    summary_response = LLMResponse(
+        content="Charlotte packs her bags in Berlin, feeling excited about her trip.",
+        usage=Usage(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+    )
+    mock_llm.complete.return_value = summary_response
+
+    gen = SceneStoryGenerator(config, mock_llm, output_base=tmp_path)
+    gen.generate_all(chapter_range=range(2))
+
+    # 2 chapter generation calls + 2 summary calls
+    assert mock_llm.complete_json.call_count == 2
+    assert mock_llm.complete.call_count == 2
+    # The ch2 generation call should include "Story so far"
+    ch2_gen_call = mock_llm.complete_json.call_args_list[1]
+    prompt = ch2_gen_call.kwargs.get("prompt") or ch2_gen_call.args[0]
+    assert "Story so far" in prompt
+
+
+def test_chapter_summary_saved_to_disk(tmp_path):
+    """After generating a chapter, a summary file is created."""
+    from pipeline.scene_story_generator import SceneStoryGenerator
+
+    config = make_config(tmp_path)
+    mock_llm = MagicMock()
+
+    mock_llm.complete_json.return_value = LLMResponse(
+        content=json.dumps(MOCK_CHAPTER_RESPONSE),
+        usage=Usage(prompt_tokens=500, completion_tokens=300, total_tokens=800),
+        parsed=MOCK_CHAPTER_RESPONSE,
+    )
+    mock_llm.complete.return_value = LLMResponse(
+        content="Charlotte packs her bags in Berlin.",
+        usage=Usage(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+    )
+
+    gen = SceneStoryGenerator(config, mock_llm, output_base=tmp_path)
+    gen.generate_all(chapter_range=range(1))
+
+    summary_file = tmp_path / "test-deck" / "stories" / "summary_01.txt"
+    assert summary_file.exists()
+    content = summary_file.read_text()
+    assert len(content) > 0
+
+
+def test_generate_all_loads_cached_summaries(tmp_path):
+    """When chapter 1 is cached, its summary is still loaded for chapter 2."""
+    from pipeline.scene_story_generator import SceneStoryGenerator
+
+    config = make_config(tmp_path)
+    mock_llm = MagicMock()
+
+    # Pre-cache chapter 1 and its summary
+    story_dir = tmp_path / "test-deck" / "stories"
+    story_dir.mkdir(parents=True)
+    cached = {"chapter": 1, "scenes": [{"setting": "room", "description": "A room", "shots": [
+        {"focus": "bed", "image_prompt": "a bed", "sentences": [
+            {"source": "Charlotte duerme.", "sentence_index": 0}
+        ]}
+    ]}]}
+    (story_dir / "chapter_01.json").write_text(json.dumps(cached))
+    (story_dir / "summary_01.txt").write_text("Charlotte sleeps in Berlin.")
+
+    # Chapter 2 needs LLM — generation call uses complete_json, summary uses complete
+    mock_llm.complete_json.return_value = LLMResponse(
+        content=json.dumps(MOCK_CHAPTER_RESPONSE),
+        usage=Usage(prompt_tokens=500, completion_tokens=300, total_tokens=800),
+        parsed=MOCK_CHAPTER_RESPONSE,
+    )
+    mock_llm.complete.return_value = LLMResponse(
+        content="Charlotte takes a taxi to the airport.",
+        usage=Usage(prompt_tokens=100, completion_tokens=50, total_tokens=150),
+    )
+
+    gen = SceneStoryGenerator(config, mock_llm, output_base=tmp_path)
+    gen.generate_all(chapter_range=range(2))
+
+    # 1 generation call (ch2 only) + 1 summary call (ch2 only — ch1 summary cached)
+    assert mock_llm.complete_json.call_count == 1
+    assert mock_llm.complete.call_count == 1
+    ch2_gen_prompt = mock_llm.complete_json.call_args.kwargs.get("prompt") or mock_llm.complete_json.call_args.args[0]
+    assert "Charlotte sleeps in Berlin" in ch2_gen_prompt
+
+
+def test_chapter_prompt_enforces_mandatory_characters(tmp_path):
+    """Secondary characters listed for a chapter get a MANDATORY instruction."""
+    from pipeline.scene_story_generator import SceneStoryGenerator
+
+    config = make_config(tmp_path)
+    mock_llm = MagicMock()
+    mock_llm.complete_json.return_value = LLMResponse(
+        content=json.dumps(MOCK_CHAPTER_RESPONSE),
+        usage=Usage(prompt_tokens=500, completion_tokens=300, total_tokens=800),
+        parsed=MOCK_CHAPTER_RESPONSE,
+    )
+
+    gen = SceneStoryGenerator(config, mock_llm, output_base=tmp_path)
+    # Chapter 2 (index 1) has Taxi Driver
+    gen.generate_chapter(1)
+
+    call_args = mock_llm.complete_json.call_args
+    prompt = call_args.kwargs.get("prompt") or call_args.args[0]
+    assert "MUST appear" in prompt or "MANDATORY" in prompt
+
+
+def test_chapter_prompt_includes_vocabulary_plan(tmp_path):
+    """When a vocabulary plan is provided, mandatory words and teaching scenes appear in prompt."""
+    from pipeline.scene_story_generator import _build_chapter_prompt
+    from pipeline.vocabulary_planner import VocabularyPlan
+
+    config = make_config(tmp_path)
+    plan = VocabularyPlan(
+        must_include_categories=["days"],
+        teaching_scenes=["Charlotte and her friend plan the week, naming Monday through Sunday."],
+        mandatory_words=["lunes", "martes", "miércoles"],
+    )
+
+    prompt = _build_chapter_prompt(config, chapter_index=0, vocabulary_plan=plan)
+
+    assert "lunes" in prompt
+    assert "martes" in prompt
+    assert "MUST use" in prompt or "mandatory" in prompt.lower()
+    assert "Monday through Sunday" in prompt

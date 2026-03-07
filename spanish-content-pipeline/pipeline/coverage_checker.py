@@ -335,10 +335,24 @@ def check_coverage(
 
     top_words = {word for word, rank in content_freq.items() if rank <= top_n}
     covered = {w for w in top_words if is_covered(w)}
-    missing = {w for w in top_words if not is_covered(w) and w not in inappropriate_lemmas}
     frequency_matched = sum(1 for v in entries if v.frequency_rank is not None)
 
-    missing_sorted = sorted(missing, key=lambda w: content_freq.get(w, 999999))
+    # Resolve to lemmas, then deduplicate — avoids counting inflected forms of the same lemma
+    missing_lemmas: set[str] = set()
+    for w in top_words:
+        if is_covered(w):
+            continue
+        # Resolve to lemma
+        lemma = merged_map.get(w, w)
+        # Skip if lemma is covered or inappropriate
+        if lemma in our_lemmas or lemma in inappropriate_lemmas:
+            continue
+        # Skip the raw form too if it's inappropriate
+        if w in inappropriate_lemmas:
+            continue
+        missing_lemmas.add(lemma)
+
+    missing_sorted = sorted(missing_lemmas, key=lambda w: content_freq.get(w, 999999))
     coverage_pct = (len(covered) / len(top_words) * 100) if top_words else 0.0
 
     # Extra thresholds

@@ -22,12 +22,10 @@ SAMPLE_CONFIG = {
         "name": "Charlotte",
         "gender": "female",
         "origin_country": "Germany",
-        "origin_city": "Berlin",
     },
     "destination": {
         "country": "Argentina",
         "city": "Buenos Aires",
-        "landmarks": ["Plaza de Mayo", "La Boca"],
     },
     "story": {
         "cefr_level": "A1-A2",
@@ -60,7 +58,6 @@ def test_load_config_from_yaml():
     assert config.languages.target_code == "es"
     assert config.protagonist.name == "Charlotte"
     assert config.destination.city == "Buenos Aires"
-    assert len(config.destination.landmarks) == 2
     assert len(config.story.chapters) == 1
     assert config.llm.model == "google/gemini-2.5-flash-lite"
 
@@ -89,29 +86,29 @@ def test_config_invalid_file_raises():
         load_config(Path("/nonexistent/config.yaml"))
 
 
-def test_config_protagonist_description():
-    """protagonist.description is optional, defaults to empty string."""
+def test_config_protagonist_visual_tag():
+    """protagonist.visual_tag is optional, defaults to empty string."""
     config_data = {**SAMPLE_CONFIG}
     config_data["protagonist"] = {
         **SAMPLE_CONFIG["protagonist"],
-        "description": "mid-20s, light brown hair, warm brown eyes",
+        "visual_tag": "a slim young woman with light-brown hair",
     }
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(config_data, f)
         f.flush()
         config = load_config(Path(f.name))
 
-    assert config.protagonist.description == "mid-20s, light brown hair, warm brown eyes"
+    assert config.protagonist.visual_tag == "a slim young woman with light-brown hair"
 
 
-def test_config_protagonist_description_defaults_empty():
-    """Existing configs without description still load fine."""
+def test_config_protagonist_visual_tag_defaults_empty():
+    """Existing configs without visual_tag still load fine."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(SAMPLE_CONFIG, f)
         f.flush()
         config = load_config(Path(f.name))
 
-    assert config.protagonist.description == ""
+    assert config.protagonist.visual_tag == ""
 
 
 def test_config_image_generation():

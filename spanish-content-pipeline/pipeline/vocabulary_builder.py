@@ -5,7 +5,7 @@ from pipeline.models import (
     VocabularyEntry, WordAnnotation,
 )
 
-FILTERED_POS = {"article", "determiner", "preposition", "pronoun", "conjunction"}
+FILTERED_POS = {"article", "determiner", "preposition", "conjunction"}
 
 
 def assign_cefr_level(frequency_rank: int | None) -> str | None:

@@ -41,12 +41,14 @@ class ChapterDef(BaseModel):
     title: str
     context: str
     vocab_focus: list[str]
+    cefr_level: str | None = None  # Overrides StoryConfig.cefr_level for this chapter
 
 
 class StoryConfig(BaseModel):
     cefr_level: str
     sentences_per_chapter: list[int]
     chapters: list[ChapterDef]
+    grammar_targets: dict[str, list[str]] = {}  # Optional: CEFR level -> grammar targets
 
 
 class LLMConfig(BaseModel):

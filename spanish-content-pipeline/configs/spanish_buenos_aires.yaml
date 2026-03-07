@@ -7,7 +7,7 @@ languages:
   target_code: "es"
   native: "German"
   native_code: "de"
-  dialect: "neutral"
+  dialect: "Rioplatense (vos, Buenos Aires slang where natural)"
 
 protagonist:
   name: "Maria"
@@ -20,46 +20,257 @@ destination:
   city: "Buenos Aires"
 
 story:
-  cefr_level: "A1-A2"
-  sentences_per_chapter: [8, 20]
+  # Default CEFR level — overridden per chapter below.
+  cefr_level: "A1"
+  sentences_per_chapter: [10, 18]
+  grammar_targets:
+    A1:
+      - "simple present tense (indicativo presente)"
+      - "ser vs estar"
+      - "hay (there is/there are)"
+      - "simple questions with qué, dónde, cómo, cuánto"
+    A2:
+      - "pretérito indefinido (simple past: fui, compré, comí)"
+      - "pretérito imperfecto (descriptive past: era, tenía, había)"
+      - "pretérito vs imperfecto contrast in same sentence"
+      - "reflexive verbs (levantarse, llamarse, sentirse)"
+      - "modal verbs (poder, querer, deber)"
+      - "porque/cuando subordinate clauses"
+    B1:
+      - "present subjunctive (ojalá, quizás, es importante que)"
+      - "conditional (me gustaría, podría, sería)"
+      - "pluscuamperfecto indicative (había + participio)"
+      - "si + imperfect subjunctive + conditional (si pudiera... haría)"
+      - "relative clauses with que, donde, quien"
+      - "duration expressions (llevo dos años, desde hace)"
+    B2:
+      - "perfect subjunctive (haya + participio)"
+      - "pluperfect subjunctive (hubiera + participio)"
+      - "conditional perfect (habría + participio)"
+      - "si hubiera... habría... (unreal past conditional)"
+      - "nuanced connectors (sin embargo, a pesar de, dado que)"
   chapters:
-    - title: "Preparation"
-      context: "Maria is in her room in Berlin, packing her suitcase. She talks to her best friend on the phone about the move. She feels excited but nervous."
-      vocab_focus: ["clothing", "travel preparation", "emotions", "farewells"]
-    - title: "To the Airport"
-      context: "Maria takes a taxi to the airport in Berlin. The driver is warm and chatty — he notices her suitcase and asks where she's going. It becomes Maria's first real Spanish practice moment: she introduces herself, explains her move, and tries out phrases she's been rehearsing. They part with a warm goodbye."
-      vocab_focus: ["greetings", "introductions", "numbers", "small talk"]
-    - title: "At the Airport"
-      context: "Maria checks in at the counter, goes through security, and waits at the gate. She has a brief exchange with the airline staff. She hears the boarding announcement."
-      vocab_focus: ["airport vocabulary", "formalities", "documents", "announcements"]
-    - title: "On the Plane"
-      context: "Maria sits next to a friendly Argentine man on the plane. They have a conversation about Buenos Aires, food, and what to see. He gives her tips."
-      vocab_focus: ["small talk", "travel", "food", "countries"]
-    - title: "Arrival in Buenos Aires"
-      context: "Maria arrives at Ezeiza airport, goes through immigration, gets her luggage, and takes a taxi into the city. She sees the Obelisco and wide avenues for the first time."
-      vocab_focus: ["city", "weather", "feelings", "first impressions"]
-    - title: "Going Out to Eat"
-      context: "Maria goes to a restaurant in San Telmo. She reads the menu, orders food and drinks, and talks to the waiter. She tries empanadas for the first time."
-      vocab_focus: ["food", "ordering", "drinks", "restaurant"]
-    - title: "Bar and Music"
-      context: "Maria visits a bar in Palermo with a new acquaintance. They listen to live music, order drinks, and talk about their favorite music and hobbies."
-      vocab_focus: ["music", "socializing", "drinks", "hobbies"]
-    - title: "Sports Date"
-      context: "Maria meets someone at a park in Palermo for a casual sports activity. They play together, take a break, and plan to meet again."
-      vocab_focus: ["sports", "activities", "time expressions", "plans"]
-    - title: "Exploring the City"
-      context: "Maria walks through La Boca and Puerto Madero, visits the Plaza de Mayo, and takes photos. She asks locals for directions and recommendations."
-      vocab_focus: ["places", "directions", "movement", "sightseeing"]
-    - title: "At the Market"
-      context: "Maria goes to the San Telmo market with a friend. They buy fruits, vegetables, and souvenirs. She practices numbers and bargaining."
-      vocab_focus: ["food items", "numbers", "shopping", "colors"]
-    - title: "Friendship"
-      context: "Maria reflects on her first weeks in Buenos Aires. She meets her friends at a café, they make plans for the future, and she feels at home."
-      vocab_focus: ["friendship", "feelings", "future plans", "daily routine"]
+
+    # ── A1 ── Chapters 1-6: Arrival and first days ─────────────────────────
+
+    - title: "Tschüss, Berlin!"
+      cefr_level: "A1"
+      context: >
+        Maria is in her apartment in Berlin, packing a small suitcase for her trip to
+        Buenos Aires. She is visiting her friend Sofia, who she met three years ago
+        when Sofia was an exchange student in Germany. Maria is excited and a little
+        nervous. She texts Sofia in Spanish to say she is coming. Her mother helps
+        her pack and gives her a warm hug goodbye.
+      vocab_focus: ["clothing", "colours", "emotions (happy, nervous, excited)", "family (Mutter, Freundin)", "packing verbs (pack, put, take)"]
+
+    - title: "Am Flughafen"
+      cefr_level: "A1"
+      context: >
+        Maria arrives at Berlin Brandenburg Airport. She checks in at the counter,
+        shows her passport, and puts her suitcase on the belt. A friendly airline
+        agent speaks to her in Spanish. Maria is surprised — she answers slowly but
+        clearly. She finds her gate, sits down, and waits for boarding. She looks out
+        at the planes on the tarmac.
+      vocab_focus: ["airport nouns (passport, ticket, suitcase, gate)", "numbers (gate numbers, seat)", "colours (red sign, blue plane)", "simple verbs (show, wait, sit, go)"]
+
+    - title: "Sofia wartet"
+      cefr_level: "A1"
+      context: >
+        The plane lands at Ezeiza airport in Buenos Aires. Maria steps out and feels
+        the warm air. Sofia is waiting at arrivals, holding a small sign with Maria's
+        name. They hug and laugh. Sofia says: «¡Bienvenida a Buenos Aires!». Maria
+        tries out her first full sentence in Spanish. They walk together to Sofia's car.
+      vocab_focus: ["greetings (hola, bienvenida, mucho gusto)", "introductions (soy, me llamo)", "feelings (feliz, cansada, sorprendida)", "basic verbs (llegar, esperar, ver, abrazar)"]
+
+    - title: "Sofias Wohnung"
+      cefr_level: "A1"
+      context: >
+        Sofia drives Maria to her apartment in the Palermo neighbourhood. She shows
+        Maria every room: the kitchen, the bathroom, the living room, and Maria's
+        bedroom for the next weeks. Everything is bright and colourful. Sofia points
+        at objects and Maria names them in Spanish. There is a small balcony with a
+        view of the street below.
+      vocab_focus: ["rooms (cocina, baño, salón, dormitorio)", "furniture (mesa, silla, cama, ventana)", "colours", "there is / there are (hay)", "adjectives (grande, pequeño, bonito)"]
+
+    - title: "Der erste Morgen"
+      cefr_level: "A1"
+      context: >
+        Maria wakes up early. She hears the street sounds of Buenos Aires — buses,
+        birds, voices. Sofia makes coffee and warms medialunas. They sit at the kitchen
+        table. Sofia teaches Maria the names of everything on the table: the cup, the
+        plate, the sugar. Maria repeats each word. It is Maria's first real Spanish
+        breakfast.
+      vocab_focus: ["breakfast food (café, medialuna, azúcar, leche, taza, plato)", "morning verbs (despertarse, levantarse, tomar, comer)", "time of day (mañana, tarde, noche)", "numbers and quantity (uno, dos, un poco de)"]
+
+    - title: "Ein Spaziergang im Viertel"
+      cefr_level: "A1"
+      context: >
+        After breakfast Sofia takes Maria for a short walk around the Palermo
+        neighbourhood. They pass a park, a bakery, a pharmacy, and a small shop.
+        Sofia points at things: «Eso es una panadería». Maria asks: «¿Qué es eso?»
+        and «¿Cómo se dice…?». They stop at a kiosk and Maria buys a cold drink,
+        paying with coins and practicing numbers.
+      vocab_focus: ["neighbourhood places (parque, panadería, farmacia, kiosco)", "shopping basics (¿cuánto cuesta?, pagar, moneda)", "question words (qué, dónde, cómo)", "colours and sizes in context"]
+
+    # ── A2 ── Chapters 7-12: Exploring the city ────────────────────────────
+
+    - title: "Mit der Subte"
+      cefr_level: "A2"
+      context: >
+        Sofia shows Maria how to use the Buenos Aires metro (subte). They buy a
+        SUBE card, tap the turnstile, and wait on the platform. The train arrives
+        with a rush of warm air. They sit together and Sofia explains the different
+        lines. Maria reads the map and asks where to change trains. They get off at
+        a busy station in the city centre and walk up into the sunlight.
+      vocab_focus: ["transport (subte, línea, estación, andén, tarjeta)", "directions (izquierda, derecha, recto, aquí, allí)", "asking for help (¿dónde está?, ¿cómo llego a?)", "past tense (llegamos, salimos, compramos)"]
+
+    - title: "Einkaufen im Supermarkt"
+      cefr_level: "A2"
+      context: >
+        Maria and Sofia go to a supermarket to buy food for the week. Sofia gives
+        Maria a short shopping list and sends her off alone to find things. Maria
+        asks a shop assistant where the fruit is, how much the cheese costs, and
+        where she can find milk. She brings everything to the counter and pays.
+        She feels proud. They pack the bags and walk home.
+      vocab_focus: ["food items (fruta, verdura, leche, queso, pan, arroz)", "quantities (un kilo de, medio litro de, una docena)", "shopping verbs (comprar, pagar, buscar, encontrar)", "polite requests (¿me podría decir…?, ¿tiene…?)"]
+
+    - title: "Der Markt in San Telmo"
+      cefr_level: "A2"
+      context: >
+        On Saturday Maria and Sofia visit the famous San Telmo market. They walk
+        through colourful stalls selling antiques, leather goods, handmade jewellery,
+        and spices. Maria wants to buy a small souvenir. She bargains a little with
+        the vendor, asking for a lower price. She describes colours and sizes. In the
+        end she buys a turquoise bracelet. They eat empanadas from a street stall.
+      vocab_focus: ["market stalls (puesto, vendedor, artesanía, recuerdo)", "bargaining (¿me hace un descuento?, está caro)", "colours and materials (turquesa, cuero, plateado)", "narrating a past experience (fuimos, vimos, compramos, comimos)"]
+
+    - title: "Abendessen in Palermo"
+      cefr_level: "A2"
+      context: >
+        Sofia has invited two of her Argentine friends — Lucas and Valentina — to
+        dinner at a neighbourhood restaurant. Maria meets them for the first time.
+        She introduces herself, says where she's from, and explains why she's learning
+        Spanish. They order food and drinks. Lucas asks Maria questions about Germany.
+        The conversation is fast but Maria follows more than she expected.
+      vocab_focus: ["restaurant vocabulary (menú, pedir, plato, cuenta, propina)", "introducing people (te presento a, él es, ella es)", "likes and preferences (me gusta, prefiero, no me gusta mucho)", "past + present mix in conversation"]
+
+    - title: "Fußball und Freunde"
+      cefr_level: "A2"
+      context: >
+        Lucas invites Maria and Sofia to watch a Boca Juniors match at a bar in
+        San Telmo. The place is packed and loud. Everyone is wearing blue and yellow.
+        Lucas explains the rules of Argentine football culture. Maria cheers and
+        shouts along. Boca scores and everyone jumps up. After the match they talk
+        about the game, the players, and their favourite sports. Maria says she
+        plays tennis at home.
+      vocab_focus: ["sports (fútbol, tenis, gol, jugador, equipo, ganar, perder)", "expressing excitement (¡qué golazo!, ¡increíble!, ¡no puede ser!)", "talking about hobbies (jugar, practicar, me encanta)", "past tense narration (metió, ganó, jugamos)"]
+
+    - title: "Ein Tag in La Boca"
+      cefr_level: "A2"
+      context: >
+        Maria and Sofia spend a morning in La Boca, the famous colourful neighbourhood
+        by the river. They walk along El Caminito, see the painted houses in red,
+        blue, yellow and green, and watch a tango couple perform in the street.
+        Sofia explains the history of the neighbourhood in simple Spanish. Maria
+        takes photos and describes what she sees. They drink mate sitting on a bench
+        and talk about what they have done since Maria arrived.
+      vocab_focus: ["colours and art (colorido, pintado, azul, rojo, amarillo)", "history and place words (barrio, historia, río, calle)", "present perfect / past review (hemos visitado, hice, vi)", "mate culture (mate, cebar, amargo, compartir)"]
+
+    # ── B1 ── Chapters 13-17: Deeper connections ────────────────────────────
+
+    - title: "Beim Tangokurs"
+      cefr_level: "B1"
+      context: >
+        Sofia surprises Maria with a beginner tango class at a milonga in Boedo.
+        The instructor, a passionate older man named Roberto, teaches them the
+        basic steps. Maria stumbles but laughs. Roberto explains the philosophy of
+        tango: listening, leading, following. During the break Maria talks to another
+        student, a young Colombian woman, about how long they have been learning
+        Spanish and what they find difficult about the language.
+      vocab_focus: ["dance and music (tango, paso, ritmo, bailar, pareja)", "learning language (aprender, practicar, cometer errores, progresar)", "giving and receiving instructions (ponete derecha, seguime, escuchá el ritmo)", "B1 tenses: past + imperfect contrast, duration expressions (llevo dos años)"]
+
+    - title: "Ein Wochenendausflug nach Tigre"
+      cefr_level: "B1"
+      context: >
+        Lucas organises a day trip to Tigre, a river delta north of Buenos Aires.
+        The group takes the train, then a small boat through the islands. They visit
+        a fruit market on the water and have lunch at a riverside restaurant.
+        Maria is moved by how peaceful and different it feels from the city. On the
+        boat back, she and Valentina talk about nature, travel dreams, and what they
+        would do if they could live anywhere in the world.
+      vocab_focus: ["nature and water (río, isla, delta, bosque, barca)", "travel and excursions (excursión, paseo, paisaje, tranquilo)", "hypothetical / conditional (si pudiera, me gustaría vivir)", "comparing places (es más tranquilo que, me parece que, a diferencia de)"]
+
+    - title: "Beim Arzt"
+      cefr_level: "B1"
+      context: >
+        Maria wakes up with a sore throat and a slight fever. Sofia takes her to
+        a neighbourhood health centre. A doctor examines Maria and asks her about
+        her symptoms, diet, and recent activities. Maria explains everything as best
+        she can in Spanish. The doctor prescribes rest and medication. At the pharmacy
+        Maria asks the pharmacist which tablet to take and when. She feels relieved
+        but also surprised that she managed to handle it all in Spanish.
+      vocab_focus: ["health and body (garganta, fiebre, dolor, síntoma, medicamento, pastilla)", "medical interaction (examinar, recetar, ¿desde cuándo?, ¿le duele aquí?)", "explaining cause and effect (porque me duele, desde ayer, cada ocho horas)", "B1 subjunctive in advice (es importante que descanse, le recomiendo que tome)"]
+
+    - title: "Kulturgespräch"
+      cefr_level: "B1"
+      context: >
+        Maria and Valentina spend an afternoon at a café, talking about cultural
+        differences between Germany and Argentina. They discuss family structures,
+        meal times, attitudes to punctuality, and how people greet each other.
+        Maria shares things that surprised her; Valentina explains why things are
+        the way they are. They both challenge some of their own assumptions. The
+        conversation gets lively when they talk about tipping at restaurants.
+      vocab_focus: ["culture and society (costumbre, cultura, diferencia, tradición, puntualidad)", "expressing opinions (creo que, desde mi punto de vista, me parece que)", "comparing cultures (en Alemania se hace así, acá en Argentina es distinto)", "conceding and countering (aunque, sin embargo, es verdad que, pero por otro lado)"]
+
+    - title: "Was willst du mit deinem Leben machen?"
+      cefr_level: "B1"
+      context: >
+        On a quiet evening, Maria and Sofia sit on the balcony and have a deep
+        conversation about their futures. Sofia is finishing her design degree and
+        is thinking about starting her own studio. Maria is considering whether to
+        stay in Germany or try living abroad for a year. They talk about their dreams,
+        fears, and what really matters to them. The city hums below them.
+      vocab_focus: ["future plans (quiero, espero, pienso, tengo ganas de)", "work and study (carrera, estudio, empresa, diseño)", "expressing uncertainty and hope (no sé si, ojalá, me gustaría pero)", "talking about life values (lo más importante para mí es, lo que más me importa)"]
+
+    # ── B2 ── Chapters 18-20: Complex and cultural ─────────────────────────
+
+    - title: "Geschichte und Erinnerung"
+      cefr_level: "B2"
+      context: >
+        Maria visits the ESMA memorial museum — the site of a former detention
+        centre during Argentina's military dictatorship. Sofia joins her and
+        explains the history quietly and carefully. Maria finds it deeply moving
+        and difficult. Afterwards they sit outside and talk about how countries
+        process difficult history, how memory is kept alive, and what the role of
+        art and education is in preventing such events from recurring.
+      vocab_focus: ["history and memory (dictadura, memoria, derechos humanos, desaparecido, resistencia)", "expressing emotional response (me impactó, fue difícil de entender, me dejó pensando)", "discussing responsibility (es importante recordar, no se puede olvidar, la sociedad tiene la responsabilidad)", "B2 subjunctive in opinion and argument (es fundamental que se recuerde, me parece indispensable que)"]
+
+    - title: "Ein Streit und eine Versöhnung"
+      cefr_level: "B2"
+      context: >
+        Maria and Sofia have a disagreement — Maria made plans with Lucas and
+        Valentina without telling Sofia first, and Sofia feels left out. The
+        tension surfaces during dinner. They argue briefly but then talk it out
+        honestly. Maria apologises and explains how she sees things; Sofia explains
+        how she felt. They laugh eventually and feel closer. The conversation
+        touches on friendship, expectations, and communication across cultures.
+      vocab_focus: ["conflict and resolution (malentendido, disculpa, herir, aclarar, reconciliar)", "expressing feelings precisely (me sentí excluida, no era mi intención, me dolió que)", "B2 subjunctive in emotion (me alegra que lo hayas dicho, lamento que te hayas sentido así)", "nuanced connectors (a pesar de eso, más allá de, sin querer, de todas formas)"]
+
+    - title: "Adiós, Buenos Aires"
+      cefr_level: "B2"
+      context: >
+        It is Maria's last day. Sofia has organised a small farewell gathering at
+        her apartment: Lucas, Valentina, Roberto the tango teacher, and a few others.
+        They share food, music, and memories from Maria's weeks in the city. Maria
+        gives a short speech in Spanish, reflecting on everything she has learned —
+        not just the language, but about herself and the world. At the airport, she
+        and Sofia say goodbye. On the plane, Maria writes in her journal about Buenos
+        Aires, wondering when she will return.
+      vocab_focus: ["farewell and gratitude (despedida, agradecimiento, recuerdo, echar de menos)", "reflecting on growth (he aprendido que, lo que más me llevo es, me ha cambiado)", "B2 perfect subjunctive and conditional perfect (si hubiera sabido, ojalá hubiera tenido más tiempo)", "future speculation (volveré, quizás el año que viene, no sé cuándo pero sé que)"]
 
 llm:
   provider: "google"
-  model: "gemini-3.1-flash-lite-preview"  # try: gemini-3-flash-preview, gemini-2.5-flash-lite
+  model: "gemini-3.1-flash-lite-preview"
   fallback_model: "gemini-2.5-flash"
   temperature: 0.7
   max_retries: 3
@@ -79,6 +290,18 @@ audio_generation:
   speaking_rate: 1.0
 
 secondary_characters:
-  - name: "Taxi Driver"
-    visual_tag: "a stocky middle-aged man with a gray flat cap, thick dark mustache, olive-green jacket"
-    chapters: [2]
+  - name: "Sofia"
+    visual_tag: "Sofia: mid-20s Argentine woman, curly dark-brown shoulder-length hair, dark eyes, warm olive skin, bright smile, colourful oversized t-shirt and wide-leg trousers"
+    chapters: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+  - name: "Lucas"
+    visual_tag: "Lucas: late-20s Argentine man, short black hair, stubble, broad shoulders, plain navy t-shirt, jeans, easy-going grin"
+    chapters: [10, 11, 14, 19]
+
+  - name: "Valentina"
+    visual_tag: "Valentina: mid-20s Colombian woman, long straight dark hair, square glasses, patterned blouse, curious and animated expression"
+    chapters: [10, 16, 17, 19]
+
+  - name: "Roberto"
+    visual_tag: "Roberto: 60s Argentine tango teacher, silver combed-back hair, sharp cheekbones, black shirt, elegant posture, commanding but warm"
+    chapters: [13, 19]

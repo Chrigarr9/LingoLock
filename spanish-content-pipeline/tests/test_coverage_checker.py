@@ -113,3 +113,29 @@ def test_check_coverage_filters_inappropriate_words():
     assert "disparar" not in report.missing_words
     assert "asesino" not in report.missing_words
     assert "restaurante" in report.missing_words
+
+
+def test_missing_words_are_deduplicated_at_lemma_level():
+    """Missing words should be lemmas, not raw inflected forms. Multiple inflected
+    forms of the same missing lemma should produce only one entry."""
+    vocab = []  # Empty deck — nothing covered
+    # "creo", "crees", "creer" all resolve to lemma "creer"
+    # "restaurante" resolves to itself
+    frequency_data = {"creo": 1, "crees": 2, "creer": 3, "restaurante": 4}
+    frequency_lemmas = {
+        "creo": FrequencyLemmaEntry(lemma="creer", appropriate=True),
+        "crees": FrequencyLemmaEntry(lemma="creer", appropriate=True),
+        "creer": FrequencyLemmaEntry(lemma="creer", appropriate=True),
+        "restaurante": FrequencyLemmaEntry(lemma="restaurante", appropriate=True),
+    }
+
+    report = check_coverage(vocab, frequency_data, top_n=10,
+                            frequency_lemmas=frequency_lemmas)
+
+    # Should have exactly 2 missing LEMMAS: "creer" and "restaurante"
+    # NOT 4 raw forms (creo, crees, creer, restaurante)
+    assert "creo" not in report.missing_words  # raw form, not lemma
+    assert "crees" not in report.missing_words  # raw form, not lemma
+    assert "creer" in report.missing_words  # the lemma
+    assert "restaurante" in report.missing_words
+    assert len(report.missing_words) == 2
