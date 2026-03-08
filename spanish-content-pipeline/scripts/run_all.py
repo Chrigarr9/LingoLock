@@ -164,6 +164,63 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                 if t.present and t.example:
                     print(f"           Example: {t.example}")
 
+        # Pass 3d: Grammar Gap Filling
+        from pipeline.grammar_gap_filler import GrammarGapFiller
+
+        grammar_filler = GrammarGapFiller(
+            llm=llm,
+            output_dir=output_base / config.deck.id,
+            config_chapters=[
+                {"title": ch.title, "context": ch.context,
+                 "vocab_focus": ch.vocab_focus, "cefr_level": ch.cefr_level or config.story.cefr_level}
+                for ch in config.story.chapters
+            ],
+            target_language=config.languages.target,
+            native_language=config.languages.native,
+            dialect=config.languages.dialect or "",
+        )
+        grammar_sentences = grammar_filler.fill_gaps(grammar_report)
+
+        if grammar_sentences:
+            print(f"\n=== Pass 3d: Grammar Gap Filling ===")
+            print(f"  Generated {len(grammar_sentences)} sentences for missing grammar targets")
+            for s in grammar_sentences:
+                print(f"    [{s.cefr_level}] {s.grammar_target}")
+                print(f"      {s.source}")
+
+            # Append grammar gap sentences to translation files
+            from collections import defaultdict
+            by_chapter: dict[int, list] = defaultdict(list)
+            for gs in grammar_sentences:
+                by_chapter[gs.chapter].append(gs)
+
+            for ch_num, g_sentences in by_chapter.items():
+                trans_path = output_base / config.deck.id / "translations" / f"chapter_{ch_num:02d}.json"
+                existing = json.loads(trans_path.read_text()) if trans_path.exists() else []
+                for gs in g_sentences:
+                    existing.append({
+                        "chapter": ch_num,
+                        "sentence_index": len(existing),
+                        "source": gs.source,
+                        "target": gs.target,
+                    })
+                trans_path.write_text(json.dumps(existing, ensure_ascii=False, indent=2))
+
+            # Add to all_pairs so vocabulary builder picks them up
+            for gs in grammar_sentences:
+                ch_idx = gs.chapter - 1
+                if ch_idx in {i for i in chapter_range}:
+                    if ch_idx not in all_pairs:
+                        all_pairs[ch_idx] = []
+                    all_pairs[ch_idx].append(SentencePair(
+                        chapter=gs.chapter,
+                        sentence_index=len(all_pairs[ch_idx]),
+                        source=gs.source,
+                        target=gs.target,
+                    ))
+        else:
+            print("\n  No grammar gaps to fill.")
+
     # Vocabulary DB
     print("\n=== Building Vocabulary Database ===")
     frequency_data = {}

@@ -152,3 +152,11 @@ class GapSentence(BaseModel):
     target: str                              # German translation
     covers: list[str]                        # Lemmas this sentence is intended to cover
     word_annotations: dict[str, GapWordAnnotation] = {}  # New words introduced
+
+
+class GrammarGapSentence(BaseModel):
+    source: str           # Target-language sentence demonstrating the grammar structure
+    target: str           # Native-language translation
+    grammar_target: str   # Which grammar structure this demonstrates
+    cefr_level: str       # CEFR level of the target
+    chapter: int          # Chapter number it's assigned to
