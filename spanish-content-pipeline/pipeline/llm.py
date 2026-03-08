@@ -185,7 +185,26 @@ class GeminiClient:
             system_instruction=system_instruction,
             generation_config=generation_config,
         )
-        result.parsed = json.loads(result.content)
+        try:
+            result.parsed = json.loads(result.content)
+        except json.JSONDecodeError:
+            # Model sometimes appends trailing text after the closing brace.
+            # Find the outermost JSON object by matching braces.
+            text = result.content.strip()
+            start = text.find("{")
+            if start == -1:
+                raise
+            depth = 0
+            end = start
+            for i, ch in enumerate(text[start:], start):
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            result.parsed = json.loads(text[start : end + 1])
         return result
 
 
