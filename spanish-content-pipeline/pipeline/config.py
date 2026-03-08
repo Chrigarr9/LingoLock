@@ -50,6 +50,7 @@ class StoryConfig(BaseModel):
     chapters: list[ChapterDef]
     grammar_targets: dict[str, list[str]] = {}  # Optional: CEFR level -> grammar targets
     coverage_top_n: int = 1000  # Target top-N frequency words for coverage/gap-filling
+    narration_style: str = "third-person"  # "third-person" or "first-person"
 
 
 class LLMConfig(BaseModel):

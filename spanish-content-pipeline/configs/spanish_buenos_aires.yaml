@@ -23,6 +23,7 @@ story:
   # Default CEFR level — overridden per chapter below.
   cefr_level: "A1"
   sentences_per_chapter: [10, 18]
+  narration_style: "third-person"
   grammar_targets:
     A1:
       - "simple present tense (indicativo presente)"

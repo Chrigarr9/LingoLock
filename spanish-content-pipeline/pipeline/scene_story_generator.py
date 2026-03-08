@@ -48,7 +48,7 @@ one terminating punctuation mark. Never combine two sentences into one source fi
 - ONE grammatical sentence per "source" field. End with ONE period, exclamation mark, or \
 question mark. Never write "Sentence one. Sentence two." in a single source — split into \
 two separate sentences with their own sentence_index.
-- Write in third person about the protagonist by name (e.g. "Maria lleva…").
+- {narration_instruction}
 - Each sentence must advance the story: action, reaction, thought, or direct dialogue.
 - Consecutive sentences within a shot must connect — avoid repeating the same idea.
 - Include vivid color and size vocabulary: "una maleta roja enorme". Match the cartoon style.
@@ -118,11 +118,32 @@ post-processing will replace the name with the canonical visual tag. Example:
 If a secondary character is NOT in the shot, do not mention them."""
 
 
+_NARRATION_INSTRUCTIONS = {
+    "third-person": (
+        "ALWAYS write in third person about the protagonist by name "
+        '(e.g. "{name} lleva…"). '
+        "NEVER use first person (yo, me, mi, nosotros). "
+        "Not for inner thoughts, not for emphasis, not for dialogue attribution. "
+        'Wrong: "Camino por la calle." Right: "{name} camina por la calle."'
+    ),
+    "first-person": (
+        "ALWAYS write in first person from the protagonist's perspective "
+        '(e.g. "Llevo…", "Camino…"). '
+        "NEVER use third person for the protagonist. "
+        'Wrong: "{name} camina por la calle." Right: "Camino por la calle."'
+    ),
+}
+
+
 def _build_system_prompt(config: DeckConfig) -> str:
     p = config.protagonist
+    style = getattr(config.story, "narration_style", "third-person")
+    template = _NARRATION_INSTRUCTIONS.get(style, _NARRATION_INSTRUCTIONS["third-person"])
+    narration_instruction = template.format(name=p.name)
     return _SYSTEM_PROMPT_TEMPLATE.format(
         protagonist_name=p.name,
         protagonist_visual_tag=p.visual_tag,
+        narration_instruction=narration_instruction,
     )
 
 

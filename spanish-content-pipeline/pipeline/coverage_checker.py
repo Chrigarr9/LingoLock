@@ -350,6 +350,9 @@ def check_coverage(
         # Skip the raw form too if it's inappropriate
         if w in inappropriate_lemmas:
             continue
+        # Skip if lemma resolves to a function word
+        if lemma in SPANISH_FUNCTION_WORDS:
+            continue
         missing_lemmas.add(lemma)
 
     missing_sorted = sorted(missing_lemmas, key=lambda w: content_freq.get(w, 999999))

@@ -18,17 +18,24 @@ def _build_extraction_prompt(config: DeckConfig, pairs: list[SentencePair]) -> s
     )
 
     return f"""Analyze the following {config.languages.target} sentences with their \
-{config.languages.native} translations. Extract every content word (nouns, verbs, \
-adjectives, adverbs, important prepositions, conjunctions).
+{config.languages.native} translations. Extract every teachable word including:
+- Nouns, verbs, adjectives
+- Adverbs (especially common ones like: bien, mal, más, menos, muy, mucho, poco, \
+ahora, aquí, allí, hoy, también, tampoco, siempre, nunca, ya, todavía, solo, tan)
+- Quantifiers and indefinite pronouns (algo, nada, alguien, nadie, otro, todo)
+- Important prepositions and conjunctions
+- Interjections and discourse markers (gracias, sí, claro, perdón)
 
-Skip: articles (el, la, los, las, un, una), personal pronouns used as subjects (yo, tú, \
-él, ella), and proper nouns (names of people, places).
+Skip ONLY: articles (el, la, los, las, un, una), subject pronouns (yo, tú, \
+él, ella, nosotros), possessive determiners (mi, tu, su), demonstratives (este, ese), \
+and proper nouns (names of people, places).
 
 For each word, provide:
 - "source": the word as it appears in the sentence
 - "target": the correct {config.languages.native} translation in this context
 - "lemma": the base/dictionary form (infinitive for verbs, masculine singular for adjectives)
-- "pos": part of speech (noun, verb, adjective, adverb, preposition, conjunction, interjection)
+- "pos": part of speech (noun, verb, adjective, adverb, preposition, conjunction, \
+interjection, quantifier)
 - "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural")
 - "similar_words": 6-8 semantically similar {config.languages.target} words in lemma form \
 (e.g. for "perro": ["gato", "vaca", "pollo", "caballo", "pájaro", "pez", "conejo", "ratón"]). \
