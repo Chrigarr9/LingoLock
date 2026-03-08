@@ -513,3 +513,55 @@ def test_chapter_prompt_includes_vocabulary_plan(tmp_path):
     assert "martes" in prompt
     assert "MUST use" in prompt or "mandatory" in prompt.lower()
     assert "Monday through Sunday" in prompt
+
+
+def test_post_process_replaces_protagonist_in_sentence_source(tmp_path):
+    """PROTAGONIST placeholder in sentence source text is replaced with character name."""
+    from pipeline.scene_story_generator import _post_process
+    from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
+
+    config = make_config(tmp_path)
+    chapter = ChapterScene(chapter=1, scenes=[
+        Scene(setting="test", description="test", shots=[
+            Shot(
+                focus="PROTAGONIST walking",
+                image_prompt="PROTAGONIST walks down the street",
+                sentences=[
+                    ShotSentence(source="PROTAGONIST camina por la calle.", sentence_index=0),
+                    ShotSentence(source="«¡Hola!», dice PROTAGONIST.", sentence_index=1),
+                ],
+            )
+        ])
+    ])
+    result = _post_process(chapter, config)
+    for scene in result.scenes:
+        for shot in scene.shots:
+            for sentence in shot.sentences:
+                assert "PROTAGONIST" not in sentence.source, (
+                    f"PROTAGONIST not replaced in: {sentence.source}"
+                )
+                assert config.protagonist.name in sentence.source
+
+
+def test_post_process_replaces_secondary_caps_in_sentence_source(tmp_path):
+    """Secondary character CAPS names in sentence source are replaced with regular name."""
+    from pipeline.scene_story_generator import _post_process
+    from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
+
+    config = make_config(tmp_path)
+    sc = config.secondary_characters[0]
+    chapter = ChapterScene(chapter=2, scenes=[
+        Scene(setting="test", description="test", shots=[
+            Shot(
+                focus="test",
+                image_prompt="test scene",
+                sentences=[
+                    ShotSentence(source=f"«¡Bienvenida!», dice {sc.name.upper()}.", sentence_index=0),
+                ],
+            )
+        ])
+    ])
+    result = _post_process(chapter, config)
+    sent = result.scenes[0].shots[0].sentences[0].source
+    assert sc.name.upper() not in sent
+    assert sc.name in sent

@@ -230,7 +230,7 @@ Ensure sentence_index values are sequential starting from 0."""
 
 
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:
-    """Inject style prefix, character tag, and 'no text' suffix into image prompts."""
+    """Replace character placeholders in image prompts and sentence source text."""
     style = config.image_generation.style if config.image_generation else ""
     suffix = "no text, no writing, no letters."
     p = config.protagonist
@@ -238,29 +238,26 @@ def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScen
 
     for scene in chapter_data.scenes:
         for shot in scene.shots:
+            # --- Image prompt: replace with visual_tag for image model ---
             raw = shot.image_prompt.strip()
-
-            # Replace LLM placeholder with canonical visual_tag
             raw = raw.replace("PROTAGONIST", visual_tag)
-
-            # Safety net: if protagonist name appears but tag wasn't injected,
-            # prepend the visual_tag so the image model gets a consistent anchor.
             if p.name in raw and visual_tag not in raw:
                 raw = raw.replace(p.name, f"{p.name} ({visual_tag})", 1)
-
-            # Replace secondary character placeholders with canonical visual_tags
             for sc in config.secondary_characters:
                 name_upper = sc.name.upper()
                 if name_upper in raw:
                     raw = raw.replace(name_upper, sc.visual_tag)
                 elif sc.name in raw and sc.visual_tag not in raw:
-                    # Safety net: mixed-case name without tag
                     raw = raw.replace(sc.name, f"{sc.name} ({sc.visual_tag})", 1)
-
-            # Remove any trailing period to avoid double-period
             if raw.endswith("."):
                 raw = raw[:-1]
             shot.image_prompt = f"{style}. {raw}. {suffix}"
+
+            # --- Sentence source: replace with plain name for learners ---
+            for sentence in shot.sentences:
+                sentence.source = sentence.source.replace("PROTAGONIST", p.name)
+                for sc in config.secondary_characters:
+                    sentence.source = sentence.source.replace(sc.name.upper(), sc.name)
 
     return chapter_data
 
