@@ -75,7 +75,7 @@ def get_api_key(config: DeckConfig) -> str:
     return key
 
 
-def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None):
+def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None):
     """Passes 1-3 + vocabulary. All output cached to disk for review."""
 
     # Pass 0b: Vocabulary Planning
@@ -208,9 +208,10 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
             frequency_lemmas = {k: _FLE(**v) for k, v in raw.items()}
 
         print("\n=== Coverage Report ===")
+        effective_top_n = top_n or config.story.coverage_top_n
         report = check_coverage(
             deck, frequency_data,
-            top_n=1000,
+            top_n=effective_top_n,
             extra_thresholds=[2000, 3000, 4000, 5000],
             inflection_to_lemma=inflection_to_lemma,
             frequency_lemmas=frequency_lemmas,
@@ -340,7 +341,7 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
     print(f"  Saved to {lem.cache_path}")
 
 
-def run_fill_gaps_stage(config, llm, output_base, frequency_file):
+def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
     """Pass 3b: Generate gap-filling sentences and rebuild vocabulary."""
     from pipeline.gap_filler import GapFiller
     from pipeline.models import FrequencyLemmaEntry, OrderedDeck
@@ -380,7 +381,7 @@ def run_fill_gaps_stage(config, llm, output_base, frequency_file):
         deck=deck,
         frequency_data=frequency_data,
         frequency_lemmas=frequency_lemmas,
-        top_n=1000,
+        top_n=top_n or config.story.coverage_top_n,
     )
 
     if not gap_results:
@@ -410,6 +411,8 @@ def main():
                             "all = lemmatize + text + fill-gaps + media"
                         ))
     parser.add_argument("--frequency-file", default=None, help="Path to FrequencyWords file")
+    parser.add_argument("--top-n", type=int, default=None,
+                        help="Target top-N frequency words for coverage/gap-filling (overrides config)")
     parser.add_argument("--skip-audio", action="store_true", help="Skip audio generation (media/all stages)")
     args = parser.parse_args()
 
@@ -444,10 +447,10 @@ def main():
         run_lemmatize_stage(config, llm, output_base, args.frequency_file)
 
     if args.stage in ("text", "all"):
-        run_text_stage(config, llm, chapter_range, output_base, args.frequency_file, args.config)
+        run_text_stage(config, llm, chapter_range, output_base, args.frequency_file, args.config, top_n=args.top_n)
 
     if args.stage in ("fill-gaps", "all"):
-        run_fill_gaps_stage(config, llm, output_base, args.frequency_file)
+        run_fill_gaps_stage(config, llm, output_base, args.frequency_file, top_n=args.top_n)
 
     if args.stage in ("media", "all"):
         run_media_stage(config, chapter_range, output_base, args.skip_audio)
