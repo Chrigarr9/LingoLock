@@ -281,6 +281,84 @@ def test_insert_after_defaults_to_minus_one(tmp_path):
     assert result[0].insert_after == -1
 
 
+def test_fuzzy_match_cefr_prefix(tmp_path):
+    """LLM returns grammar_target with [A2] prefix — CEFR is parsed from it."""
+    report = _make_audit_report({"A2": ["pretérito imperfecto"]})
+
+    llm_response = {
+        "sentences": [
+            {
+                "source": "Cuando era niña, vivía acá.",
+                "target": "Als sie ein Kind war, lebte sie hier.",
+                "grammar_target": "[A2] pretérito imperfecto",
+            }
+        ]
+    }
+    llm = _make_mock_llm([llm_response])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    result = filler.fill_gaps(report)
+
+    assert result[0].cefr_level == "A2"
+    assert result[0].chapter == 2
+
+
+def test_fuzzy_match_substring(tmp_path):
+    """LLM returns shortened grammar_target — substring match finds it."""
+    report = _make_audit_report({"B1": ["presente del subjuntivo"]})
+
+    llm_response = {
+        "sentences": [
+            {
+                "source": "Ojalá que llueva.",
+                "target": "Hoffentlich regnet es.",
+                "grammar_target": "subjuntivo",
+            }
+        ]
+    }
+    llm = _make_mock_llm([llm_response])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    result = filler.fill_gaps(report)
+
+    assert result[0].cefr_level == "B1"
+    assert result[0].chapter == 3
+
+
+def test_fuzzy_match_no_match_defaults_to_chapter_1(tmp_path):
+    """When grammar_target doesn't match anything, defaults to chapter 1."""
+    report = _make_audit_report({"A2": ["pretérito imperfecto"]})
+
+    llm_response = {
+        "sentences": [
+            {
+                "source": "Ella come mucho.",
+                "target": "Sie isst viel.",
+                "grammar_target": "completely unrelated target",
+            }
+        ]
+    }
+    llm = _make_mock_llm([llm_response])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    result = filler.fill_gaps(report)
+
+    assert result[0].cefr_level == ""
+    assert result[0].chapter == 1  # default fallback
+
+
 def test_prompt_includes_all_sentences_with_indices(tmp_path):
     """Prompt includes ALL existing sentences with sentence_index numbers."""
     report = _make_audit_report({"A1": ["hay"]})
