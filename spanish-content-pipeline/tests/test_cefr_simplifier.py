@@ -226,7 +226,7 @@ def test_prompt_includes_cefr_level(tmp_path):
 
     system = _build_system_prompt("A1", "third-person", "Rioplatense")
     assert "A1" in system
-    assert "Max 8 words" in system
+    assert "Max 12 words" in system
     assert "Simple present tense" in system
     assert "Rioplatense" in system
 
