@@ -1,51 +1,54 @@
-"""Pass 3: Extract word-level vocabulary annotations from translated chapters."""
+"""Pass 7: Extract word-level vocabulary annotations from translated chapters.
+
+Hybrid approach: spaCy identifies all tokens (deterministic), then LLM provides
+contextual translations, similar words, and grammar notes (generative).
+"""
 
 import json
 from pathlib import Path
 
 from pipeline.config import DeckConfig
+from pipeline.lemmatizer import is_function_word, lemmatize_text
 from pipeline.llm import LLMClient
 from pipeline.models import ChapterWords, SentencePair, WordAnnotation
 
 
-SYSTEM_PROMPT = """You are a linguistics expert. Analyze text and extract vocabulary with \
-precise grammatical annotations. Return valid JSON only."""
+SYSTEM_PROMPT = """You are a linguistics expert providing contextual translations \
+and vocabulary annotations. Return valid JSON only."""
 
 
-def _build_extraction_prompt(config: DeckConfig, pairs: list[SentencePair]) -> str:
+def _build_annotation_prompt(config: DeckConfig, pairs: list[SentencePair],
+                              words_by_sentence: dict[int, list[dict]]) -> str:
+    """Build prompt asking LLM to annotate pre-identified words."""
     sentence_block = "\n".join(
         f"{i+1}. {p.source}\n   → {p.target}" for i, p in enumerate(pairs)
     )
 
-    return f"""Analyze the following {config.languages.target} sentences with their \
-{config.languages.native} translations. Extract every teachable word including:
-- Nouns, verbs, adjectives
-- Adverbs (especially common ones like: bien, mal, más, menos, muy, mucho, poco, \
-ahora, aquí, allí, hoy, también, tampoco, siempre, nunca, ya, todavía, solo, tan)
-- Quantifiers and indefinite pronouns (algo, nada, alguien, nadie, otro, todo)
-- Important prepositions and conjunctions
-- Interjections and discourse markers (gracias, sí, claro, perdón)
+    word_block_parts = []
+    for sent_idx, words in sorted(words_by_sentence.items()):
+        for w in words:
+            word_block_parts.append(
+                f'  - "{w["source"]}" (sentence {sent_idx + 1}, {w["pos"]})'
+            )
+    word_block = "\n".join(word_block_parts)
 
-Skip ONLY: articles (el, la, los, las, un, una), subject pronouns (yo, tú, \
-él, ella, nosotros), possessive determiners (mi, tu, su), demonstratives (este, ese), \
-and proper nouns (names of people, places).
-
-For each word, provide:
-- "source": the word as it appears in the sentence
-- "target": the correct {config.languages.native} translation in this context
-- "lemma": the base/dictionary form (infinitive for verbs, masculine singular for adjectives)
-- "pos": part of speech (noun, verb, adjective, adverb, preposition, conjunction, \
-interjection, quantifier)
-- "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural")
-- "similar_words": 6-8 semantically similar {config.languages.target} words in lemma form \
-(e.g. for "perro": ["gato", "vaca", "pollo", "caballo", "pájaro", "pez", "conejo", "ratón"]). \
-These are used as multiple-choice distractors, so they should be from the same semantic \
-category but clearly different words.
+    return f"""Here are {config.languages.target} sentences with {config.languages.native} translations, \
+and the words I need you to annotate.
 
 Sentences:
 {sentence_block}
 
-Return a JSON object with a "words" array containing all extracted words.
+Words to annotate:
+{word_block}
+
+For each word, provide:
+- "source": the word exactly as listed above
+- "target": the correct {config.languages.native} translation in the context of its sentence
+- "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural")
+- "similar_words": 6-8 semantically similar {config.languages.target} words in lemma form \
+(used as multiple-choice distractors — same semantic category but clearly different words)
+
+Return a JSON object with a "words" array.
 Return ONLY valid JSON. No markdown fences, no extra text."""
 
 
@@ -69,11 +72,54 @@ class WordExtractor:
             data = json.loads(path.read_text())
             return ChapterWords(**data)
 
-        prompt = _build_extraction_prompt(self._config, pairs)
-        result = self._llm.complete_json(prompt, system=SYSTEM_PROMPT)
+        lang = self._config.languages.target_code
 
-        raw_words = result.parsed.get("words", [])
-        words = [WordAnnotation(**w) for w in raw_words]
+        # Step A: Deterministic tokenization via spaCy
+        # Process each sentence separately to maintain sentence_index alignment
+        spacy_words: list[dict] = []  # {source, lemma, pos, sentence_index}
+        words_by_sentence: dict[int, list[dict]] = {}
+
+        for pair in pairs:
+            tokens = lemmatize_text(pair.source, lang)
+            sent_words = []
+            for token in tokens:
+                if is_function_word(token):
+                    continue
+                entry = {
+                    "source": token.text,
+                    "lemma": token.lemma,
+                    "pos": token.pos,
+                    "sentence_index": pair.sentence_index,
+                }
+                spacy_words.append(entry)
+                sent_words.append(entry)
+            if sent_words:
+                words_by_sentence[pair.sentence_index] = sent_words
+
+        # Step B: LLM provides translations, similar words, context notes
+        prompt = _build_annotation_prompt(self._config, pairs, words_by_sentence)
+        result = self._llm.complete_json(prompt, system=SYSTEM_PROMPT)
+        raw_annotations = result.parsed.get("words", [])
+
+        # Build lookup: source text → LLM annotation
+        annotation_map: dict[str, dict] = {}
+        for ann in raw_annotations:
+            source = ann.get("source", "")
+            annotation_map[source] = ann
+
+        # Merge: spaCy provides lemma/pos, LLM provides target/similar_words/context_note
+        words: list[WordAnnotation] = []
+        for sw in spacy_words:
+            ann = annotation_map.get(sw["source"], {})
+            words.append(WordAnnotation(
+                source=sw["source"],
+                target=ann.get("target", ""),
+                lemma=sw["lemma"],      # From spaCy (deterministic)
+                pos=sw["pos"],          # From spaCy (deterministic)
+                context_note=ann.get("context_note", ""),
+                similar_words=ann.get("similar_words", []),
+            ))
+
         chapter_words = ChapterWords(
             chapter=chapter_index + 1,
             sentences=pairs,
