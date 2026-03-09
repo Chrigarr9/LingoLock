@@ -75,7 +75,7 @@ def get_api_key_for_provider(provider: str) -> str:
             print("Error: GEMINI_API_KEY not set")
             sys.exit(1)
         return key
-    key = os.environ.get("OPENROUTER_API_KEY")
+    key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPEN_ROUTER_API_KEY")
     if not key:
         print("Error: OPENROUTER_API_KEY not set")
         sys.exit(1)

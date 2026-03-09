@@ -514,9 +514,9 @@ story:
       vocab_focus: ["farewell (despedida, adiós, agradecimiento, recuerdo, extrañar)", "reflecting on growth (he aprendido que, lo que más me llevo, me ha cambiado)", "perfect subjunctive (si hubiera sabido, ojalá hubiera tenido más tiempo)", "conditional perfect (habría hecho las cosas de otra manera)", "future and hope (volveré, quizás el año que viene, sé que voy a volver)"]
 
 llm:
-  provider: "google"
-  model: "gemini-3.1-flash-lite-preview"
-  fallback_model: "gemini-2.5-flash"
+  provider: "openrouter"
+  model: "google/gemini-3.1-flash-lite-preview"
+  fallback_model: "google/gemini-3-flash-preview"
   temperature: 0.7
   max_retries: 3
 
@@ -536,8 +536,9 @@ audio_generation:
 
 story_audit:
   enabled: true
-  provider: "google"
-  model: "gemini-2.5-flash"
+  provider: "openrouter"
+  model: "google/gemini-3.1-pro-preview"
+  temperature: 0.3
 
 secondary_characters:
   - name: "Ingrid"
