@@ -147,9 +147,8 @@ class GrammarGapFiller:
             f"1. Each sentence must clearly demonstrate the grammar structure.\n"
             f"2. Match the chapter context and CEFR level.\n"
             f"3. Match the tone and style of existing sentences.{dialect_note}\n"
-            f"4. Provide a {self._native_lang} translation for each sentence.\n"
-            f"5. Use «guillemets» for any direct speech.\n"
-            f"6. For each new sentence, specify insert_after: the sentence_index of the "
+            f"4. Use «guillemets» for any direct speech.\n"
+            f"5. For each new sentence, specify insert_after: the sentence_index of the "
             f"existing sentence it should be placed after. Pick the position where the new "
             f"sentence fits most naturally in the story flow. Use -1 to append at the end.\n\n"
             f"Return JSON:\n"
@@ -157,7 +156,6 @@ class GrammarGapFiller:
             f'  "sentences": [\n'
             f'    {{\n'
             f'      "source": "{self._target_lang} sentence",\n'
-            f'      "target": "{self._native_lang} translation",\n'
             f'      "grammar_target": "exact target description from the list above",\n'
             f'      "insert_after": 3\n'
             f'    }}\n'
@@ -189,7 +187,6 @@ class GrammarGapFiller:
             chapter = cefr_to_chapter.get(cefr, 1)
             result.append(GrammarGapSentence(
                 source=s.get("source", ""),
-                target=s.get("target", ""),
                 grammar_target=grammar_target,
                 cefr_level=cefr,
                 chapter=chapter,

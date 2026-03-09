@@ -7,7 +7,7 @@ import pytest
 
 from pipeline.gap_filler import GapFiller
 from pipeline.models import (
-    DeckChapter, FrequencyLemmaEntry, GapSentence, GapWordAnnotation,
+    DeckChapter, FrequencyLemmaEntry, GapSentence,
     OrderedDeck, SentencePair, VocabularyEntry,
 )
 
@@ -81,17 +81,13 @@ def test_gap_filler_calls_assignment_then_generation(tmp_path):
     generation_response = {
         "sentences": [
             {"source": "Caminamos por el parque.",
-             "target": "Wir gehen durch den Park.",
-             "covers": ["caminar"],
-             "word_annotations": {"caminar": {"target": "gehen/laufen", "pos": "verb"}}},
+             "covers": ["caminar"]},
         ]
     }
     generation_response_2 = {
         "sentences": [
             {"source": "Vamos al restaurante.",
-             "target": "Wir gehen ins Restaurant.",
-             "covers": ["restaurante"],
-             "word_annotations": {"restaurante": {"target": "Restaurant", "pos": "noun"}}},
+             "covers": ["restaurante"]},
         ]
     }
     llm = _make_mock_llm([assignment_response, generation_response, generation_response_2])
@@ -135,9 +131,7 @@ def test_gap_filler_uses_cached_assignment(tmp_path):
 
     generation_response = {"sentences": [
         {"source": "Vamos al restaurante.",
-         "target": "Wir gehen ins Restaurant.",
-         "covers": ["restaurante"],
-         "word_annotations": {"restaurante": {"target": "Restaurant", "pos": "noun"}}}
+         "covers": ["restaurante"]}
     ]}
     llm = _make_mock_llm([generation_response])
 
@@ -295,10 +289,8 @@ def test_gap_filler_parses_insert_after(tmp_path):
 
     generation_response = {"sentences": [
         {"source": "Caminamos por el parque.",
-         "target": "Wir gehen durch den Park.",
          "covers": ["caminar"],
-         "insert_after": 5,
-         "word_annotations": {"caminar": {"target": "gehen/laufen", "pos": "verb"}}},
+         "insert_after": 5},
     ]}
     llm = _make_mock_llm([generation_response])
 
@@ -328,9 +320,7 @@ def test_gap_filler_insert_after_defaults_to_minus_one(tmp_path):
 
     generation_response = {"sentences": [
         {"source": "Caminamos por el parque.",
-         "target": "Wir gehen durch den Park.",
-         "covers": ["caminar"],
-         "word_annotations": {"caminar": {"target": "gehen/laufen", "pos": "verb"}}},
+         "covers": ["caminar"]},
     ]}
     llm = _make_mock_llm([generation_response])
 

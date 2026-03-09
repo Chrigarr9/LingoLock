@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pipeline.coverage_checker import check_coverage
 from pipeline.models import (
-    FrequencyLemmaEntry, GapSentence, GapWordAnnotation, OrderedDeck, SentencePair,
+    FrequencyLemmaEntry, GapSentence, OrderedDeck, SentencePair,
 )
 
 
@@ -246,12 +246,8 @@ class GapFiller:
             f'  "sentences": [\n'
             f'    {{\n'
             f'      "source": "{self._target_lang} sentence",\n'
-            f'      "target": "{self._native_lang} translation",\n'
             f'      "covers": ["lemma1", "lemma2"],\n'
-            f'      "insert_after": 3,\n'
-            f'      "word_annotations": {{\n'
-            f'        "lemma1": {{"target": "{self._native_lang} translation", "pos": "noun"}}\n'
-            f'      }}\n'
+            f'      "insert_after": 3\n'
             f'    }}\n'
             f'  ]\n'
             f'}}'
@@ -261,15 +257,9 @@ class GapFiller:
 
         result = []
         for s in raw_sentences:
-            word_annotations = {
-                k: GapWordAnnotation(**v)
-                for k, v in s.get("word_annotations", {}).items()
-            }
             result.append(GapSentence(
                 source=s.get("source", ""),
-                target=s.get("target", ""),
                 covers=s.get("covers", []),
-                word_annotations=word_annotations,
                 insert_after=int(s.get("insert_after", -1)),
             ))
         return result

@@ -70,7 +70,6 @@ def test_generates_sentences_for_missing_targets(tmp_path):
         "sentences": [
             {
                 "source": "Cuando era niña, vivía en Buenos Aires.",
-                "target": "Als sie ein Kind war, lebte sie in Buenos Aires.",
                 "grammar_target": "pretérito imperfecto",
             }
         ]
@@ -99,7 +98,6 @@ def test_assigns_to_correct_cefr_chapter(tmp_path):
         "sentences": [
             {
                 "source": "Ojalá pueda volver pronto.",
-                "target": "Hoffentlich kann ich bald zurückkehren.",
                 "grammar_target": "subjunctive",
             }
         ]
@@ -124,7 +122,6 @@ def test_caches_results_to_disk(tmp_path):
         "sentences": [
             {
                 "source": "Ella es alta pero hoy está cansada.",
-                "target": "Sie ist groß, aber heute ist sie müde.",
                 "grammar_target": "ser vs estar",
             }
         ]
@@ -207,12 +204,10 @@ def test_multiple_cefr_levels_batched(tmp_path):
         "sentences": [
             {
                 "source": "¿Qué es eso?",
-                "target": "Was ist das?",
                 "grammar_target": "questions with qué",
             },
             {
                 "source": "Cuando era joven, vivía en el campo.",
-                "target": "Als er jung war, lebte er auf dem Land.",
                 "grammar_target": "pretérito imperfecto",
             },
         ]
@@ -238,7 +233,6 @@ def test_parses_insert_after(tmp_path):
         "sentences": [
             {
                 "source": "Hay una maleta en la habitación.",
-                "target": "Es gibt einen Koffer im Zimmer.",
                 "grammar_target": "hay",
                 "insert_after": 7,
             }
@@ -264,7 +258,6 @@ def test_insert_after_defaults_to_minus_one(tmp_path):
         "sentences": [
             {
                 "source": "Hay una maleta.",
-                "target": "Es gibt einen Koffer.",
                 "grammar_target": "hay",
             }
         ]
@@ -289,7 +282,6 @@ def test_fuzzy_match_cefr_prefix(tmp_path):
         "sentences": [
             {
                 "source": "Cuando era niña, vivía acá.",
-                "target": "Als sie ein Kind war, lebte sie hier.",
                 "grammar_target": "[A2] pretérito imperfecto",
             }
         ]
@@ -315,7 +307,6 @@ def test_fuzzy_match_substring(tmp_path):
         "sentences": [
             {
                 "source": "Ojalá que llueva.",
-                "target": "Hoffentlich regnet es.",
                 "grammar_target": "subjuntivo",
             }
         ]
@@ -341,7 +332,6 @@ def test_fuzzy_match_no_match_defaults_to_chapter_1(tmp_path):
         "sentences": [
             {
                 "source": "Ella come mucho.",
-                "target": "Sie isst viel.",
                 "grammar_target": "completely unrelated target",
             }
         ]
