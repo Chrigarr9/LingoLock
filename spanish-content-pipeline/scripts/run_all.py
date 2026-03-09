@@ -215,6 +215,15 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
             print(f"  Missing words: {len(pre_report.missing_words)}")
 
             if pre_report.missing_words:
+                # Clear gap sentence cache (assignment depends on chapter range)
+                gap_cache = output_base / config.deck.id / "gap_sentences"
+                assignment_cache = output_base / config.deck.id / "gap_word_assignment.json"
+                if gap_cache.exists():
+                    import shutil
+                    shutil.rmtree(gap_cache)
+                if assignment_cache.exists():
+                    assignment_cache.unlink()
+
                 filler = GapFiller(
                     llm=llm,
                     output_dir=output_base / config.deck.id,
@@ -222,6 +231,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                     target_language=config.languages.target,
                     native_language=config.languages.native,
                     dialect=config.languages.dialect or "",
+                    chapter_range=chapter_range,
                 )
                 gap_results = filler.fill_gaps(
                     stories=stories,

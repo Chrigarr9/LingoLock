@@ -42,6 +42,7 @@ class GapFiller:
         native_language: str,
         dialect: str,
         max_new_words_per_sentence: int = 3,
+        chapter_range: range | None = None,
     ):
         self._llm = llm
         self._output_dir = output_dir
@@ -50,6 +51,7 @@ class GapFiller:
         self._native_lang = native_language
         self._dialect = dialect
         self._max_new_words = max_new_words_per_sentence
+        self._target_chapters = chapter_range  # None = all chapters
 
     @property
     def gap_dir(self) -> Path:
@@ -141,24 +143,32 @@ class GapFiller:
 
     def _assign_via_llm(self, missing_words: list[str]) -> dict[str, int]:
         """Single LLM call: assign each missing word to a chapter number."""
-        chapter_count = len(self._chapters)
-        target_per_chapter = max(1, len(missing_words) // max(1, chapter_count))
+        if self._target_chapters is not None:
+            target_indices = list(self._target_chapters)  # 0-based indices
+        else:
+            target_indices = list(range(len(self._chapters)))
+
+        target_per_chapter = max(1, len(missing_words) // max(1, len(target_indices)))
 
         chapter_summaries = []
-        for idx, ch in enumerate(self._chapters, start=1):
+        for idx in target_indices:
+            ch_num = idx + 1
+            ch = self._chapters[idx]
             if hasattr(ch, "title"):
                 title, context, vocab_focus, cefr = ch.title, ch.context, ch.vocab_focus, ch.cefr_level
             else:
-                title = ch.get("title", f"Chapter {idx}")
+                title = ch.get("title", f"Chapter {ch_num}")
                 context = ch.get("context", "")
                 vocab_focus = ch.get("vocab_focus", [])
                 cefr = ch.get("cefr_level", "")
             chapter_summaries.append(
-                f"  {idx}. [{cefr}] \"{title}\" — {context}. Focus: {', '.join(vocab_focus)}"
+                f"  {ch_num}. [{cefr}] \"{title}\" — {context}. Focus: {', '.join(vocab_focus)}"
             )
 
         chapters_text = "\n".join(chapter_summaries)
         words_text = ", ".join(missing_words)
+        valid_nums = [idx + 1 for idx in target_indices]
+        valid_range = ", ".join(str(n) for n in valid_nums)
 
         system = (
             f"You are a curriculum designer for a {self._target_lang} language learning deck."
@@ -166,9 +176,9 @@ class GapFiller:
         prompt = (
             f"The following {self._target_lang} words are missing from our vocabulary deck "
             f"and need to be introduced in new example sentences.\n\n"
-            f"Chapters ({chapter_count} total):\n{chapters_text}\n\n"
+            f"Chapters:\n{chapters_text}\n\n"
             f"Missing words: {words_text}\n\n"
-            f"Assign each word to the most appropriate chapter number (1–{chapter_count}).\n\n"
+            f"Assign each word to the most appropriate chapter number ({valid_range}).\n\n"
             f"Rules:\n"
             f"1. Distribute words roughly evenly — aim for ~{target_per_chapter} words per chapter.\n"
             f"2. Only cluster multiple words in one chapter when the topical fit is clearly strong "
@@ -179,11 +189,14 @@ class GapFiller:
         response = self._llm.complete_json(prompt, system=system)
         raw: dict = response.parsed
 
-        # Validate and clamp chapter numbers
+        # Validate chapter numbers — clamp to valid target chapters
         result: dict[str, int] = {}
         for word in missing_words:
-            ch_num = raw.get(word, 1)
-            result[word] = max(1, min(chapter_count, int(ch_num)))
+            ch_num = raw.get(word, valid_nums[0])
+            ch_num = int(ch_num)
+            if ch_num not in valid_nums:
+                ch_num = valid_nums[0]
+            result[word] = ch_num
         return result
 
     # ------------------------------------------------------------------ #
