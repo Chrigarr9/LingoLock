@@ -32,7 +32,7 @@ def main():
     frequency_data = load_frequency_data(Path(args.frequency_file))
 
     print("=== Coverage Report ===")
-    report = check_coverage(vocab, frequency_data, top_n=args.top_n)
+    report = check_coverage(vocab, frequency_data, top_n=args.top_n, lang=config.languages.target_code)
     report_path = output_base / config.deck.id / "coverage_report.json"
     report_path.write_text(
         json.dumps(report.model_dump(), ensure_ascii=False, indent=2)

@@ -192,23 +192,29 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
     if frequency_file:
         from pipeline.coverage_checker import scan_story_coverage
         from pipeline.gap_filler import GapFiller
-        from pipeline.models import FrequencyLemmaEntry
 
         freq_path = Path(frequency_file)
         if freq_path.exists():
             frequency_data_local = load_frequency_data(freq_path)
             effective_top_n = top_n or config.story.coverage_top_n
+            lang_code = config.languages.target_code
 
-            # Load frequency lemmas if available
+            # Load inappropriate lemmas from frequency_lemmas.json if available
+            inappropriate_lemmas: set[str] = set()
             lemma_path = output_base / config.deck.id / "frequency_lemmas.json"
-            frequency_lemmas_local = {}
             if lemma_path.exists():
+                from pipeline.models import FrequencyLemmaEntry
                 raw_lemmas = json.loads(lemma_path.read_text())
-                frequency_lemmas_local = {k: FrequencyLemmaEntry(**v) for k, v in raw_lemmas.items()}
+                for word, entry_data in raw_lemmas.items():
+                    entry = FrequencyLemmaEntry(**entry_data)
+                    if not entry.appropriate:
+                        inappropriate_lemmas.add(entry.lemma)
+                        inappropriate_lemmas.add(word)
 
             # Quick coverage scan from story text
             pre_report = scan_story_coverage(
-                stories, frequency_data_local, frequency_lemmas_local, top_n=effective_top_n,
+                stories, frequency_data_local, lang=lang_code, top_n=effective_top_n,
+                inappropriate_lemmas=inappropriate_lemmas,
             )
             print(f"\n=== Pass 4: Vocabulary Gap Filling ===")
             print(f"  Pre-gap coverage: {pre_report.top_1000_covered}/{pre_report.top_1000_total} ({pre_report.coverage_percent}%)")
@@ -231,13 +237,14 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                     target_language=config.languages.target,
                     native_language=config.languages.native,
                     dialect=config.languages.dialect or "",
+                    lang_code=lang_code,
                     chapter_range=chapter_range,
                 )
                 gap_results = filler.fill_gaps(
                     stories=stories,
                     frequency_data=frequency_data_local,
-                    frequency_lemmas=frequency_lemmas_local,
                     top_n=effective_top_n,
+                    inappropriate_lemmas=inappropriate_lemmas,
                 )
 
                 if gap_results:
@@ -260,7 +267,8 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
                     # Post-gap coverage
                     post_report = scan_story_coverage(
-                        stories, frequency_data_local, frequency_lemmas_local, top_n=effective_top_n,
+                        stories, frequency_data_local, lang=lang_code, top_n=effective_top_n,
+                        inappropriate_lemmas=inappropriate_lemmas,
                     )
                     print(f"  Post-gap coverage: {post_report.top_1000_covered}/{post_report.top_1000_total} ({post_report.coverage_percent}%)")
             else:
@@ -363,29 +371,26 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
     # Coverage report
     if frequency_data:
-        inflection_to_lemma: dict[str, str] = {}
-        for ch in all_chapters:
-            for w in ch.words:
-                src = w.source.lower().strip()
-                lemma = w.lemma.lower().strip()
-                if src != lemma:
-                    inflection_to_lemma[src] = lemma
-
-        from pipeline.models import FrequencyLemmaEntry as _FLE
-        frequency_lemmas = None
+        # Build inappropriate lemmas set from frequency_lemmas.json
+        inappropriate_cov: set[str] = set()
         lemma_path = output_base / config.deck.id / "frequency_lemmas.json"
         if lemma_path.exists():
+            from pipeline.models import FrequencyLemmaEntry as _FLE
             raw = json.loads(lemma_path.read_text())
-            frequency_lemmas = {k: _FLE(**v) for k, v in raw.items()}
+            for word, entry_data in raw.items():
+                entry = _FLE(**entry_data)
+                if not entry.appropriate:
+                    inappropriate_cov.add(entry.lemma)
+                    inappropriate_cov.add(word)
 
         print("\n=== Coverage Report ===")
         effective_top_n = top_n or config.story.coverage_top_n
         report = check_coverage(
             deck, frequency_data,
             top_n=effective_top_n,
+            lang=config.languages.target_code,
             extra_thresholds=[2000, 3000, 4000, 5000],
-            inflection_to_lemma=inflection_to_lemma,
-            frequency_lemmas=frequency_lemmas,
+            inappropriate_lemmas=inappropriate_cov,
         )
         report_path = output_base / config.deck.id / "coverage_report.json"
         report_path.write_text(json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
@@ -499,6 +504,7 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
         llm=llm,
         output_dir=out_dir,
         target_language=config.languages.target,
+        lang_code=config.languages.target_code,
         domain=f"travel {config.languages.target}, {config.destination.city}",
     )
 
@@ -515,22 +521,28 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
 def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
     """Generate gap-filling sentences (standalone). Sentences are inserted during text stage."""
     from pipeline.gap_filler import GapFiller
-    from pipeline.models import FrequencyLemmaEntry
 
     out_dir = output_base / config.deck.id
-    lemma_path = out_dir / "frequency_lemmas.json"
+    lang_code = config.languages.target_code
 
     if not frequency_file:
         print("Error: --frequency-file required for fill-gaps stage")
         sys.exit(1)
-    if not lemma_path.exists():
-        print("Error: frequency_lemmas.json not found. Run --stage lemmatize first.")
-        sys.exit(1)
 
     print("=== Gap Filling (standalone) ===")
     frequency_data = load_frequency_data(Path(frequency_file))
-    raw_lemmas = json.loads(lemma_path.read_text())
-    frequency_lemmas = {k: FrequencyLemmaEntry(**v) for k, v in raw_lemmas.items()}
+
+    # Build inappropriate lemmas from frequency_lemmas.json if available
+    inappropriate_lemmas: set[str] = set()
+    lemma_path = out_dir / "frequency_lemmas.json"
+    if lemma_path.exists():
+        from pipeline.models import FrequencyLemmaEntry
+        raw_lemmas = json.loads(lemma_path.read_text())
+        for word, entry_data in raw_lemmas.items():
+            entry = FrequencyLemmaEntry(**entry_data)
+            if not entry.appropriate:
+                inappropriate_lemmas.add(entry.lemma)
+                inappropriate_lemmas.add(word)
 
     # Load stories for coverage scan
     stories_dir = out_dir / "stories"
@@ -549,12 +561,13 @@ def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
         target_language=config.languages.target,
         native_language=config.languages.native,
         dialect=config.languages.dialect or "",
+        lang_code=lang_code,
     )
     gap_results = filler.fill_gaps(
         stories=stories,
         frequency_data=frequency_data,
-        frequency_lemmas=frequency_lemmas,
         top_n=top_n or config.story.coverage_top_n,
+        inappropriate_lemmas=inappropriate_lemmas,
     )
 
     if not gap_results:

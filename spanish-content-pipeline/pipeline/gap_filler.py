@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pipeline.coverage_checker import check_coverage
 from pipeline.models import (
-    ChapterScene, FrequencyLemmaEntry, GapShot, OrderedDeck, SentencePair,
+    ChapterScene, GapShot, OrderedDeck, SentencePair,
 )
 
 
@@ -41,6 +41,7 @@ class GapFiller:
         target_language: str,
         native_language: str,
         dialect: str,
+        lang_code: str = "es",
         max_new_words_per_sentence: int = 3,
         chapter_range: range | None = None,
     ):
@@ -50,6 +51,7 @@ class GapFiller:
         self._target_lang = target_language
         self._native_lang = native_language
         self._dialect = dialect
+        self._lang_code = lang_code
         self._max_new_words = max_new_words_per_sentence
         self._target_chapters = chapter_range  # None = all chapters
 
@@ -65,9 +67,9 @@ class GapFiller:
         self,
         deck: "OrderedDeck | None" = None,
         frequency_data: dict[str, int] | None = None,
-        frequency_lemmas: dict | None = None,
         top_n: int = 1000,
         stories: dict[int, str] | None = None,
+        inappropriate_lemmas: set[str] | None = None,
     ) -> dict[int, list[GapShot]]:
         """Assign missing words to chapters and generate gap shots.
 
@@ -80,10 +82,14 @@ class GapFiller:
         # Get missing words — from stories (text stage) or deck (fill-gaps stage)
         if stories is not None:
             from pipeline.coverage_checker import scan_story_coverage
-            report = scan_story_coverage(stories, frequency_data, frequency_lemmas, top_n=top_n)
+            report = scan_story_coverage(
+                stories, frequency_data, lang=self._lang_code, top_n=top_n,
+                inappropriate_lemmas=inappropriate_lemmas,
+            )
         else:
             report = check_coverage(
-                deck, frequency_data, top_n=top_n, frequency_lemmas=frequency_lemmas
+                deck, frequency_data, top_n=top_n, lang=self._lang_code,
+                inappropriate_lemmas=inappropriate_lemmas,
             )
         missing = report.missing_words
 
