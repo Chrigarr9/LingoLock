@@ -1,7 +1,9 @@
 """Run the content pipeline in reviewable stages.
 
 Stage text (default):
-  Passes 1-3: story generation, translation, word extraction + vocabulary DB.
+  Pass 0: unconstrained story generation → stories_raw/
+  Pass 1: CEFR simplification → stories/
+  Passes 2-3: translation, word extraction + vocabulary DB.
   Output lives in output/<deck-id>/stories/, translations/, words/, vocabulary.json.
   Review and edit those files before proceeding.
 
@@ -41,13 +43,11 @@ from pipeline.coverage_checker import check_coverage, load_frequency_data
 from pipeline.image_generator import ImageGenerator
 from pipeline.llm import create_client
 from pipeline.models import ImagePromptResult, SentencePair
-from pipeline.scene_story_generator import (
-    SceneStoryGenerator,
-    expand_manifest_for_shared_shots,
-    extract_flat_text,
-    extract_image_prompts,
-)
+from pipeline.cefr_simplifier import CEFRSimplifier
+from pipeline.scene_story_generator import expand_manifest_for_shared_shots
+from pipeline.sentence_inserter import insert_sentences
 from pipeline.sentence_translator import SentenceTranslator
+from pipeline.story_generator import StoryGenerator, extract_flat_text, extract_image_prompts
 from pipeline.vocabulary_builder import build_vocabulary
 from pipeline.word_extractor import WordExtractor
 
@@ -78,42 +78,28 @@ def get_api_key(config: DeckConfig) -> str:
 def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None):
     """Passes 1-3 + vocabulary. All output cached to disk for review."""
 
-    # Pass 0b: Vocabulary Planning
-    from pipeline.vocabulary_planner import plan_vocabulary
-    vocab_plans = {}
-    companion = config.secondary_characters[0].name if config.secondary_characters else "a friend"
-    chapter_defs = [
-        {"title": ch.title, "cefr_level": ch.cefr_level or config.story.cefr_level,
-         "context": ch.context, "vocab_focus": ch.vocab_focus}
-        for ch in config.story.chapters
-    ]
-    vocab_plans = plan_vocabulary(
-        chapters=chapter_defs,
-        target_language=config.languages.target,
-        protagonist_name=config.protagonist.name,
-        companion_name=companion,
-    )
-    if vocab_plans:
-        print("=== Pass 0b: Vocabulary Planning ===")
-        for ch_num, plan in sorted(vocab_plans.items()):
-            cats = ", ".join(plan.must_include_categories)
-            print(f"  Chapter {ch_num}: {cats}")
-        print()
-
-    # Pass 1: Story generation (with summaries + vocab plans)
-    print("=== Pass 1: Scene-First Story Generation ===")
-    scene_gen = SceneStoryGenerator(config, llm, output_base=output_base)
-    chapter_scenes = {}
-    stories = {}
-    # Use generate_all for cross-chapter summaries, then extract text
-    all_chapters = scene_gen.generate_all(chapter_range=chapter_range)
+    # Pass 0: Unconstrained story generation → stories_raw/
+    print("=== Pass 0: Unconstrained Story Generation ===")
+    story_gen = StoryGenerator(config, llm, output_base=output_base)
+    raw_chapters = story_gen.generate_all(chapter_range=chapter_range)
     for idx, i in enumerate(chapter_range):
         ch = config.story.chapters[i]
-        chapter_scenes[i] = all_chapters[idx]
-        stories[i] = extract_flat_text(chapter_scenes[i])
-        scenes_count = len(chapter_scenes[i].scenes)
-        shots_count = sum(len(s.shots) for s in chapter_scenes[i].scenes)
+        scenes_count = len(raw_chapters[idx].scenes)
+        shots_count = sum(len(s.shots) for s in raw_chapters[idx].scenes)
         print(f"  Chapter {i+1}: {ch.title} ({scenes_count} scenes, {shots_count} shots)")
+
+    # Pass 1: CEFR simplification → stories/
+    print("\n=== Pass 1: CEFR Simplification ===")
+    simplifier = CEFRSimplifier(config, llm, output_base=output_base)
+    chapter_scenes = {}
+    stories = {}
+    for idx, i in enumerate(chapter_range):
+        ch = config.story.chapters[i]
+        cefr = ch.cefr_level or config.story.cefr_level
+        print(f"  Chapter {i+1}: {ch.title} [{cefr}]...", end=" ", flush=True)
+        chapter_scenes[i] = simplifier.simplify_chapter(i, raw_chapters[idx])
+        stories[i] = extract_flat_text(chapter_scenes[i])
+        print("done")
 
     # Pass 2: Translation
     print("\n=== Pass 2: Sentence Translation ===")
@@ -188,7 +174,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                 print(f"    [{s.cefr_level}] {s.grammar_target}")
                 print(f"      {s.source}")
 
-            # Append grammar gap sentences to translation files
+            # Insert grammar gap sentences into translation files at natural positions
             from collections import defaultdict
             by_chapter: dict[int, list] = defaultdict(list)
             for gs in grammar_sentences:
@@ -196,15 +182,12 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
             for ch_num, g_sentences in by_chapter.items():
                 trans_path = output_base / config.deck.id / "translations" / f"chapter_{ch_num:02d}.json"
-                existing = json.loads(trans_path.read_text()) if trans_path.exists() else []
-                for gs in g_sentences:
-                    existing.append({
-                        "chapter": ch_num,
-                        "sentence_index": len(existing),
-                        "source": gs.source,
-                        "target": gs.target,
-                    })
-                trans_path.write_text(json.dumps(existing, ensure_ascii=False, indent=2))
+                existing = [SentencePair(**p) for p in json.loads(trans_path.read_text())] if trans_path.exists() else []
+                merged = insert_sentences(existing, g_sentences)
+                trans_path.write_text(json.dumps(
+                    [{"chapter": s.chapter, "sentence_index": s.sentence_index, "source": s.source, "target": s.target} for s in merged],
+                    ensure_ascii=False, indent=2
+                ))
 
             # Add to all_pairs so vocabulary builder picks them up
             for gs in grammar_sentences:
