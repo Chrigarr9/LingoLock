@@ -55,11 +55,22 @@ def _make_mock_llm(responses: list[dict]) -> MagicMock:
     return llm
 
 
-def _write_translations(tmp_path: Path, chapter_num: int, sentences: list[dict]):
-    trans_dir = tmp_path / "translations"
-    trans_dir.mkdir(parents=True, exist_ok=True)
-    path = trans_dir / f"chapter_{chapter_num:02d}.json"
-    path.write_text(json.dumps(sentences))
+def _write_stories(tmp_path: Path, chapter_num: int, sentences: list[dict]):
+    """Write a minimal ChapterScene JSON to stories/ for gap filler context."""
+    stories_dir = tmp_path / "stories"
+    stories_dir.mkdir(parents=True, exist_ok=True)
+    shot_sentences = [
+        {"source": s["source"], "sentence_index": s["sentence_index"]}
+        for s in sentences
+    ]
+    data = {
+        "chapter": chapter_num,
+        "scenes": [{"setting": "test", "description": "test", "shots": [
+            {"focus": "test", "image_prompt": "test", "sentences": shot_sentences},
+        ]}] if shot_sentences else [],
+    }
+    path = stories_dir / f"chapter_{chapter_num:02d}.json"
+    path.write_text(json.dumps(data))
 
 
 def test_gap_filler_calls_assignment_then_generation(tmp_path):
@@ -72,7 +83,7 @@ def test_gap_filler_calls_assignment_then_generation(tmp_path):
     frequency_data = {"avión": 5, "comer": 10, "restaurante": 15, "caminar": 20}
 
     # Write existing translations for chapter 2
-    _write_translations(tmp_path / "test", 2, [
+    _write_stories(tmp_path / "test", 2, [
         {"chapter": 2, "sentence_index": 0,
          "source": "María pide la carta.", "target": "Maria bittet um die Speisekarte."}
     ])
@@ -127,7 +138,7 @@ def test_gap_filler_uses_cached_assignment(tmp_path):
     out_dir = tmp_path / "test"
     out_dir.mkdir()
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"restaurante": 2}))
-    _write_translations(out_dir, 2, [])
+    _write_stories(out_dir, 2, [])
 
     generation_response = {"sentences": [
         {"source": "Vamos al restaurante.",
@@ -228,7 +239,7 @@ def test_gap_filler_generation_prompt_includes_existing_sentences(tmp_path):
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_translations(out_dir, 1, [
+    _write_stories(out_dir, 1, [
         {"chapter": 1, "sentence_index": 0,
          "source": "María llega al aeropuerto.", "target": "Maria kommt am Flughafen an."}
     ])
@@ -257,7 +268,7 @@ def test_gap_filler_generation_prompt_mentions_max_words_per_sentence(tmp_path):
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_translations(out_dir, 1, [])
+    _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     llm = _make_mock_llm([{"sentences": []}])
@@ -284,7 +295,7 @@ def test_gap_filler_parses_insert_after(tmp_path):
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_translations(out_dir, 1, [])
+    _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     generation_response = {"sentences": [
@@ -315,7 +326,7 @@ def test_gap_filler_insert_after_defaults_to_minus_one(tmp_path):
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_translations(out_dir, 1, [])
+    _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     generation_response = {"sentences": [
@@ -350,7 +361,7 @@ def test_gap_filler_prompt_includes_all_sentences_with_indices(tmp_path):
          "source": f"Sentence {i}.", "target": f"Satz {i}."}
         for i in range(15)
     ]
-    _write_translations(out_dir, 1, sentences)
+    _write_stories(out_dir, 1, sentences)
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     llm = _make_mock_llm([{"sentences": []}])

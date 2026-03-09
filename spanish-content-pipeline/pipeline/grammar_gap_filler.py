@@ -87,33 +87,23 @@ class GrammarGapFiller:
     def _load_existing_sentences(
         self, cefr_to_chapter: dict[str, int]
     ) -> dict[int, list[SentencePair]]:
-        """Load existing sentences for relevant chapters.
-
-        Tries stories/ first (scene JSON → flat sentences), falls back to
-        translations/ for backwards compatibility.
-        """
+        """Load existing sentences for relevant chapters from stories/ on disk."""
+        from pipeline.models import ChapterScene
         result: dict[int, list[SentencePair]] = {}
         for ch_num in set(cefr_to_chapter.values()):
-            # Try stories/ (new pipeline order — translations don't exist yet)
             story_path = self._output_dir / "stories" / f"chapter_{ch_num:02d}.json"
-            if story_path.exists():
-                from pipeline.models import ChapterScene
-                chapter_data = ChapterScene(**json.loads(story_path.read_text()))
-                pairs = []
-                for scene in chapter_data.scenes:
-                    for shot in scene.shots:
-                        for sent in shot.sentences:
-                            pairs.append(SentencePair(
-                                chapter=ch_num, sentence_index=sent.sentence_index,
-                                source=sent.source, target="",
-                            ))
-                result[ch_num] = pairs
+            if not story_path.exists():
                 continue
-            # Fallback: translations/ (old pipeline order)
-            trans_path = self._output_dir / "translations" / f"chapter_{ch_num:02d}.json"
-            if trans_path.exists():
-                raw = json.loads(trans_path.read_text())
-                result[ch_num] = [SentencePair(**p) for p in raw]
+            chapter_data = ChapterScene(**json.loads(story_path.read_text()))
+            result[ch_num] = [
+                SentencePair(
+                    chapter=ch_num, sentence_index=sent.sentence_index,
+                    source=sent.source, target="",
+                )
+                for scene in chapter_data.scenes
+                for shot in scene.shots
+                for sent in shot.sentences
+            ]
         return result
 
     def _generate(

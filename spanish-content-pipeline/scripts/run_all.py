@@ -47,7 +47,7 @@ from pipeline.image_generator import ImageGenerator
 from pipeline.llm import create_client
 from pipeline.models import ChapterScene, ImagePromptResult, SentencePair
 from pipeline.cefr_simplifier import CEFRSimplifier
-from pipeline.sentence_inserter import insert_into_chapter_scene, insert_sentences
+from pipeline.sentence_inserter import insert_into_chapter_scene
 from pipeline.sentence_translator import SentenceTranslator
 from pipeline.story_generator import (
     StoryGenerator,

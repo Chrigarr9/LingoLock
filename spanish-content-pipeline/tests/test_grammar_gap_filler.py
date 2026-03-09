@@ -171,15 +171,19 @@ def test_uses_cache_on_second_call(tmp_path):
 def test_prompt_includes_existing_chapter_sentences(tmp_path):
     """The generation prompt references existing sentences for style context."""
     report = _make_audit_report({"A1": ["hay"]})
-    trans_dir = tmp_path / "translations"
-    trans_dir.mkdir()
-    (trans_dir / "chapter_01.json").write_text(json.dumps([
-        {"chapter": 1, "sentence_index": 0,
-         "source": "Maria abre la maleta.", "target": "Maria öffnet den Koffer."}
-    ]))
+    stories_dir = tmp_path / "stories"
+    stories_dir.mkdir()
+    (stories_dir / "chapter_01.json").write_text(json.dumps({
+        "chapter": 1,
+        "scenes": [{"setting": "test", "description": "test", "shots": [
+            {"focus": "test", "image_prompt": "test", "sentences": [
+                {"source": "Maria abre la maleta.", "sentence_index": 0},
+            ]},
+        ]}],
+    }))
 
     llm = _make_mock_llm([{"sentences": [
-        {"source": "Hay una maleta.", "target": "Es gibt einen Koffer.", "grammar_target": "hay"}
+        {"source": "Hay una maleta.", "grammar_target": "hay"}
     ]}])
 
     filler = GrammarGapFiller(
@@ -353,17 +357,21 @@ def test_prompt_includes_all_sentences_with_indices(tmp_path):
     """Prompt includes ALL existing sentences with sentence_index numbers."""
     report = _make_audit_report({"A1": ["hay"]})
 
-    trans_dir = tmp_path / "translations"
-    trans_dir.mkdir()
-    sentences = [
-        {"chapter": 1, "sentence_index": i,
-         "source": f"Sentence {i}.", "target": f"Satz {i}."}
+    stories_dir = tmp_path / "stories"
+    stories_dir.mkdir()
+    shot_sentences = [
+        {"source": f"Sentence {i}.", "sentence_index": i}
         for i in range(12)
     ]
-    (trans_dir / "chapter_01.json").write_text(json.dumps(sentences))
+    (stories_dir / "chapter_01.json").write_text(json.dumps({
+        "chapter": 1,
+        "scenes": [{"setting": "test", "description": "test", "shots": [
+            {"focus": "test", "image_prompt": "test", "sentences": shot_sentences},
+        ]}],
+    }))
 
     llm = _make_mock_llm([{"sentences": [
-        {"source": "Hay algo.", "target": "Es gibt etwas.", "grammar_target": "hay"}
+        {"source": "Hay algo.", "grammar_target": "hay"}
     ]}])
 
     filler = GrammarGapFiller(
