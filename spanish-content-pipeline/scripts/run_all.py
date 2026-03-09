@@ -44,10 +44,14 @@ from pipeline.image_generator import ImageGenerator
 from pipeline.llm import create_client
 from pipeline.models import ImagePromptResult, SentencePair
 from pipeline.cefr_simplifier import CEFRSimplifier
-from pipeline.scene_story_generator import expand_manifest_for_shared_shots
 from pipeline.sentence_inserter import insert_sentences
 from pipeline.sentence_translator import SentenceTranslator
-from pipeline.story_generator import StoryGenerator, extract_flat_text, extract_image_prompts
+from pipeline.story_generator import (
+    StoryGenerator,
+    expand_manifest_for_shared_shots,
+    extract_flat_text,
+    extract_image_prompts,
+)
 from pipeline.vocabulary_builder import build_vocabulary
 from pipeline.word_extractor import WordExtractor
 
