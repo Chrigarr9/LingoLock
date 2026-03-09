@@ -1,8 +1,8 @@
-"""Pass 3b: Gap-filling sentence generation.
+"""Pass 3b: Gap-filling shot generation.
 
 Two LLM calls:
   A) One assignment call: all missing words + all chapter summaries → word→chapter map.
-  B) One generation call per chapter: existing sentences + assigned words → new sentences.
+  B) One generation call per chapter: existing shots + assigned words → new shots.
 
 Both are cached to disk.
 """
@@ -12,12 +12,12 @@ from pathlib import Path
 
 from pipeline.coverage_checker import check_coverage
 from pipeline.models import (
-    FrequencyLemmaEntry, GapSentence, OrderedDeck, SentencePair,
+    ChapterScene, FrequencyLemmaEntry, GapShot, OrderedDeck, SentencePair,
 )
 
 
 class GapFiller:
-    """Generate gap-filling sentences for missing high-frequency vocabulary.
+    """Generate gap-filling shots for missing high-frequency vocabulary.
 
     Args:
         llm: LLMClient or GeminiClient instance.
@@ -68,11 +68,11 @@ class GapFiller:
         frequency_lemmas: dict | None = None,
         top_n: int = 1000,
         stories: dict[int, str] | None = None,
-    ) -> dict[int, list[GapSentence]]:
-        """Assign missing words to chapters and generate gap sentences.
+    ) -> dict[int, list[GapShot]]:
+        """Assign missing words to chapters and generate gap shots.
 
-        Returns dict mapping chapter number → list of GapSentence.
-        Caches assignment and per-chapter sentences to disk.
+        Returns dict mapping chapter number → list of GapShot.
+        Caches assignment and per-chapter shots to disk.
         """
         if frequency_data is None:
             frequency_data = {}
@@ -93,24 +93,24 @@ class GapFiller:
         # Call A: assign words to chapters (cached)
         assignment = self._get_assignment(missing)
 
-        results: dict[int, list[GapSentence]] = {}
+        results: dict[int, list[GapShot]] = {}
         self.gap_dir.mkdir(parents=True, exist_ok=True)
 
         for chapter_num, words in sorted(assignment.items()):
             cache_path = self.gap_dir / f"chapter_{chapter_num:02d}.json"
             if cache_path.exists():
                 raw = json.loads(cache_path.read_text())
-                results[chapter_num] = [GapSentence(**s) for s in raw]
+                results[chapter_num] = [GapShot(**s) for s in raw]
                 continue
 
-            # Call B: generate sentences for this chapter
-            existing = self._load_existing_sentences(chapter_num)
+            # Call B: generate shots for this chapter
+            existing_context = self._load_existing_context(chapter_num)
             ch_def = self._chapters[chapter_num - 1] if chapter_num <= len(self._chapters) else None
-            sentences = self._generate_sentences(chapter_num, ch_def, words, existing)
-            results[chapter_num] = sentences
+            shots = self._generate_shots(chapter_num, ch_def, words, existing_context)
+            results[chapter_num] = shots
 
             cache_path.write_text(
-                json.dumps([s.model_dump() for s in sentences], ensure_ascii=False, indent=2)
+                json.dumps([s.model_dump() for s in shots], ensure_ascii=False, indent=2)
             )
 
         return results
@@ -203,31 +203,35 @@ class GapFiller:
     # Call B: Generation                                                   #
     # ------------------------------------------------------------------ #
 
-    def _load_existing_sentences(self, chapter_num: int) -> list[SentencePair]:
-        """Load existing sentences for a chapter from stories/ on disk."""
-        from pipeline.models import ChapterScene
+    def _load_existing_context(self, chapter_num: int) -> str:
+        """Load existing chapter and format as shot-grouped context."""
         story_path = self._output_dir / "stories" / f"chapter_{chapter_num:02d}.json"
         if not story_path.exists():
-            return []
+            return ""
         chapter_data = ChapterScene(**json.loads(story_path.read_text()))
-        return [
-            SentencePair(
-                chapter=chapter_num, sentence_index=sent.sentence_index,
-                source=sent.source, target="",
-            )
-            for scene in chapter_data.scenes
-            for shot in scene.shots
-            for sent in shot.sentences
-        ]
+        lines = []
+        shot_idx = 0
+        for scene in chapter_data.scenes:
+            for shot in scene.shots:
+                for sent in shot.sentences:
+                    lines.append(f'  [shot {shot_idx}, sent {sent.sentence_index}] "{sent.source}"')
+                shot_idx += 1
+        if not lines:
+            return ""
+        return (
+            f"\nExisting chapter ({shot_idx} shots):\n"
+            + "\n".join(lines)
+            + "\n"
+        )
 
-    def _generate_sentences(
+    def _generate_shots(
         self,
         chapter_num: int,
         ch_def,
         words: list[str],
-        existing_sentences: list[SentencePair],
-    ) -> list[GapSentence]:
-        """Generate sentences covering all `words`, using existing sentences for context."""
+        existing_context: str,
+    ) -> list[GapShot]:
+        """Generate shots covering all `words`, using existing context for style."""
         if ch_def is not None and hasattr(ch_def, "title"):
             title = ch_def.title
             context = ch_def.context
@@ -241,15 +245,6 @@ class GapFiller:
             context = ""
             cefr_level = "A2"
 
-        existing_text = ""
-        if existing_sentences:
-            lines = [f'  [{s.sentence_index}] "{s.source}"' for s in existing_sentences]
-            existing_text = (
-                f"\nExisting chapter sentences (numbered by sentence_index):\n"
-                + "\n".join(lines)
-                + "\n"
-            )
-
         dialect_note = f" Use {self._dialect} dialect." if self._dialect else ""
         words_text = ", ".join(words)
 
@@ -260,38 +255,44 @@ class GapFiller:
         prompt = (
             f"Chapter {chapter_num}: \"{title}\"\n"
             f"Context: {context}\n"
-            f"CEFR level: {cefr_level}{existing_text}\n"
+            f"CEFR level: {cefr_level}{existing_context}\n"
             f"Words to introduce ({len(words)} words): {words_text}\n\n"
-            f"Generate sentences that cover as many of these words as possible. Rules:\n"
-            f"1. Use at most {self._max_new_words} of the listed words per sentence.\n"
-            f"2. Target at least 90% coverage — cover at least {max(1, int(len(words) * 0.9))} of the {len(words)} words.\n"
-            f"3. Generate as many sentences as needed until the coverage target is met.\n"
+            f"Generate SHOTS (groups of 1-3 sentences) that cover these words. "
+            f"Each shot will have its own illustration.\n\n"
+            f"Rules:\n"
+            f"1. Each shot has 1-3 sentences and one image_prompt (in English) describing the visual scene.\n"
+            f"2. Use at most {self._max_new_words} of the listed words per sentence.\n"
+            f"3. Target at least 90% coverage — cover at least "
+            f"{max(1, int(len(words) * 0.9))} of the {len(words)} words.\n"
             f"4. Each sentence must fit the chapter context and CEFR level.\n"
             f"5. Match the tone and style of the existing sentences above.{dialect_note}\n"
-            f"6. Where natural, vary the grammatical form of each word across sentences "
-            f"— but only when it reads naturally.\n"
-            f"7. For each new sentence, specify insert_after: the sentence_index of the "
-            f"existing sentence it should be placed after. Pick the position where the new "
-            f"sentence fits most naturally in the story flow. Use -1 to append at the end.\n\n"
+            f"6. The image_prompt should visually illustrate the vocabulary in the sentences.\n"
+            f"7. For insert_after_shot: specify which existing shot index (0-based) this new shot "
+            f"should be placed after. Use -1 to append at the end of the chapter.\n\n"
             f"Return JSON:\n"
             f'{{\n'
-            f'  "sentences": [\n'
+            f'  "shots": [\n'
             f'    {{\n'
-            f'      "source": "{self._target_lang} sentence",\n'
+            f'      "sentences": ["{self._target_lang} sentence 1", "{self._target_lang} sentence 2"],\n'
+            f'      "image_prompt": "English description of the scene for illustration",\n'
             f'      "covers": ["lemma1", "lemma2"],\n'
-            f'      "insert_after": 3\n'
+            f'      "insert_after_shot": 3\n'
             f'    }}\n'
             f'  ]\n'
             f'}}'
         )
         response = self._llm.complete_json(prompt, system=system)
-        raw_sentences: list[dict] = response.parsed.get("sentences", [])
+        raw_shots: list[dict] = response.parsed.get("shots", [])
 
         result = []
-        for s in raw_sentences:
-            result.append(GapSentence(
-                source=s.get("source", ""),
+        for s in raw_shots:
+            sentences = s.get("sentences", [])
+            if isinstance(sentences, str):
+                sentences = [sentences]
+            result.append(GapShot(
+                sentences=sentences[:3],  # enforce max 3
+                image_prompt=s.get("image_prompt", ""),
                 covers=s.get("covers", []),
-                insert_after=int(s.get("insert_after", -1)),
+                insert_after_shot=int(s.get("insert_after_shot", -1)),
             ))
         return result

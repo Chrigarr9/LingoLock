@@ -7,7 +7,7 @@ import pytest
 
 from pipeline.gap_filler import GapFiller
 from pipeline.models import (
-    DeckChapter, FrequencyLemmaEntry, GapSentence,
+    DeckChapter, FrequencyLemmaEntry, GapShot,
     OrderedDeck, SentencePair, VocabularyEntry,
 )
 
@@ -74,7 +74,7 @@ def _write_stories(tmp_path: Path, chapter_num: int, sentences: list[dict]):
 
 
 def test_gap_filler_calls_assignment_then_generation(tmp_path):
-    """First LLM call does assignment; second does sentence generation."""
+    """First LLM call does assignment; second does shot generation."""
     deck = _make_deck({1: ["avión"], 2: ["comer"]})
     frequency_lemmas = {
         "restaurante": FrequencyLemmaEntry(lemma="restaurante", appropriate=True),
@@ -90,14 +90,16 @@ def test_gap_filler_calls_assignment_then_generation(tmp_path):
 
     assignment_response = {"restaurante": 2, "caminar": 1}
     generation_response = {
-        "sentences": [
-            {"source": "Caminamos por el parque.",
+        "shots": [
+            {"sentences": ["Caminamos por el parque."],
+             "image_prompt": "People walking through a sunny park",
              "covers": ["caminar"]},
         ]
     }
     generation_response_2 = {
-        "sentences": [
-            {"source": "Vamos al restaurante.",
+        "shots": [
+            {"sentences": ["Vamos al restaurante."],
+             "image_prompt": "Friends arriving at a restaurant entrance",
              "covers": ["restaurante"]},
         ]
     }
@@ -140,8 +142,9 @@ def test_gap_filler_uses_cached_assignment(tmp_path):
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"restaurante": 2}))
     _write_stories(out_dir, 2, [])
 
-    generation_response = {"sentences": [
-        {"source": "Vamos al restaurante.",
+    generation_response = {"shots": [
+        {"sentences": ["Vamos al restaurante."],
+         "image_prompt": "Restaurant entrance",
          "covers": ["restaurante"]}
     ]}
     llm = _make_mock_llm([generation_response])
@@ -216,7 +219,7 @@ def test_gap_filler_assignment_prompt_mentions_equal_distribution(tmp_path):
     }
     frequency_data = {"palabra": 50}
 
-    llm = _make_mock_llm([{"palabra": 1}, {"sentences": []}])
+    llm = _make_mock_llm([{"palabra": 1}, {"shots": []}])
     filler = GapFiller(
         llm=llm, output_dir=tmp_path, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
@@ -245,7 +248,7 @@ def test_gap_filler_generation_prompt_includes_existing_sentences(tmp_path):
     ])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
-    llm = _make_mock_llm([{"sentences": []}])
+    llm = _make_mock_llm([{"shots": []}])
     filler = GapFiller(
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
@@ -271,7 +274,7 @@ def test_gap_filler_generation_prompt_mentions_max_words_per_sentence(tmp_path):
     _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
-    llm = _make_mock_llm([{"sentences": []}])
+    llm = _make_mock_llm([{"shots": []}])
     filler = GapFiller(
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
@@ -286,8 +289,8 @@ def test_gap_filler_generation_prompt_mentions_max_words_per_sentence(tmp_path):
     assert "3" in generation_prompt
 
 
-def test_gap_filler_parses_insert_after(tmp_path):
-    """insert_after is parsed from LLM response."""
+def test_gap_filler_parses_insert_after_shot(tmp_path):
+    """insert_after_shot is parsed from LLM response."""
     deck = _make_deck({1: []})
     frequency_lemmas = {
         "caminar": FrequencyLemmaEntry(lemma="caminar", appropriate=True),
@@ -298,10 +301,11 @@ def test_gap_filler_parses_insert_after(tmp_path):
     _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
-    generation_response = {"sentences": [
-        {"source": "Caminamos por el parque.",
+    generation_response = {"shots": [
+        {"sentences": ["Caminamos por el parque."],
+         "image_prompt": "People walking in a park",
          "covers": ["caminar"],
-         "insert_after": 5},
+         "insert_after_shot": 5},
     ]}
     llm = _make_mock_llm([generation_response])
 
@@ -314,11 +318,13 @@ def test_gap_filler_parses_insert_after(tmp_path):
         frequency_lemmas=frequency_lemmas, top_n=1000,
     )
 
-    assert results[1][0].insert_after == 5
+    assert results[1][0].insert_after_shot == 5
+    assert results[1][0].sentences == ["Caminamos por el parque."]
+    assert results[1][0].image_prompt == "People walking in a park"
 
 
-def test_gap_filler_insert_after_defaults_to_minus_one(tmp_path):
-    """insert_after defaults to -1 when not provided by LLM."""
+def test_gap_filler_insert_after_shot_defaults_to_minus_one(tmp_path):
+    """insert_after_shot defaults to -1 when not provided by LLM."""
     deck = _make_deck({1: []})
     frequency_lemmas = {
         "caminar": FrequencyLemmaEntry(lemma="caminar", appropriate=True),
@@ -329,8 +335,9 @@ def test_gap_filler_insert_after_defaults_to_minus_one(tmp_path):
     _write_stories(out_dir, 1, [])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
-    generation_response = {"sentences": [
-        {"source": "Caminamos por el parque.",
+    generation_response = {"shots": [
+        {"sentences": ["Caminamos por el parque."],
+         "image_prompt": "Walking in a park",
          "covers": ["caminar"]},
     ]}
     llm = _make_mock_llm([generation_response])
@@ -344,11 +351,11 @@ def test_gap_filler_insert_after_defaults_to_minus_one(tmp_path):
         frequency_lemmas=frequency_lemmas, top_n=1000,
     )
 
-    assert results[1][0].insert_after == -1
+    assert results[1][0].insert_after_shot == -1
 
 
-def test_gap_filler_prompt_includes_all_sentences_with_indices(tmp_path):
-    """Generation prompt includes ALL existing sentences with sentence_index numbers."""
+def test_gap_filler_prompt_includes_shot_boundaries(tmp_path):
+    """Generation prompt includes existing sentences with shot boundaries."""
     deck = _make_deck({1: []})
     frequency_lemmas = {
         "caminar": FrequencyLemmaEntry(lemma="caminar", appropriate=True),
@@ -364,7 +371,7 @@ def test_gap_filler_prompt_includes_all_sentences_with_indices(tmp_path):
     _write_stories(out_dir, 1, sentences)
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
-    llm = _make_mock_llm([{"sentences": []}])
+    llm = _make_mock_llm([{"shots": []}])
     filler = GapFiller(
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
@@ -376,10 +383,12 @@ def test_gap_filler_prompt_includes_all_sentences_with_indices(tmp_path):
 
     prompt = llm.complete_json.call_args_list[0][0][0]
     # All 15 sentences should appear (no truncation)
-    assert "[14]" in prompt
+    assert "sent 14" in prompt
     assert "Sentence 14" in prompt
-    # Prompt should ask for insert_after
-    assert "insert_after" in prompt
+    # Prompt should ask for insert_after_shot and shots format
+    assert "insert_after_shot" in prompt
+    assert "shots" in prompt
+    assert "image_prompt" in prompt
 
 
 def test_gap_filler_prompt_mentions_coverage_target(tmp_path):
@@ -391,12 +400,75 @@ def test_gap_filler_prompt_mentions_coverage_target(tmp_path):
     def fake_complete_json(prompt, system=None):
         prompts.append(prompt)
         r = MagicMock()
-        r.parsed = {"sentences": []}
+        r.parsed = {"shots": []}
         return r
     llm.complete_json = fake_complete_json
     filler = GapFiller(
         llm=llm, output_dir=tmp_path, config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
         target_language="Spanish", native_language="German", dialect="",
     )
-    filler._generate_sentences(1, filler._chapters[0], ["casa", "perro", "gato"], [])
+    filler._generate_shots(1, filler._chapters[0], ["casa", "perro", "gato"], "")
     assert any("90%" in p for p in prompts)
+
+
+def test_gap_filler_shot_sentences_capped_at_three(tmp_path):
+    """Shots with more than 3 sentences are truncated to 3."""
+    deck = _make_deck({1: []})
+    frequency_lemmas = {
+        "caminar": FrequencyLemmaEntry(lemma="caminar", appropriate=True),
+    }
+    frequency_data = {"caminar": 50}
+
+    out_dir = tmp_path
+    _write_stories(out_dir, 1, [])
+    (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
+
+    generation_response = {"shots": [
+        {"sentences": ["Sent 1.", "Sent 2.", "Sent 3.", "Sent 4."],
+         "image_prompt": "Test scene",
+         "covers": ["caminar"],
+         "insert_after_shot": -1},
+    ]}
+    llm = _make_mock_llm([generation_response])
+
+    filler = GapFiller(
+        llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    results = filler.fill_gaps(
+        deck=deck, frequency_data=frequency_data,
+        frequency_lemmas=frequency_lemmas, top_n=1000,
+    )
+
+    assert len(results[1][0].sentences) == 3
+
+
+def test_gap_filler_shot_string_sentence_coerced_to_list(tmp_path):
+    """A single string sentence is coerced to a list."""
+    deck = _make_deck({1: []})
+    frequency_lemmas = {
+        "caminar": FrequencyLemmaEntry(lemma="caminar", appropriate=True),
+    }
+    frequency_data = {"caminar": 50}
+
+    out_dir = tmp_path
+    _write_stories(out_dir, 1, [])
+    (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
+
+    generation_response = {"shots": [
+        {"sentences": "Caminamos por el parque.",
+         "image_prompt": "Walking in park",
+         "covers": ["caminar"]},
+    ]}
+    llm = _make_mock_llm([generation_response])
+
+    filler = GapFiller(
+        llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    results = filler.fill_gaps(
+        deck=deck, frequency_data=frequency_data,
+        frequency_lemmas=frequency_lemmas, top_n=1000,
+    )
+
+    assert results[1][0].sentences == ["Caminamos por el parque."]
