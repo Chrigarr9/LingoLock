@@ -7,7 +7,7 @@ languages:
   target_code: "es"
   native: "German"
   native_code: "de"
-  dialect: "Rioplatense (vos, Buenos Aires slang where natural)"
+  dialect: ""  # neutral Spanish — no regional dialect for beginner accessibility
 
 protagonist:
   name: "Maria"
@@ -22,7 +22,7 @@ destination:
 story:
   # Default CEFR level — overridden per chapter below.
   cefr_level: "A1"
-  sentences_per_chapter: [10, 18]
+  sentences_per_chapter: [25, 35]
   narration_style: "third-person"
   grammar_targets:
     A1:
@@ -52,222 +52,466 @@ story:
       - "nuanced connectors (sin embargo, a pesar de, dado que)"
   chapters:
 
-    # ── A1 ── Chapters 1-6: Arrival and first days ─────────────────────────
+    # ── A1 ── Chapters 1-8: Berlin to Buenos Aires, first days ───────────
 
-    - title: "Tschüss, Berlin!"
+    - title: "Goodbye, Berlin!"
       cefr_level: "A1"
       context: >
-        Maria is in her apartment in Berlin, packing a small suitcase for her trip to
-        Buenos Aires. She is visiting her friend Sofia, who she met three years ago
-        when Sofia was an exchange student in Germany. Maria is excited and a little
-        nervous. She texts Sofia in Spanish to say she is coming. Her mother helps
-        her pack and gives her a warm hug goodbye.
-      vocab_focus: ["clothing", "colours", "emotions (happy, nervous, excited)", "family (Mutter, Freundin)", "packing verbs (pack, put, take)"]
+        Maria is in her apartment in Berlin, packing her big yellow suitcase for a
+        trip to Buenos Aires. Her mother Ingrid helps her fold clothes and choose what
+        to bring. Maria explains that Sofia is her best friend — they met three years
+        ago when Sofia was an exchange student in Berlin. Now Sofia lives in Buenos
+        Aires and Maria is finally visiting her. Maria is excited but also nervous —
+        it is her first big trip alone. She shows Ingrid a photo of Sofia on her phone.
+        They talk about what Maria will need: a warm jacket for the plane, comfortable
+        shoes, her Spanish notebook. Ingrid gives Maria a small gift — a travel journal
+        to write in every day. Maria texts Sofia: «¡Viajo mañana!» They hug tightly.
+        Ingrid tells her to be careful and to call every few days.
+      vocab_focus: ["clothing (camisa, suéter, zapatos, chaqueta)", "colours (amarillo, azul, blanco, rojo)", "emotions (feliz, nerviosa, emocionada)", "family (madre, amiga)", "packing verbs (poner, guardar, cerrar, llevar)"]
 
-    - title: "Am Flughafen"
+    - title: "The Drive to the Airport"
       cefr_level: "A1"
       context: >
-        Maria arrives at Berlin Brandenburg Airport. She checks in at the counter,
-        shows her passport, and puts her suitcase on the belt. A friendly airline
-        agent speaks to her in Spanish. Maria is surprised — she answers slowly but
-        clearly. She finds her gate, sits down, and waits for boarding. She looks out
-        at the planes on the tarmac.
-      vocab_focus: ["airport nouns (passport, ticket, suitcase, gate)", "numbers (gate numbers, seat)", "colours (red sign, blue plane)", "simple verbs (show, wait, sit, go)"]
+        Early morning, still dark outside. Ingrid drives Maria to Berlin Brandenburg
+        Airport in her small red car. Maria's yellow suitcase is in the back seat.
+        The streets are quiet at first, then they hit traffic near the motorway. Maria
+        looks out the window at Berlin passing by — her school, the park where she
+        jogs, the bakery where she buys bread every Saturday. Ingrid asks what Maria
+        is most excited about. Maria says: the food, the music, and speaking Spanish
+        every day. Ingrid tells her a story about her own first trip abroad when she
+        was young — she went to Italy and got completely lost. They both laugh. At the
+        airport drop-off zone, Ingrid helps Maria take the suitcase out of the car.
+        They hug one last time. Ingrid's eyes are red. Maria waves and walks through
+        the sliding doors. She does not look back.
+      vocab_focus: ["car and traffic (coche, calle, rápido, lento, semáforo)", "city landmarks (escuela, parque, panadería)", "time of day (temprano, mañana, oscuro)", "emotions (triste, contenta, nerviosa)", "family conversation (mamá, hija, viaje)"]
 
-    - title: "Sofia wartet"
+    - title: "At the Airport"
       cefr_level: "A1"
       context: >
-        The plane lands at Ezeiza airport in Buenos Aires. Maria steps out and feels
-        the warm air. Sofia is waiting at arrivals, holding a small sign with Maria's
-        name. They hug and laugh. Sofia says: «¡Bienvenida a Buenos Aires!». Maria
-        tries out her first full sentence in Spanish. They walk together to Sofia's car.
-      vocab_focus: ["greetings (hola, bienvenida, mucho gusto)", "introductions (soy, me llamo)", "feelings (feliz, cansada, sorprendida)", "basic verbs (llegar, esperar, ver, abrazar)"]
+        Maria walks into the big terminal alone. She finds the check-in counter
+        for her airline. She shows her passport and puts her yellow suitcase on the
+        belt — it is heavy. The woman at the counter gives her a boarding pass: seat
+        14A, window. Maria goes through security — she has to take off her jacket and
+        put her bag on the belt. She finds gate B12 and sits down in a blue chair.
+        There are many people waiting. Maria buys a bottle of water and a sandwich
+        from a small shop. She checks her phone — Sofia has sent a voice message
+        saying she is excited. Maria smiles and listens to it twice. She looks out
+        the big window at the planes on the tarmac. A blue plane is very big. A small
+        white plane moves slowly. The boarding announcement comes. Maria stands up,
+        takes a deep breath, and walks to the gate.
+      vocab_focus: ["airport (aeropuerto, pasaporte, maleta, puerta, asiento)", "numbers (catorce, doce, uno, dos)", "food and drink (agua, sándwich, comprar)", "simple verbs (caminar, buscar, esperar, sentarse, mirar)"]
 
-    - title: "Sofias Wohnung"
+    - title: "On the Plane"
       cefr_level: "A1"
       context: >
-        Sofia drives Maria to her apartment in the Palermo neighbourhood. She shows
-        Maria every room: the kitchen, the bathroom, the living room, and Maria's
-        bedroom for the next weeks. Everything is bright and colourful. Sofia points
-        at objects and Maria names them in Spanish. There is a small balcony with a
-        view of the street below.
-      vocab_focus: ["rooms (cocina, baño, salón, dormitorio)", "furniture (mesa, silla, cama, ventana)", "colours", "there is / there are (hay)", "adjectives (grande, pequeño, bonito)"]
+        Maria finds her seat by the window. She puts her bag under the seat in front.
+        A young man sits down next to her — Diego, an Argentine returning home from
+        a work trip in Berlin. He notices Maria's Spanish phrasebook and smiles. He
+        says «Hola» and asks if she speaks Spanish. Maria says «Un poco» and they
+        both laugh. Diego speaks slowly and patiently. Maria learns he is a graphic
+        designer who works in Buenos Aires. The flight is thirteen hours long. They
+        eat dinner on the plane — chicken or pasta. Maria tries her first alfajor
+        from the snack box and loves it. Diego explains what dulce de leche is.
+        Maria practices Spanish words with Diego: ventana, cielo, nube, avión. As it
+        gets dark outside, Diego writes his phone number on a napkin and gives it to
+        Maria. She watches the sunset through the window — orange, pink, and purple
+        over the Atlantic. She tries to sleep but she is too excited.
+      vocab_focus: ["plane (avión, asiento, ventana, cielo, nube)", "food (cena, pollo, pasta, dulce)", "introductions (hola, me llamo, soy de, trabajo en)", "numbers and time (trece, horas, noche)", "colours (naranja, rosa, morado)"]
 
-    - title: "Der erste Morgen"
+    - title: "Welcome to Buenos Aires"
       cefr_level: "A1"
       context: >
-        Maria wakes up early. She hears the street sounds of Buenos Aires — buses,
-        birds, voices. Sofia makes coffee and warms medialunas. They sit at the kitchen
-        table. Sofia teaches Maria the names of everything on the table: the cup, the
-        plate, the sugar. Maria repeats each word. It is Maria's first real Spanish
-        breakfast.
-      vocab_focus: ["breakfast food (café, medialuna, azúcar, leche, taza, plato)", "morning verbs (despertarse, levantarse, tomar, comer)", "time of day (mañana, tarde, noche)", "numbers and quantity (uno, dos, un poco de)"]
+        The plane lands at Ezeiza airport. Maria steps outside and feels the warm,
+        humid air — so different from cold Berlin. Inside the terminal she follows
+        the signs to baggage claim. At the carousel, she waits nervously for her
+        yellow suitcase. Many bags pass but hers does not come. She waits and waits.
+        Finally she sees it — the big yellow suitcase — and pulls it off the belt.
+        She walks through the doors to the arrivals hall. There is Sofia, holding a
+        colourful sign that says «MARIA» in big letters. They run to each other and
+        hug tightly. Sofia is crying and laughing at the same time. Maria tries her
+        first real sentence: «Estoy muy feliz.» Sofia takes her suitcase and leads
+        her outside to the car. The sun is bright and the sky is very blue.
+      vocab_focus: ["airport arrivals (llegar, equipaje, cinta, esperar, señal)", "weather (caliente, húmedo, sol, cielo azul)", "greetings (hola, bienvenida)", "emotions (feliz, nerviosa, contenta, llorar, reír)", "colours (amarillo, azul, grande)"]
 
-    - title: "Ein Spaziergang im Viertel"
+    - title: "Driving Through Buenos Aires"
       cefr_level: "A1"
       context: >
-        After breakfast Sofia takes Maria for a short walk around the Palermo
-        neighbourhood. They pass a park, a bakery, a pharmacy, and a small shop.
-        Sofia points at things: «Eso es una panadería». Maria asks: «¿Qué es eso?»
-        and «¿Cómo se dice…?». They stop at a kiosk and Maria buys a cold drink,
-        paying with coins and practicing numbers.
-      vocab_focus: ["neighbourhood places (parque, panadería, farmacia, kiosco)", "shopping basics (¿cuánto cuesta?, pagar, moneda)", "question words (qué, dónde, cómo)", "colours and sizes in context"]
+        Sofia drives from the airport into the city. Maria looks out the car window
+        with wide eyes. The buildings are tall and colourful — some old, some new.
+        There are trees she has never seen before. The traffic is loud and fast. Sofia
+        points at things and names them: «Eso es un kiosco», «Ahí hay una plaza.»
+        They drive down a huge avenue. Sofia says it is Avenida 9 de Julio — the
+        widest avenue in the world. Maria counts the lanes. They pass cafés with
+        people sitting outside, shops with bright signs, a man walking three dogs.
+        The smells are different from Berlin — grilled meat, flowers, exhaust fumes.
+        Sofia turns into a quieter street in Palermo, lined with jacaranda trees.
+        «Ya casi llegamos», says Sofia. Maria feels like she is in a movie.
+      vocab_focus: ["city (edificio, calle, avenida, plaza, kiosco, tienda)", "transport (auto, manejar, tráfico, rápido)", "describing (grande, viejo, nuevo, alto, colorido)", "senses (olor, ver, escuchar)", "trees and nature (árbol, flor)"]
 
-    # ── A2 ── Chapters 7-12: Exploring the city ────────────────────────────
+    - title: "Sofia's Apartment"
+      cefr_level: "A1"
+      context: >
+        Sofia's apartment is on the third floor of an old building with a green
+        door. They take a small, slow elevator up. Sofia shows Maria every room:
+        the kitchen with blue tiles, a small bathroom with a big mirror, the living
+        room with a colourful rug and a bookshelf full of design books, and Maria's
+        bedroom — a bright room with a window facing the street, a single bed with
+        white sheets, and a wooden chair. Maria opens her yellow suitcase on the
+        bed and starts unpacking. She takes out a gift for Sofia — a box of German
+        chocolates. Sofia is delighted. They go to the balcony and look at the
+        street below. Sofia points out the café on the corner, the bus stop, and
+        the park two blocks away. A neighbour waves from the building across the
+        street. Maria feels at home already.
+      vocab_focus: ["rooms (cocina, baño, dormitorio, sala)", "furniture (cama, silla, mesa, espejo, estante)", "the building (piso, ascensor, puerta, balcón)", "adjectives (grande, pequeño, bonito, viejo, brillante)", "hay (there is / there are)"]
 
-    - title: "Mit der Subte"
+    - title: "The First Morning"
+      cefr_level: "A1"
+      context: >
+        Maria wakes up to unfamiliar sounds: buses honking, birds singing, people
+        talking in Spanish on the street below. The sun is already bright through the
+        thin curtains. She goes to the kitchen where Sofia is making coffee and
+        warming medialunas — small, buttery croissants. They sit at the small kitchen
+        table. Sofia points at everything and teaches Maria the Spanish words: taza,
+        plato, cuchara, cuchillo, azúcar, leche. Maria repeats each word, sometimes
+        getting the pronunciation wrong. Sofia laughs and gently corrects her. The
+        medialunas are warm and sweet. Maria asks how to say «delicious» — Sofia
+        teaches her «delicioso.» They talk about the plan for the day. Sofia suggests
+        a walk in the neighbourhood. Maria looks out the window at the sunny street
+        and says: «Sí, vamos.» She feels like a new chapter of her life is beginning.
+      vocab_focus: ["breakfast (café, medialuna, azúcar, leche, taza, plato)", "cutlery (cuchara, cuchillo, taza)", "morning (mañana, sol, despertarse, levantarse)", "sounds (sonido, pájaro, colectivo, gente)", "taste (delicioso, dulce, caliente)"]
+
+    # ── A2 ── Chapters 9-16: Exploring, meeting people ───────────────────
+
+    - title: "A Walk in the Neighbourhood"
       cefr_level: "A2"
       context: >
-        Sofia shows Maria how to use the Buenos Aires metro (subte). They buy a
-        SUBE card, tap the turnstile, and wait on the platform. The train arrives
-        with a rush of warm air. They sit together and Sofia explains the different
-        lines. Maria reads the map and asks where to change trains. They get off at
-        a busy station in the city centre and walk up into the sunlight.
-      vocab_focus: ["transport (subte, línea, estación, andén, tarjeta)", "directions (izquierda, derecha, recto, aquí, allí)", "asking for help (¿dónde está?, ¿cómo llego a?)", "past tense (llegamos, salimos, compramos)"]
+        After breakfast, Sofia takes Maria for a walk around Palermo. The morning
+        air is warm. They pass a park with tall trees and children playing, a bakery
+        with fresh bread in the window, a pharmacy with a green cross sign, and a
+        small flower shop. Sofia points and names each place. Maria asks «¿Qué es
+        eso?» and «¿Cómo se dice...?» at everything she sees. They stop at a kiosk
+        on the corner. Maria wants to buy a cold drink. She practices: «¿Cuánto
+        cuesta?» The shopkeeper answers and Maria counts her coins carefully. She
+        pays and feels proud — her first solo purchase in Spanish. On the way back,
+        Maria tries to name things on the street by herself: semáforo, banco, perro,
+        bicicleta. She gets most of them right. Sofia claps and says: «¡Muy bien!»
+      vocab_focus: ["neighbourhood (panadería, farmacia, kiosco, parque, florería)", "shopping (¿cuánto cuesta?, pagar, moneda, comprar)", "question words (qué, dónde, cómo, cuánto)", "street objects (semáforo, banco, bicicleta, perro)"]
 
-    - title: "Einkaufen im Supermarkt"
+    - title: "Riding the Subte"
       cefr_level: "A2"
       context: >
-        Maria and Sofia go to a supermarket to buy food for the week. Sofia gives
-        Maria a short shopping list and sends her off alone to find things. Maria
-        asks a shop assistant where the fruit is, how much the cheese costs, and
-        where she can find milk. She brings everything to the counter and pays.
-        She feels proud. They pack the bags and walk home.
-      vocab_focus: ["food items (fruta, verdura, leche, queso, pan, arroz)", "quantities (un kilo de, medio litro de, una docena)", "shopping verbs (comprar, pagar, buscar, encontrar)", "polite requests (¿me podría decir…?, ¿tiene…?)"]
+        Sofia teaches Maria how to use the Buenos Aires metro — the subte. They walk
+        to the nearest station and buy Maria her own SUBE card at the kiosk. Sofia
+        shows her how to tap the turnstile. On the platform, Maria studies the metro
+        map — coloured lines going in every direction. The train arrives with a rush
+        of warm air. It is crowded inside. They squeeze in and hold onto the bars.
+        Sofia explains which line goes where: «La línea D va al centro.» Maria asks:
+        «¿Dónde cambiamos?» They change at a busy station. Maria reads the signs and
+        finds the right platform by herself. Sofia is impressed. They get off at Plaza
+        de Mayo and walk up the stairs into the sunlight. The plaza is huge. Maria
+        looks around at the historic buildings and palm trees. She feels like she is
+        starting to know the city.
+      vocab_focus: ["transport (subte, estación, andén, línea, tarjeta, molinete)", "directions (izquierda, derecha, aquí, allí, cambiar)", "city navigation (mapa, señal, plaza, centro)", "past tense (llegamos, salimos, compramos, bajamos)"]
 
-    - title: "Der Markt in San Telmo"
+    - title: "Grocery Shopping"
       cefr_level: "A2"
       context: >
-        On Saturday Maria and Sofia visit the famous San Telmo market. They walk
-        through colourful stalls selling antiques, leather goods, handmade jewellery,
-        and spices. Maria wants to buy a small souvenir. She bargains a little with
-        the vendor, asking for a lower price. She describes colours and sizes. In the
-        end she buys a turquoise bracelet. They eat empanadas from a street stall.
-      vocab_focus: ["market stalls (puesto, vendedor, artesanía, recuerdo)", "bargaining (¿me hace un descuento?, está caro)", "colours and materials (turquesa, cuero, plateado)", "narrating a past experience (fuimos, vimos, compramos, comimos)"]
+        Sofia gives Maria a short shopping list written in Spanish and sends her to
+        the supermarket alone — a challenge. Maria walks the aisles looking for items:
+        milk, cheese, bread, six eggs, apples, and rice. She cannot find the eggs. She
+        approaches a shop assistant and asks: «¿Dónde están los huevos?» He points her
+        to the right aisle and smiles. At the fruit section she asks: «¿Cuánto cuesta
+        un kilo de manzanas?» She picks out six red apples and weighs them. She brings
+        everything to the counter, counts the items, and pays with cash. The cashier
+        speaks fast but Maria catches enough to understand. She carries the two heavy
+        bags home through the sunny streets. When she arrives, Sofia checks the list.
+        Maria got everything right — except she bought too many apples. They laugh.
+      vocab_focus: ["food (fruta, verdura, leche, queso, pan, huevo, arroz, manzana)", "quantities (un kilo de, seis, docena, medio litro)", "shopping verbs (comprar, pagar, buscar, encontrar, pesar)", "polite requests (¿dónde están?, ¿cuánto cuesta?, ¿tiene?)"]
 
-    - title: "Abendessen in Palermo"
+    - title: "Maria's Family"
       cefr_level: "A2"
       context: >
-        Sofia has invited two of her Argentine friends — Lucas and Valentina — to
-        dinner at a neighbourhood restaurant. Maria meets them for the first time.
-        She introduces herself, says where she's from, and explains why she's learning
-        Spanish. They order food and drinks. Lucas asks Maria questions about Germany.
-        The conversation is fast but Maria follows more than she expected.
-      vocab_focus: ["restaurant vocabulary (menú, pedir, plato, cuenta, propina)", "introducing people (te presento a, él es, ella es)", "likes and preferences (me gusta, prefiero, no me gusta mucho)", "past + present mix in conversation"]
+        In the evening, Maria and Sofia sit on the couch with cups of tea. Sofia asks
+        about Maria's family. Maria pulls out her phone and shows photos. Her father
+        Thomas is fifty-two and works as a teacher at a school in Berlin. Her mother
+        Ingrid is forty-nine and works at a hospital. Her younger brother Felix is
+        seventeen and still in high school — he loves video games and football. They
+        have a dog named Bodo, a big brown labrador. Maria says the ages and counts
+        the family members. Sofia shows photos of her own family: her parents live in
+        Mendoza, her older sister Carolina lives in Córdoba with her husband and a baby.
+        Sofia has many tíos, tías, primos, and abuelos — her family is huge. Maria's
+        family is small. They talk about what they miss most about home. Maria says she
+        misses her mother's cooking and her brother's bad jokes.
+      vocab_focus: ["family (padre, madre, hermano, hermana, tío, tía, abuelo, abuela, primo, esposo, bebé)", "ages and numbers (años, diecisiete, cincuenta y dos)", "professions (profesor, doctor, estudiante)", "describing people (grande, joven, viejo)", "pets (perro, gato)"]
 
-    - title: "Fußball und Freunde"
+    - title: "Dinner in Palermo"
       cefr_level: "A2"
       context: >
-        Lucas invites Maria and Sofia to watch a Boca Juniors match at a bar in
-        San Telmo. The place is packed and loud. Everyone is wearing blue and yellow.
-        Lucas explains the rules of Argentine football culture. Maria cheers and
-        shouts along. Boca scores and everyone jumps up. After the match they talk
-        about the game, the players, and their favourite sports. Maria says she
-        plays tennis at home.
-      vocab_focus: ["sports (fútbol, tenis, gol, jugador, equipo, ganar, perder)", "expressing excitement (¡qué golazo!, ¡increíble!, ¡no puede ser!)", "talking about hobbies (jugar, practicar, me encanta)", "past tense narration (metió, ganó, jugamos)"]
+        Sofia has invited two friends to dinner at a neighbourhood restaurant: Lucas,
+        an old friend from university, and his girlfriend Valentina, who is from
+        Colombia. Maria is nervous about meeting new people and speaking Spanish all
+        evening. At the restaurant, Sofia introduces everyone: «Te presento a Maria,
+        mi amiga de Alemania.» Lucas shakes Maria's hand warmly and says: «¡Bienvenida!»
+        Valentina smiles and says «Mucho gusto» with a Colombian accent. They order food —
+        Maria tries bife de chorizo for the first time. Lucas asks Maria questions about
+        Germany: the weather, the food, what young people do for fun. Valentina helps
+        translate when Maria gets stuck on a word. The conversation is fast but Maria
+        follows more than she expected. By dessert, they are all laughing together.
+        Lucas insists on paying for everyone. Maria says «Gracias» and means it deeply.
+      vocab_focus: ["restaurant (menú, pedir, plato, cuenta, propina, camarero)", "introductions (te presento a, mucho gusto, bienvenida)", "food (bife, ensalada, postre, vino, agua)", "opinions (me gusta, prefiero, es delicioso)", "social phrases (gracias, por favor, salud)"]
 
-    - title: "Ein Tag in La Boca"
+    - title: "The San Telmo Market"
       cefr_level: "A2"
       context: >
-        Maria and Sofia spend a morning in La Boca, the famous colourful neighbourhood
-        by the river. They walk along El Caminito, see the painted houses in red,
-        blue, yellow and green, and watch a tango couple perform in the street.
-        Sofia explains the history of the neighbourhood in simple Spanish. Maria
-        takes photos and describes what she sees. They drink mate sitting on a bench
-        and talk about what they have done since Maria arrived.
-      vocab_focus: ["colours and art (colorido, pintado, azul, rojo, amarillo)", "history and place words (barrio, historia, río, calle)", "present perfect / past review (hemos visitado, hice, vi)", "mate culture (mate, cebar, amargo, compartir)"]
+        On Saturday, Maria, Sofia, and Valentina visit the famous San Telmo market.
+        The cobblestone streets are full of stalls selling antiques, leather bags,
+        handmade jewellery, old records, and spices. A man plays the accordion on a
+        corner. Maria wants to buy a souvenir for her mother. Valentina helps her
+        negotiate with a vendor: «¿Me hace un descuento?» Maria examines a turquoise
+        bracelet — she describes the colour and asks the price. They haggle a little.
+        The vendor lowers the price and Maria buys it, feeling accomplished. They eat
+        empanadas from a street stall — Maria tries the ones with meat and the ones
+        with cheese. Valentina says the cheese ones are better. They watch a tango
+        couple dance in the middle of the street while people throw coins. Maria takes
+        photos and sends them to her mother with the message: «Buenos Aires es increíble.»
+      vocab_focus: ["market (puesto, vendedor, artesanía, recuerdo, antigüedad)", "bargaining (descuento, precio, caro, barato)", "colours and materials (turquesa, cuero, plata, madera)", "past narration (fuimos, vimos, compramos, comimos, bailaron)"]
 
-    # ── B1 ── Chapters 13-17: Deeper connections ────────────────────────────
+    - title: "A Morning in the Park"
+      cefr_level: "A2"
+      context: >
+        Maria, Sofia, and Lucas meet early at Bosques de Palermo for exercise. The
+        park is green and huge, with a lake and paths between the trees. Lucas brought
+        a football. They start with a jog along the lake — Maria's legs hurt after
+        five minutes but she pushes through. Lucas runs ahead easily. After the jog,
+        they find a flat area of grass and kick the football around. Maria is terrible
+        at football and kicks the ball into a bush. Lucas laughs so hard he falls over.
+        Sofia sits under a tree and watches, drinking mate. Afterwards they stretch on
+        the grass and drink water. Lucas talks about his running routine and the gym.
+        Maria says she played tennis in Germany and went swimming every week. They
+        compare sports: in Argentina, fútbol is everything. Lucas promises to teach
+        Maria some moves. Maria's whole body hurts but she feels alive.
+      vocab_focus: ["sports (fútbol, tenis, nadar, correr, pelota, gol)", "body (pierna, brazo, cuerpo, pie, cabeza)", "park and nature (parque, lago, árbol, pasto, camino)", "exercise (correr, estirar, descansar, agua, gimnasio)", "past tense (corrimos, jugamos, me dolió, se cayó)"]
 
-    - title: "Beim Tangokurs"
+    - title: "Football and Friends"
+      cefr_level: "A2"
+      context: >
+        Lucas invites Maria and Sofia to watch a Boca Juniors match at a crowded
+        sports bar in San Telmo. The place is packed and loud. Everyone is wearing
+        blue and yellow. Banners hang from the ceiling. Lucas orders beers and
+        explains the rules and the history of the Boca vs River Plate rivalry —
+        the biggest in Argentine football. Maria does not understand all the rules
+        but she feels the energy. When Boca scores, the whole bar explodes — everyone
+        jumps, screams, and hugs strangers. Maria shouts «¡Gooool!» along with them.
+        After the match they talk about their favourite sports and players. Maria says
+        she prefers tennis. Lucas pretends to be offended: «¿Tenis? ¡Eso no es un
+        deporte de verdad!» Everyone laughs. They walk home through the night streets,
+        still buzzing with excitement. Maria thinks: I have real friends here now.
+      vocab_focus: ["football (fútbol, gol, equipo, jugador, ganar, perder, partido)", "excitement (¡increíble!, ¡golazo!, gritar, saltar)", "hobbies (jugar, practicar, me encanta, preferir)", "bar and drinks (bar, cerveza, pedir)", "narrating events (metió, ganó, gritamos, caminamos)"]
+
+    # ── B1 ── Chapters 17-23: Deeper connections ─────────────────────────
+
+    - title: "A Day in La Boca"
       cefr_level: "B1"
       context: >
-        Sofia surprises Maria with a beginner tango class at a milonga in Boedo.
-        The instructor, a passionate older man named Roberto, teaches them the
-        basic steps. Maria stumbles but laughs. Roberto explains the philosophy of
-        tango: listening, leading, following. During the break Maria talks to another
-        student, a young Colombian woman, about how long they have been learning
-        Spanish and what they find difficult about the language.
-      vocab_focus: ["dance and music (tango, paso, ritmo, bailar, pareja)", "learning language (aprender, practicar, cometer errores, progresar)", "giving and receiving instructions (ponete derecha, seguime, escuchá el ritmo)", "B1 tenses: past + imperfect contrast, duration expressions (llevo dos años)"]
+        Maria, Sofia, and Valentina spend a morning in La Boca, the famous colourful
+        neighbourhood by the port. They walk along El Caminito with its houses painted
+        in bright red, blue, yellow, and green. An old man plays the bandoneón while
+        a tango couple dances in the street. Sofia explains the history of the barrio:
+        Italian immigrants who arrived by ship in the early 1900s, the port workers who
+        painted their houses with leftover ship paint. Valentina takes photos of Maria
+        posing in front of the painted walls. They sit on a bench and Sofia teaches
+        Maria how to drink mate properly — the bitter taste surprises her at first but
+        she grows to like it. The conversation turns reflective: Maria talks about
+        everything she has done since arriving. She realises she has been in Buenos
+        Aires for two weeks already. Time has flown by. She has learned more Spanish
+        than in a whole year of classes.
+      vocab_focus: ["colours and art (colorido, pintado, mural, barrio)", "history (historia, inmigrante, puerto, siglo, pintura)", "mate culture (mate, amargo, compartir, yerba)", "reflecting on time (hace dos semanas, desde que llegué, ya)", "duration expressions (llevo dos semanas, desde hace)"]
 
-    - title: "Ein Wochenendausflug nach Tigre"
+    - title: "Getting Lost"
       cefr_level: "B1"
       context: >
-        Lucas organises a day trip to Tigre, a river delta north of Buenos Aires.
-        The group takes the train, then a small boat through the islands. They visit
-        a fruit market on the water and have lunch at a riverside restaurant.
-        Maria is moved by how peaceful and different it feels from the city. On the
-        boat back, she and Valentina talk about nature, travel dreams, and what they
-        would do if they could live anywhere in the world.
-      vocab_focus: ["nature and water (río, isla, delta, bosque, barca)", "travel and excursions (excursión, paseo, paisaje, tranquilo)", "hypothetical / conditional (si pudiera, me gustaría vivir)", "comparing places (es más tranquilo que, me parece que, a diferencia de)"]
+        Maria decides to explore the city centre by herself for the first time. She
+        takes the subte but gets off at the wrong station. The streets look completely
+        unfamiliar. She walks for twenty minutes, looking for landmarks, but nothing
+        matches the map on her phone. She is lost. She asks an older woman for
+        directions but the woman speaks too fast. She tries a young man with headphones
+        — he points toward a plaza but Maria cannot follow his explanation. Her phone
+        battery is low. She starts to feel anxious. Then she remembers: Diego gave her
+        his number on the plane. She calls him. It is the first time they have spoken
+        since the flight. Diego calmly talks her through the directions and offers to
+        meet her at a nearby café. Fifteen minutes later, they sit together laughing
+        about her adventure. Diego tells her about his first time getting lost in
+        Berlin when he was there for work. They order coffee and talk for two hours.
+        When Maria gets home, Sofia asks where she was. Maria just smiles.
+      vocab_focus: ["directions (izquierda, derecha, recto, doblar, cuadra, cruzar)", "being lost (perdida, buscar, encontrar, camino, mapa)", "phone (teléfono, llamar, batería, número)", "emotions (nerviosa, asustada, aliviada, contenta)", "past narration (me perdí, caminé, llamé, nos sentamos)"]
 
-    - title: "Beim Arzt"
+    - title: "The Tango Class"
       cefr_level: "B1"
       context: >
-        Maria wakes up with a sore throat and a slight fever. Sofia takes her to
-        a neighbourhood health centre. A doctor examines Maria and asks her about
-        her symptoms, diet, and recent activities. Maria explains everything as best
-        she can in Spanish. The doctor prescribes rest and medication. At the pharmacy
-        Maria asks the pharmacist which tablet to take and when. She feels relieved
-        but also surprised that she managed to handle it all in Spanish.
-      vocab_focus: ["health and body (garganta, fiebre, dolor, síntoma, medicamento, pastilla)", "medical interaction (examinar, recetar, ¿desde cuándo?, ¿le duele aquí?)", "explaining cause and effect (porque me duele, desde ayer, cada ocho horas)", "B1 subjunctive in advice (es importante que descanse, le recomiendo que tome)"]
+        Sofia surprises Maria with a beginner tango class at a milonga in Boedo. The
+        room is old and elegant, with wooden floors and dim lights. The instructor is
+        Roberto, a passionate man in his sixties with silver hair and a commanding
+        presence. He teaches the basic steps: listen to the music, feel the rhythm,
+        let your body follow. Maria stumbles and steps on Sofia's feet several times.
+        Roberto watches and corrects her gently: «Escuchá la música, no mires los
+        pies.» During the break, Maria asks Roberto how long he has been teaching
+        tango. He says forty years. He explains that tango is not just a dance — it is
+        a conversation between two people, about trust and listening. Maria draws a
+        parallel to learning a language: you have to listen before you speak. Roberto
+        smiles and says: «Exacto. El tango y el idioma son lo mismo.» Maria dances
+        once more at the end of the class. She is still bad, but she is no longer
+        afraid. She has learned that making mistakes is part of learning.
+      vocab_focus: ["dance and music (tango, paso, ritmo, bailar, pareja, música)", "learning (aprender, practicar, error, progresar, escuchar)", "instructions (poné los pies así, seguime, escuchá)", "body (pie, mano, cuerpo, brazo, espalda)", "duration (llevo cuarenta años, desde que empecé, hace mucho)"]
 
-    - title: "Kulturgespräch"
+    - title: "A Weekend Trip to Tigre"
       cefr_level: "B1"
       context: >
-        Maria and Valentina spend an afternoon at a café, talking about cultural
-        differences between Germany and Argentina. They discuss family structures,
-        meal times, attitudes to punctuality, and how people greet each other.
-        Maria shares things that surprised her; Valentina explains why things are
-        the way they are. They both challenge some of their own assumptions. The
-        conversation gets lively when they talk about tipping at restaurants.
-      vocab_focus: ["culture and society (costumbre, cultura, diferencia, tradición, puntualidad)", "expressing opinions (creo que, desde mi punto de vista, me parece que)", "comparing cultures (en Alemania se hace así, acá en Argentina es distinto)", "conceding and countering (aunque, sin embargo, es verdad que, pero por otro lado)"]
+        Lucas organises a day trip to Tigre, a river delta north of Buenos Aires. The
+        whole group goes: Maria, Sofia, Lucas, Valentina, and Diego. They take the
+        train from Retiro station. The scenery changes from concrete city to lush green
+        suburbs. At Tigre they board a small wooden boat that takes them through narrow
+        channels between the islands. The water is brown and calm. Birds fly overhead.
+        They visit a fruit market on the water — bananas, mandarins, papayas — and have
+        lunch at a riverside restaurant with a view of the delta. The food is simple
+        but delicious. Maria is moved by how peaceful it feels compared to the city.
+        On the boat back, the conversations get deeper. Valentina and Maria talk about
+        where they would live if they could choose anywhere in the world. Diego says he
+        would stay right here in Argentina. Lucas says he dreams of Japan. Sofia teases
+        everyone for being romantics. The sun sets over the water as they head back.
+      vocab_focus: ["nature (río, isla, delta, bosque, pájaro, agua, árbol)", "travel (tren, barco, excursión, paisaje, tranquilo)", "food and market (fruta, banana, mercado, almuerzo)", "hypothetical (si pudiera, me gustaría vivir en, elegiría)", "comparing (es más tranquilo que, a diferencia de, me parece)"]
 
-    - title: "Was willst du mit deinem Leben machen?"
+    - title: "At the Doctor"
       cefr_level: "B1"
       context: >
-        On a quiet evening, Maria and Sofia sit on the balcony and have a deep
-        conversation about their futures. Sofia is finishing her design degree and
-        is thinking about starting her own studio. Maria is considering whether to
-        stay in Germany or try living abroad for a year. They talk about their dreams,
-        fears, and what really matters to them. The city hums below them.
-      vocab_focus: ["future plans (quiero, espero, pienso, tengo ganas de)", "work and study (carrera, estudio, empresa, diseño)", "expressing uncertainty and hope (no sé si, ojalá, me gustaría pero)", "talking about life values (lo más importante para mí es, lo que más me importa)"]
+        Maria wakes up with a sore throat and a slight fever. Her head hurts and she
+        can barely swallow. Sofia takes her to a neighbourhood health centre. In the
+        waiting room, Maria fills out a form with her name, age, and symptoms. The
+        doctor, a calm woman in her forties, examines Maria's throat and takes her
+        temperature. She asks: «¿Desde cuándo te sentís así?» Maria explains that it
+        started yesterday evening. The doctor asks about her diet, sleep, and whether
+        she has been drinking enough water. She prescribes rest, a medication for the
+        inflammation, and plenty of fluids. At the pharmacy next door, Maria reads the
+        instructions on the box and asks the pharmacist how often to take the pills and
+        whether she can take them with food. Back at Sofia's apartment, Maria lies on
+        the couch with tea and a blanket. Sofia brings her soup. Maria feels weak but
+        also proud — she handled the entire medical visit in Spanish without needing
+        Sofia to translate.
+      vocab_focus: ["health (garganta, fiebre, dolor, cabeza, síntoma, temperatura)", "medical (doctor, receta, medicamento, pastilla, farmacia)", "body (garganta, cabeza, estómago, mano, boca)", "time and frequency (desde ayer, cada ocho horas, dos veces al día)", "subjunctive in advice (es importante que descanse, le recomiendo que tome)"]
 
-    # ── B2 ── Chapters 18-20: Complex and cultural ─────────────────────────
+    - title: "A Phone Call Home"
+      cefr_level: "B1"
+      context: >
+        In the evening, while Sofia is out, Maria sits on the balcony with a glass of
+        wine and video-calls her parents. Her mother Ingrid answers first, then her
+        father Thomas joins. Maria tells them about everything — the market, the tango
+        class, getting lost, the football match, her new friends. She shows them the
+        view from the balcony. Her mother asks if she is eating well. Her father asks
+        about the political situation and whether it is safe. Maria's brother Felix
+        appears briefly in the background and shouts: «Bring me a Boca Juniors jersey!»
+        Maria laughs. She realises she has been talking for an hour, mixing German and
+        Spanish words without noticing. Her mother says: «You sound different. More
+        confident.» The call gets quiet for a moment. Her mother asks: «When are you
+        coming home?» Maria pauses. She does not have a clear answer. She says: «Soon.
+        But not yet.» After she hangs up, she sits on the balcony alone, listening to
+        the sounds of the city, and writes in her travel journal.
+      vocab_focus: ["communication (teléfono, llamar, videollamada, mensaje, voz)", "family (mamá, papá, hermano, familia, casa)", "narrating experiences (le conté sobre, les mostré, me preguntaron)", "time (una hora, hace una semana, pronto, todavía)", "emotions (confianza, nostalgia, orgullo, felicidad)"]
 
-    - title: "Geschichte und Erinnerung"
+    - title: "A Birthday Party"
+      cefr_level: "B1"
+      context: >
+        It is Valentina's birthday. Maria and Sofia go shopping for a gift at a small
+        boutique in Palermo — they choose a colourful silk scarf. In the evening, they
+        go to Valentina's apartment. Lucas, Diego, Roberto, and several other friends
+        are already there. The table is covered with empanadas, cake, and bottles of
+        wine. Valentina is turning twenty-six. They light the candles and sing «Feliz
+        cumpleaños.» Valentina makes a wish and blows them out. Diego has brought his
+        guitar and plays a few songs — Argentine folk music and a Colombian song for
+        Valentina. People dance in the small living room. Maria dances with Sofia, then
+        with Diego. The night stretches late. Around midnight, a smaller group sits on
+        Valentina's balcony with the city lights below. The conversation turns personal.
+        Maria tells Diego about her life in Berlin — her work, her friends, what she
+        misses. Diego talks about his childhood in Rosario before moving to Buenos
+        Aires. The city hums below them. Someone says it is three in the morning.
+        Nobody wants to leave.
+      vocab_focus: ["celebration (fiesta, cumpleaños, regalo, vela, canción, torta)", "music (guitarra, canción, bailar, tocar, música)", "numbers and age (veintiséis, medianoche, tres de la mañana)", "social (invitar, brindar, desear, celebrar)", "narrating a night (fuimos, bailamos, nos sentamos, hablamos hasta)"]
+
+    # ── B2 ── Chapters 24-27: Complex and cultural ───────────────────────
+
+    - title: "Culture Talk"
       cefr_level: "B2"
       context: >
-        Maria visits the ESMA memorial museum — the site of a former detention
-        centre during Argentina's military dictatorship. Sofia joins her and
-        explains the history quietly and carefully. Maria finds it deeply moving
-        and difficult. Afterwards they sit outside and talk about how countries
-        process difficult history, how memory is kept alive, and what the role of
-        art and education is in preventing such events from recurring.
-      vocab_focus: ["history and memory (dictadura, memoria, derechos humanos, desaparecido, resistencia)", "expressing emotional response (me impactó, fue difícil de entender, me dejó pensando)", "discussing responsibility (es importante recordar, no se puede olvidar, la sociedad tiene la responsabilidad)", "B2 subjunctive in opinion and argument (es fundamental que se recuerde, me parece indispensable que)"]
+        Maria and Valentina spend an afternoon at a quiet café in Palermo. What starts
+        as a casual conversation about food turns into a deep discussion about cultural
+        differences. Valentina compares three cultures: Colombian, Argentine, and German.
+        They talk about family structures — how in Latin America families stay physically
+        close, while in Germany children leave home at eighteen. They discuss attitudes
+        to punctuality: in Germany, five minutes late is rude; in Argentina, half an
+        hour late is normal. They debate the ritual of greeting with a kiss on the cheek
+        versus a handshake. Maria shares what has surprised her most: how strangers talk
+        to each other on the street, how dinner starts at ten at night, how people argue
+        passionately and then hug. Valentina challenges some of Maria's assumptions about
+        Latin America being «less organised.» Maria pushes back too — she says efficiency
+        is not the same as coldness. They debate tipping: in Germany it is small and
+        calculated, in Argentina generous but casual. They leave feeling like they
+        understand the world, and themselves, a little better.
+      vocab_focus: ["culture (costumbre, tradición, diferencia, puntualidad, saludo)", "opinions (creo que, me parece que, desde mi punto de vista)", "comparing (en Alemania se hace así, acá es distinto, a diferencia de)", "debating (aunque, sin embargo, es verdad que, por otro lado)", "abstract nouns (libertad, respeto, identidad, comunidad)"]
 
-    - title: "Ein Streit und eine Versöhnung"
+    - title: "History and Memory"
       cefr_level: "B2"
       context: >
-        Maria and Sofia have a disagreement — Maria made plans with Lucas and
-        Valentina without telling Sofia first, and Sofia feels left out. The
-        tension surfaces during dinner. They argue briefly but then talk it out
-        honestly. Maria apologises and explains how she sees things; Sofia explains
-        how she felt. They laugh eventually and feel closer. The conversation
-        touches on friendship, expectations, and communication across cultures.
-      vocab_focus: ["conflict and resolution (malentendido, disculpa, herir, aclarar, reconciliar)", "expressing feelings precisely (me sentí excluida, no era mi intención, me dolió que)", "B2 subjunctive in emotion (me alegra que lo hayas dicho, lamento que te hayas sentido así)", "nuanced connectors (a pesar de eso, más allá de, sin querer, de todas formas)"]
+        Maria and Sofia visit the ESMA memorial museum — the site of a former detention
+        centre during Argentina's military dictatorship in the 1970s and 80s. Sofia
+        explains the history quietly as they walk through the rooms. Some are empty
+        except for a photograph or a list of names on the wall. Maria reads testimonies
+        from survivors. She finds it deeply moving and difficult to process. One room
+        displays the white headscarves of the Madres de Plaza de Mayo. Maria thinks of
+        the Holocaust memorials in Berlin. Afterwards they sit on a bench outside in the
+        sun. They talk about how countries process difficult history: through education,
+        through art, through never forgetting. Sofia says her grandmother remembers the
+        dictatorship — a friend of hers disappeared and was never found. Maria asks how
+        a country moves forward when the wounds are still open. They sit in silence for
+        a while. On the bus home, Maria writes in her journal: «Understanding a country
+        means understanding its pain.»
+      vocab_focus: ["history (dictadura, memoria, derechos humanos, desaparecido, democracia)", "emotional response (me impactó, me conmovió, fue difícil de entender)", "discussing responsibility (es fundamental que se recuerde, no se puede olvidar)", "subjunctive in argument (es importante que la sociedad recuerde, dudo que sea fácil)", "nuanced connectors (a pesar de todo, sin embargo, dado que, no obstante)"]
 
-    - title: "Adiós, Buenos Aires"
+    - title: "A Fight and a Reconciliation"
       cefr_level: "B2"
       context: >
-        It is Maria's last day. Sofia has organised a small farewell gathering at
-        her apartment: Lucas, Valentina, Roberto the tango teacher, and a few others.
-        They share food, music, and memories from Maria's weeks in the city. Maria
-        gives a short speech in Spanish, reflecting on everything she has learned —
-        not just the language, but about herself and the world. At the airport, she
-        and Sofia say goodbye. On the plane, Maria writes in her journal about Buenos
-        Aires, wondering when she will return.
-      vocab_focus: ["farewell and gratitude (despedida, agradecimiento, recuerdo, echar de menos)", "reflecting on growth (he aprendido que, lo que más me llevo es, me ha cambiado)", "B2 perfect subjunctive and conditional perfect (si hubiera sabido, ojalá hubiera tenido más tiempo)", "future speculation (volveré, quizás el año que viene, no sé cuándo pero sé que)"]
+        Maria has been spending a lot of time with Diego lately — coffees, walks through
+        the city, long text messages. Sofia has noticed. One evening, Maria casually
+        mentions she has plans with Diego on Saturday — the same day Sofia had planned
+        a special outing for just the two of them. Sofia goes quiet. Then she gets upset.
+        She says she feels like Maria came to Buenos Aires to visit her, but now she is
+        always somewhere else, always texting someone else. Maria is defensive at first:
+        «Diego is just a friend, and you are not my mother.» The words come out sharper
+        than she intended. They go to separate rooms. The apartment feels cold. Later
+        that night, Maria knocks on Sofia's door. They sit on Sofia's bed and talk
+        honestly. Maria apologises for not considering Sofia's feelings. Sofia explains
+        that she was not jealous of Diego — she was afraid of losing her best friend,
+        of feeling like she was not enough. Maria says Sofia is the reason she came.
+        They cry a little and then laugh at themselves. The fight makes their friendship
+        stronger and more honest than before.
+      vocab_focus: ["conflict (pelea, malentendido, discutir, herir, aclarar)", "emotions (excluida, herida, celosa, culpable, aliviada)", "subjunctive in emotion (me dolió que no me dijeras, lamento que te hayas sentido así)", "reconciliation (disculpa, perdonar, reconciliarse, abrazar)", "nuanced expression (no era mi intención, más allá de eso, a pesar de todo)"]
+
+    - title: "Goodbye, Buenos Aires"
+      cefr_level: "B2"
+      context: >
+        Maria's last day in Buenos Aires. Sofia has organised a small farewell gathering
+        at her apartment: Lucas, Valentina, Diego, Roberto the tango teacher, and a few
+        other friends Maria has made along the way. The table is full of food — asado,
+        empanadas, ensalada, flan. Someone puts on music. They share memories from
+        Maria's weeks in the city: the day she got lost, her terrible first tango,
+        the Boca match, the fight that made everything better. Maria stands up and gives
+        a short speech in Spanish. Her voice shakes but the words come out clearly. She
+        thanks each person by name for what they taught her — not just words, but how to
+        listen, how to trust, how to be present. At the airport, it is just Maria and
+        Sofia. They hold each other for a long time at the security gate. «Volvé pronto»,
+        whispers Sofia. Maria walks through security without looking back because she
+        knows she will cry. On the plane, she opens her travel journal — the one Ingrid
+        gave her in the first chapter — and begins to write about Buenos Aires, the
+        friends she made, the person she has become. She wonders when she will return.
+        She already knows she will.
+      vocab_focus: ["farewell (despedida, adiós, agradecimiento, recuerdo, extrañar)", "reflecting on growth (he aprendido que, lo que más me llevo, me ha cambiado)", "perfect subjunctive (si hubiera sabido, ojalá hubiera tenido más tiempo)", "conditional perfect (habría hecho las cosas de otra manera)", "future and hope (volveré, quizás el año que viene, sé que voy a volver)"]
 
 llm:
   provider: "google"
@@ -291,18 +535,26 @@ audio_generation:
   speaking_rate: 1.0
 
 secondary_characters:
+  - name: "Ingrid"
+    visual_tag: "Ingrid: early-50s German woman, short wavy light-brown hair, kind blue eyes, reading glasses on a chain, soft beige cardigan, warm and practical"
+    chapters: [1, 2]
+
   - name: "Sofia"
     visual_tag: "Sofia: mid-20s Argentine woman, curly dark-brown shoulder-length hair, dark eyes, warm olive skin, bright smile, colourful oversized t-shirt and wide-leg trousers"
-    chapters: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    chapters: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 25, 26, 27]
+
+  - name: "Diego"
+    visual_tag: "Diego: late-20s Argentine man, tall and lean, dark curly hair, warm brown eyes, light stubble, fitted grey t-shirt, dark jeans, canvas messenger bag, relaxed artistic vibe"
+    chapters: [4, 18, 20, 23, 27]
 
   - name: "Lucas"
     visual_tag: "Lucas: late-20s Argentine man, short black hair, stubble, broad shoulders, plain navy t-shirt, jeans, easy-going grin"
-    chapters: [10, 11, 14, 19]
+    chapters: [13, 15, 16, 20, 23, 27]
 
   - name: "Valentina"
     visual_tag: "Valentina: mid-20s Colombian woman, long straight dark hair, square glasses, patterned blouse, curious and animated expression"
-    chapters: [10, 16, 17, 19]
+    chapters: [13, 14, 17, 20, 23, 24, 27]
 
   - name: "Roberto"
     visual_tag: "Roberto: 60s Argentine tango teacher, silver combed-back hair, sharp cheekbones, black shirt, elegant posture, commanding but warm"
-    chapters: [13, 19]
+    chapters: [19, 23, 27]
