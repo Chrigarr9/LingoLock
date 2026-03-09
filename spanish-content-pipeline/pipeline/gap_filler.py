@@ -61,19 +61,28 @@ class GapFiller:
 
     def fill_gaps(
         self,
-        deck: OrderedDeck,
-        frequency_data: dict[str, int],
-        frequency_lemmas: dict[str, FrequencyLemmaEntry],
+        deck: "OrderedDeck | None" = None,
+        frequency_data: dict[str, int] | None = None,
+        frequency_lemmas: dict | None = None,
         top_n: int = 1000,
+        stories: dict[int, str] | None = None,
     ) -> dict[int, list[GapSentence]]:
         """Assign missing words to chapters and generate gap sentences.
 
         Returns dict mapping chapter number → list of GapSentence.
         Caches assignment and per-chapter sentences to disk.
         """
-        report = check_coverage(
-            deck, frequency_data, top_n=top_n, frequency_lemmas=frequency_lemmas
-        )
+        if frequency_data is None:
+            frequency_data = {}
+
+        # Get missing words — from stories (text stage) or deck (fill-gaps stage)
+        if stories is not None:
+            from pipeline.coverage_checker import scan_story_coverage
+            report = scan_story_coverage(stories, frequency_data, frequency_lemmas, top_n=top_n)
+        else:
+            report = check_coverage(
+                deck, frequency_data, top_n=top_n, frequency_lemmas=frequency_lemmas
+            )
         missing = report.missing_words
 
         if not missing:
