@@ -1,6 +1,7 @@
 """Pass 1 (scene-first): Generate story chapters as scenes/shots/sentences with image prompts."""
 
 import json
+import re
 from pathlib import Path
 
 from pipeline.config import DeckConfig
@@ -21,6 +22,8 @@ language learning story.
    knows exactly what to draw for each group of sentences.
 
 ## Output Format
+IMPORTANT: The chapter MUST contain at least {min_sentences} sentences total (across all scenes and shots). Generate enough scenes and shots to hit this minimum. Fewer than {min_sentences} is unacceptable.
+
 Return a JSON object with a "scenes" array. Each scene has:
 - "setting": snake_case location tag (e.g. "maria_bedroom_berlin")
 - "description": 1-2 sentence description of the environment (lighting, objects, mood)
@@ -137,6 +140,7 @@ _NARRATION_INSTRUCTIONS = {
 
 def _build_system_prompt(config: DeckConfig) -> str:
     p = config.protagonist
+    min_sentences = config.story.sentences_per_chapter[0]
     style = getattr(config.story, "narration_style", "third-person")
     template = _NARRATION_INSTRUCTIONS.get(style, _NARRATION_INSTRUCTIONS["third-person"])
     narration_instruction = template.format(name=p.name)
@@ -144,6 +148,7 @@ def _build_system_prompt(config: DeckConfig) -> str:
         protagonist_name=p.name,
         protagonist_visual_tag=p.visual_tag,
         narration_instruction=narration_instruction,
+        min_sentences=min_sentences,
     )
 
 
@@ -246,6 +251,7 @@ Destination: {d.city}, {d.country}
 Chapter context: {chapter.context}
 Vocabulary focus: {vocab_str}{secondary_section}{story_so_far}{_format_vocab_plan(vocabulary_plan)}
 
+IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot can have 2-3 sentences. Aim for {min_sentences}-{max_sentences} sentences.
 Return the chapter as a JSON object with a "scenes" array following the format above.
 Ensure sentence_index values are sequential starting from 0."""
 
@@ -275,10 +281,21 @@ def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScen
             shot.image_prompt = f"{style}. {raw}. {suffix}"
 
             # --- Sentence source: replace with plain name for learners ---
+            known_upper = {p.name.upper(), "PROTAGONIST"} | {
+                sc.name.upper() for sc in config.secondary_characters
+            }
             for sentence in shot.sentences:
                 sentence.source = sentence.source.replace("PROTAGONIST", p.name)
                 for sc in config.secondary_characters:
                     sentence.source = sentence.source.replace(sc.name.upper(), sc.name)
+                # Replace unknown ALL-CAPS names (LLM-invented characters)
+                sentence.source = re.sub(
+                    r"\b([A-ZÁÉÍÓÚÑÜ]{3,})\b",
+                    lambda m: m.group(1).capitalize()
+                    if m.group(1) not in known_upper
+                    else m.group(1),
+                    sentence.source,
+                )
 
     return chapter_data
 
