@@ -48,7 +48,7 @@ from pipeline.image_generator import ImageGenerator
 from pipeline.llm import create_client
 from pipeline.models import ChapterScene, ImagePromptResult, SentencePair
 from pipeline.cefr_simplifier import CEFRSimplifier
-from pipeline.sentence_inserter import insert_into_chapter_scene
+from pipeline.sentence_inserter import insert_into_chapter_scene, insert_shots_into_chapter_scene
 from pipeline.sentence_translator import SentenceTranslator
 from pipeline.story_generator import (
     StoryGenerator,
@@ -244,11 +244,11 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                     total_gap = sum(len(s) for s in gap_results.values())
                     print(f"  Generated {total_gap} gap sentences across {len(gap_results)} chapters")
 
-                    # Insert gap sentences into stories
+                    # Insert gap shots into stories
                     for ch_num, gap_sents in gap_results.items():
                         ch_idx = ch_num - 1
                         if ch_idx in chapter_scenes:
-                            chapter_scenes[ch_idx] = insert_into_chapter_scene(
+                            chapter_scenes[ch_idx] = insert_shots_into_chapter_scene(
                                 chapter_scenes[ch_idx], gap_sents,
                             )
                             story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"

@@ -4,7 +4,7 @@
 from pipeline.models import (
     ChapterScene, GapSentence, GrammarGapSentence, Scene, Shot, ShotSentence,
 )
-from pipeline.sentence_inserter import insert_into_chapter_scene
+from pipeline.sentence_inserter import insert_into_chapter_scene, insert_shots_into_chapter_scene
 
 
 def _make_chapter_scene(sentences: list[str]) -> ChapterScene:
@@ -71,3 +71,81 @@ def test_insert_into_chapter_scene_empty_new_returns_same():
     cs = _make_chapter_scene(["A."])
     result = insert_into_chapter_scene(cs, [])
     assert result.scenes[0].shots[0].sentences[0].source == "A."
+
+
+# --- Shot-level insertion tests ---
+
+def _make_chapter_for_shots():
+    return ChapterScene(chapter=1, scenes=[Scene(
+        setting="room", description="A room",
+        shots=[
+            Shot(focus="greet", image_prompt="img1", sentences=[
+                ShotSentence(source="Hola.", sentence_index=0),
+                ShotSentence(source="Buenos días.", sentence_index=1),
+            ]),
+            Shot(focus="ask", image_prompt="img2", sentences=[
+                ShotSentence(source="¿Cómo estás?", sentence_index=2),
+            ]),
+        ],
+    )])
+
+
+def test_insert_shots_adds_new_shot():
+    cs = _make_chapter_for_shots()
+    gap_shot = type("GS", (), {
+        "sentences": ["Nueva frase."],
+        "image_prompt": "new image",
+        "covers": ["nuevo"],
+        "insert_after_shot": 0,
+    })()
+    result = insert_shots_into_chapter_scene(cs, [gap_shot])
+    assert len(result.scenes[0].shots) == 3  # was 2, now 3
+    assert result.scenes[0].shots[1].image_prompt == "new image"
+    assert result.scenes[0].shots[1].sentences[0].source == "Nueva frase."
+
+
+def test_insert_shots_appends_at_end():
+    cs = _make_chapter_for_shots()
+    gap_shot = type("GS", (), {
+        "sentences": ["Final."],
+        "image_prompt": "end image",
+        "covers": ["final"],
+        "insert_after_shot": -1,
+    })()
+    result = insert_shots_into_chapter_scene(cs, [gap_shot])
+    last_shot = result.scenes[0].shots[-1]
+    assert last_shot.image_prompt == "end image"
+    assert last_shot.sentences[0].source == "Final."
+
+
+def test_insert_shots_preserves_existing():
+    cs = _make_chapter_for_shots()
+    gap_shot = type("GS", (), {
+        "sentences": ["X."],
+        "image_prompt": "img",
+        "covers": ["x"],
+        "insert_after_shot": 0,
+    })()
+    result = insert_shots_into_chapter_scene(cs, [gap_shot])
+    # Original shots unchanged
+    assert result.scenes[0].shots[0].sentences[0].source == "Hola."
+    assert len(result.scenes[0].shots[0].sentences) == 2  # unchanged
+
+
+def test_insert_shots_reindexes():
+    cs = _make_chapter_for_shots()
+    gap_shot = type("GS", (), {
+        "sentences": ["X.", "Y."],
+        "image_prompt": "img",
+        "covers": ["x"],
+        "insert_after_shot": 0,
+    })()
+    result = insert_shots_into_chapter_scene(cs, [gap_shot])
+    indices = [s.sentence_index for scene in result.scenes for shot in scene.shots for s in shot.sentences]
+    assert indices == list(range(len(indices)))
+
+
+def test_insert_shots_empty_returns_same():
+    cs = _make_chapter_for_shots()
+    result = insert_shots_into_chapter_scene(cs, [])
+    assert result is cs  # no copy needed
