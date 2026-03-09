@@ -40,29 +40,55 @@ def _build_audit_prompt(
         cfg = chapter_configs[ch_num - 1] if ch_num <= len(chapter_configs) else {}
         title = cfg.get("title", f"Chapter {ch_num}")
         cefr = cfg.get("cefr_level", "?")
+        context = cfg.get("context", "")
         story_lines.append(f"\n--- Chapter {ch_num}: \"{title}\" [{cefr}] ---")
+        if context:
+            story_lines.append(f"  Context: {context}")
         for idx, sentence in enumerate(chapters[ch_num]):
             story_lines.append(f"  [{ch_num}:{idx}] {sentence}")
     story_block = "\n".join(story_lines)
 
     system = (
-        "You are an expert Spanish language editor reviewing a graded reader story "
-        "for language learners. You check for semantic errors, not style preferences. "
-        "Only flag clear mistakes. Return valid JSON."
+        "You are an expert language editor reviewing a graded reader story "
+        "for language learners. You check for semantic, grammatical, and "
+        "continuity errors. Only flag clear mistakes — not style preferences. "
+        "Return valid JSON."
     )
 
     prompt = (
         f"Review this complete story for errors.\n\n"
         f"CHARACTERS:\n{char_block}\n\n"
         f"STORY:\n{story_block}\n\n"
-        f"Check for:\n"
-        f"1. VERB COLLOCATIONS — subjects must use appropriate verbs "
-        f"(cars/planes don't 'caminar', people don't 'volar')\n"
-        f"2. CHARACTER CONSISTENCY — names, relationships, who appears where "
-        f"(check character list above)\n"
-        f"3. CROSS-CHAPTER CONTINUITY — objects/details that should carry over\n"
-        f"4. CEFR LEVEL VIOLATIONS — sentences too complex for the chapter's level\n"
-        f"5. SCENE LOGIC — actions must fit the setting\n\n"
+        f"Check for these error categories:\n\n"
+        f"1. TENSE CONSISTENCY\n"
+        f"   - Narrative tense must be consistent within each chapter\n"
+        f"   - Past events must use past tense, not present\n"
+        f"   - Example error: \"Yo estoy perdida en Roma\" when narrating a past memory "
+        f"→ fix: \"Yo estaba perdida en Roma\"\n"
+        f"   - Example error: Using present tense \"María camina\" mid-chapter when the "
+        f"rest uses preterite \"María caminó\"\n\n"
+        f"2. CHARACTER CONSISTENCY\n"
+        f"   - Characters must only appear in their assigned chapters\n"
+        f"   - Names, relationships, and roles must be consistent\n"
+        f"   - Check the character list above for which chapters each character appears in\n\n"
+        f"3. CROSS-CHAPTER CONTINUITY\n"
+        f"   - Objects, clothing, and possessions must be consistent across chapters\n"
+        f"   - Example error: \"cardigan verde\" in ch3 when ch1 established \"chaqueta azul\"\n"
+        f"   - Locations must match the story context (don't reference cities the character hasn't visited)\n\n"
+        f"4. CEFR LEVEL VIOLATIONS\n"
+        f"   - Each chapter has a CEFR level shown in brackets [A1], [A2], etc.\n"
+        f"   - A1 chapters: only simple present, ser/estar, hay, basic adjectives, simple questions\n"
+        f"   - A1 should NOT have: subjunctive, compound tenses, imperatives with clitics, "
+        f"advanced vocabulary like \"temblorosas\", \"alivio\", \"anuncia\"\n"
+        f"   - A2 chapters may add: preterite, imperfecto, reflexives, comparatives, modals\n"
+        f"   - Example error: \"Ten cuidado y llámame\" in A1 (imperative+clitic = A2+)\n"
+        f"   - Example error: \"Cuídate\" in A1 (reflexive imperative = A2+)\n"
+        f"   - When fixing CEFR violations, simplify the sentence to fit the level, "
+        f"don't just swap one word\n\n"
+        f"5. SCENE LOGIC\n"
+        f"   - Actions must fit the setting described in context\n"
+        f"   - Verb collocations must be correct (cars don't walk, people don't fly)\n"
+        f"   - Contradictions within a chapter (e.g. \"many open suitcases\" when only one was mentioned)\n\n"
         f"Return ONLY a JSON object with a 'fixes' array. Each fix:\n"
         f'{{\n'
         f'  "fixes": [\n'
