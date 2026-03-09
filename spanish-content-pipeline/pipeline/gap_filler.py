@@ -182,11 +182,30 @@ class GapFiller:
     # ------------------------------------------------------------------ #
 
     def _load_existing_sentences(self, chapter_num: int) -> list[SentencePair]:
-        """Load existing translations for a chapter from disk (if available)."""
-        path = self._output_dir / "translations" / f"chapter_{chapter_num:02d}.json"
-        if not path.exists():
+        """Load existing sentences for a chapter from disk.
+
+        Tries stories/ first (scene JSON → flat sentences), falls back to
+        translations/ for backwards compatibility.
+        """
+        # Try stories/ (new pipeline order — translations may not exist yet)
+        story_path = self._output_dir / "stories" / f"chapter_{chapter_num:02d}.json"
+        if story_path.exists():
+            from pipeline.models import ChapterScene
+            chapter_data = ChapterScene(**json.loads(story_path.read_text()))
+            pairs = []
+            for scene in chapter_data.scenes:
+                for shot in scene.shots:
+                    for sent in shot.sentences:
+                        pairs.append(SentencePair(
+                            chapter=chapter_num, sentence_index=sent.sentence_index,
+                            source=sent.source, target="",
+                        ))
+            return pairs
+        # Fallback: translations/
+        trans_path = self._output_dir / "translations" / f"chapter_{chapter_num:02d}.json"
+        if not trans_path.exists():
             return []
-        raw = json.loads(path.read_text())
+        raw = json.loads(trans_path.read_text())
         return [SentencePair(**p) for p in raw]
 
     def _generate_sentences(

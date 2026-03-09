@@ -1,18 +1,21 @@
 """Run the content pipeline in reviewable stages.
 
 Stage text (default):
-  Pass 0: unconstrained story generation → stories_raw/
+  Pass 0: Story generation → stories_raw/
   Pass 1: CEFR simplification → stories/
-  Passes 2-3: translation, word extraction + vocabulary DB.
-  Output lives in output/<deck-id>/stories/, translations/, words/, vocabulary.json.
-  Review and edit those files before proceeding.
+  Pass 2: Grammar audit + grammar gap fill → gap sentences (source only)
+  Pass 3: Insert gap sentences into stories/
+  Pass 4: Story audit → fixes applied to stories/
+  Pass 5: Translation → translations/
+  Pass 6: Word extraction → words/ + vocabulary.json
+  Output lives in output/<deck-id>/{stories,translations,words}/, vocabulary.json.
 
 Stage lemmatize:
-  Pass 0: LLM-lemmatize top-N words from frequency file. Cached — safe to re-run.
+  LLM-lemmatize top-N words from frequency file. Cached — safe to re-run.
   Output: output/<deck-id>/frequency_lemmas.json
 
 Stage fill-gaps:
-  Pass 3b: Generate gap-filling sentences for missing high-frequency words.
+  Generate gap-filling sentences for missing high-frequency vocabulary.
   Requires vocabulary.json (text stage) + frequency_lemmas.json (lemmatize stage).
   Output: output/<deck-id>/gap_sentences/, vocabulary.json (rebuilt).
 
@@ -42,9 +45,9 @@ from pipeline.config import DeckConfig, load_config
 from pipeline.coverage_checker import check_coverage, load_frequency_data
 from pipeline.image_generator import ImageGenerator
 from pipeline.llm import create_client
-from pipeline.models import ImagePromptResult, SentencePair
+from pipeline.models import ChapterScene, ImagePromptResult, SentencePair
 from pipeline.cefr_simplifier import CEFRSimplifier
-from pipeline.sentence_inserter import insert_sentences
+from pipeline.sentence_inserter import insert_into_chapter_scene, insert_sentences
 from pipeline.sentence_translator import SentenceTranslator
 from pipeline.story_generator import (
     StoryGenerator,
@@ -65,8 +68,8 @@ def parse_chapter_range(spec: str, max_chapters: int) -> range:
         return range(idx, idx + 1)
 
 
-def get_api_key(config: DeckConfig) -> str:
-    if config.llm.provider == "google":
+def get_api_key_for_provider(provider: str) -> str:
+    if provider == "google":
         key = os.environ.get("GEMINI_API_KEY")
         if not key:
             print("Error: GEMINI_API_KEY not set")
@@ -79,8 +82,12 @@ def get_api_key(config: DeckConfig) -> str:
     return key
 
 
-def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None):
-    """Passes 1-3 + vocabulary. All output cached to disk for review."""
+def get_api_key(config: DeckConfig) -> str:
+    return get_api_key_for_provider(config.llm.provider)
+
+
+def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None, audit_llm=None):
+    """Full text pipeline: generate → simplify → grammar gaps → insert → audit → translate → extract."""
 
     # Pass 0: Unconstrained story generation → stories_raw/
     print("=== Pass 0: Unconstrained Story Generation ===")
@@ -95,8 +102,8 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
     # Pass 1: CEFR simplification → stories/
     print("\n=== Pass 1: CEFR Simplification ===")
     simplifier = CEFRSimplifier(config, llm, output_base=output_base)
-    chapter_scenes = {}
-    stories = {}
+    chapter_scenes: dict[int, ChapterScene] = {}
+    stories: dict[int, str] = {}
     for idx, i in enumerate(chapter_range):
         ch = config.story.chapters[i]
         cefr = ch.cefr_level or config.story.cefr_level
@@ -105,32 +112,12 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
         stories[i] = extract_flat_text(chapter_scenes[i])
         print("done")
 
-    # Pass 2: Translation
-    print("\n=== Pass 2: Sentence Translation ===")
-    translator = SentenceTranslator(config, llm, output_base=output_base)
-    all_pairs = {}
-    for i in chapter_range:
-        ch = config.story.chapters[i]
-        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        all_pairs[i] = translator.translate_chapter(i, stories[i])
-        print(f"done ({len(all_pairs[i])} sentences)")
-
-    # Pass 3: Word extraction
-    print("\n=== Pass 3: Word Extraction ===")
-    extractor = WordExtractor(config, llm, output_base=output_base)
-    all_chapters = []
-    for i in chapter_range:
-        ch = config.story.chapters[i]
-        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        chapter_words = extractor.extract_chapter(i, all_pairs[i])
-        all_chapters.append(chapter_words)
-        print(f"done ({len(chapter_words.words)} words)")
-
-    # Pass 3c: Grammar Audit (optional)
+    # Pass 2: Grammar Audit + Gap Fill (before translation — source only)
     if config.story.grammar_targets:
         from pipeline.grammar_auditor import audit_grammar
+        from pipeline.grammar_gap_filler import GrammarGapFiller
 
-        print("\n=== Pass 3c: Grammar Audit ===")
+        print("\n=== Pass 2: Grammar Audit ===")
         chapters_by_cefr: dict[str, list[str]] = {}
         for i in chapter_range:
             ch = config.story.chapters[i]
@@ -154,9 +141,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                 if t.present and t.example:
                     print(f"           Example: {t.example}")
 
-        # Pass 3d: Grammar Gap Filling
-        from pipeline.grammar_gap_filler import GrammarGapFiller
-
+        # Pass 2b: Grammar Gap Filling
         grammar_filler = GrammarGapFiller(
             llm=llm,
             output_dir=output_base / config.deck.id,
@@ -172,41 +157,108 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
         grammar_sentences = grammar_filler.fill_gaps(grammar_report)
 
         if grammar_sentences:
-            print(f"\n=== Pass 3d: Grammar Gap Filling ===")
+            print(f"\n=== Pass 2b: Grammar Gap Filling ===")
             print(f"  Generated {len(grammar_sentences)} sentences for missing grammar targets")
             for s in grammar_sentences:
                 print(f"    [{s.cefr_level}] {s.grammar_target}")
                 print(f"      {s.source}")
 
-            # Insert grammar gap sentences into translation files at natural positions
+            # Pass 3: Insert grammar gap sentences into stories/ ChapterScene JSON
             from collections import defaultdict
             by_chapter: dict[int, list] = defaultdict(list)
             for gs in grammar_sentences:
                 by_chapter[gs.chapter].append(gs)
 
+            print(f"\n=== Pass 3: Insert Gap Sentences into Stories ===")
             for ch_num, g_sentences in by_chapter.items():
-                trans_path = output_base / config.deck.id / "translations" / f"chapter_{ch_num:02d}.json"
-                existing = [SentencePair(**p) for p in json.loads(trans_path.read_text())] if trans_path.exists() else []
-                merged = insert_sentences(existing, g_sentences)
-                trans_path.write_text(json.dumps(
-                    [{"chapter": s.chapter, "sentence_index": s.sentence_index, "source": s.source, "target": s.target} for s in merged],
-                    ensure_ascii=False, indent=2
-                ))
-
-            # Add to all_pairs so vocabulary builder picks them up
-            for gs in grammar_sentences:
-                ch_idx = gs.chapter - 1
-                if ch_idx in {i for i in chapter_range}:
-                    if ch_idx not in all_pairs:
-                        all_pairs[ch_idx] = []
-                    all_pairs[ch_idx].append(SentencePair(
-                        chapter=gs.chapter,
-                        sentence_index=len(all_pairs[ch_idx]),
-                        source=gs.source,
-                        target=gs.target,
+                ch_idx = ch_num - 1
+                if ch_idx in chapter_scenes:
+                    chapter_scenes[ch_idx] = insert_into_chapter_scene(
+                        chapter_scenes[ch_idx], g_sentences,
+                    )
+                    # Update stories/ on disk
+                    story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"
+                    story_path.write_text(json.dumps(
+                        chapter_scenes[ch_idx].model_dump(), ensure_ascii=False, indent=2,
                     ))
+                    # Re-extract flat text for translation
+                    stories[ch_idx] = extract_flat_text(chapter_scenes[ch_idx])
+                    print(f"  Chapter {ch_num}: inserted {len(g_sentences)} gap sentences")
         else:
             print("\n  No grammar gaps to fill.")
+
+    # Pass 4: Story Audit (optional — uses separate reasoning model)
+    if audit_llm:
+        from pipeline.story_auditor import audit_story, apply_fixes
+
+        print("\n=== Pass 4: Story Audit ===")
+        # Build chapters dict: {chapter_num: [sentence1, sentence2, ...]}
+        audit_chapters: dict[int, list[str]] = {}
+        for i in chapter_range:
+            audit_chapters[i + 1] = stories[i].split("\n")
+
+        # Build characters list from config
+        characters = [{"name": config.protagonist.name, "role": "protagonist"}]
+        for sc in config.secondary_characters:
+            characters.append({
+                "name": sc.name,
+                "role": "secondary character",
+                "chapters": sc.chapters,
+            })
+
+        # Build chapter configs
+        chapter_configs = [
+            {"title": ch.title, "cefr_level": ch.cefr_level or config.story.cefr_level, "context": ch.context}
+            for ch in config.story.chapters
+        ]
+
+        fixes = audit_story(
+            chapters=audit_chapters,
+            characters=characters,
+            chapter_configs=chapter_configs,
+            llm=audit_llm,
+        )
+
+        if fixes:
+            print(f"  Found {len(fixes)} issues:")
+            for fix in fixes:
+                print(f"    Ch{fix.chapter}[{fix.sentence_index}]: {fix.reason}")
+                print(f"      {fix.original}")
+                print(f"      → {fix.fixed}")
+
+            stories_dir = output_base / config.deck.id / "stories"
+            applied = apply_fixes(fixes, stories_dir)
+            print(f"  Applied {applied}/{len(fixes)} fixes to stories/")
+
+            # Reload chapter_scenes and stories from fixed files
+            for i in chapter_range:
+                story_path = stories_dir / f"chapter_{i+1:02d}.json"
+                if story_path.exists():
+                    chapter_scenes[i] = ChapterScene(**json.loads(story_path.read_text()))
+                    stories[i] = extract_flat_text(chapter_scenes[i])
+        else:
+            print("  No issues found — clean bill of health!")
+
+    # Pass 5: Translation (on final, clean source text)
+    print("\n=== Pass 5: Sentence Translation ===")
+    translator = SentenceTranslator(config, llm, output_base=output_base)
+    all_pairs: dict[int, list[SentencePair]] = {}
+    for i in chapter_range:
+        ch = config.story.chapters[i]
+        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
+        all_pairs[i] = translator.translate_chapter(i, stories[i])
+        print(f"done ({len(all_pairs[i])} sentences)")
+
+    # Pass 6: Word extraction
+    print("\n=== Pass 6: Word Extraction ===")
+    extractor = WordExtractor(config, llm, output_base=output_base)
+    all_chapters = []
+    for i in chapter_range:
+        ch = config.story.chapters[i]
+        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
+        chapter_words = extractor.extract_chapter(i, all_pairs[i])
+        all_chapters.append(chapter_words)
+        print(f"done ({len(chapter_words.words)} words)")
 
     # Vocabulary DB
     print("\n=== Building Vocabulary Database ===")
@@ -232,8 +284,6 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
     # Coverage report
     if frequency_data:
-        # Build inflection → lemma map from word extractor output so that
-        # inflected forms (está, tengo, voy) map to their lemma (estar, tener, ir).
         inflection_to_lemma: dict[str, str] = {}
         for ch in all_chapters:
             for w in ch.words:
@@ -242,13 +292,11 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                 if src != lemma:
                     inflection_to_lemma[src] = lemma
 
-        # Load frequency_lemmas if available (from prior lemmatize pass)
         from pipeline.models import FrequencyLemmaEntry as _FLE
         frequency_lemmas = None
         lemma_path = output_base / config.deck.id / "frequency_lemmas.json"
         if lemma_path.exists():
-            import json as _json
-            raw = _json.loads(lemma_path.read_text())
+            raw = json.loads(lemma_path.read_text())
             frequency_lemmas = {k: _FLE(**v) for k, v in raw.items()}
 
         print("\n=== Coverage Report ===")
@@ -487,11 +535,22 @@ def main():
             max_retries=config.llm.max_retries,
         )
 
+    # Separate audit LLM client (reasoning model for story audit)
+    audit_llm = None
+    if config.story_audit and config.story_audit.enabled:
+        audit_key = get_api_key_for_provider(config.story_audit.provider)
+        audit_llm = create_client(
+            provider=config.story_audit.provider,
+            api_key=audit_key,
+            model=config.story_audit.model,
+            temperature=config.story_audit.temperature,
+        )
+
     if args.stage in ("lemmatize", "all"):
         run_lemmatize_stage(config, llm, output_base, args.frequency_file)
 
     if args.stage in ("text", "all"):
-        run_text_stage(config, llm, chapter_range, output_base, args.frequency_file, args.config, top_n=args.top_n)
+        run_text_stage(config, llm, chapter_range, output_base, args.frequency_file, args.config, top_n=args.top_n, audit_llm=audit_llm)
 
     if args.stage in ("fill-gaps", "all"):
         run_fill_gaps_stage(config, llm, output_base, args.frequency_file, top_n=args.top_n)
