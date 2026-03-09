@@ -387,3 +387,83 @@ def check_coverage(
         outside_top_n=outside_top,
         outside_top_n_label=f"top_{max_threshold}",
     )
+
+
+def scan_story_coverage(
+    stories: dict[int, str],
+    frequency_data: dict[str, int],
+    frequency_lemmas: dict | None = None,
+    top_n: int = 1000,
+) -> CoverageReport:
+    """Lightweight coverage check from raw story text (no vocabulary.json needed).
+
+    Tokenizes story text, resolves lemmas, and checks against frequency data.
+    Used during the text stage before vocabulary extraction exists.
+    """
+    if frequency_lemmas is None:
+        frequency_lemmas = {}
+
+    # Build merged lemma map
+    merged_map: dict[str, str] = {**SPANISH_VERB_FORMS}
+    for word, entry in frequency_lemmas.items():
+        merged_map[word] = entry.lemma
+
+    # Collect inappropriate lemmas
+    inappropriate: set[str] = set()
+    for word, entry in frequency_lemmas.items():
+        if not entry.appropriate:
+            inappropriate.add(entry.lemma)
+            inappropriate.add(word)
+
+    # Tokenize all stories
+    story_words: set[str] = set()
+    for text in stories.values():
+        for token in text.lower().split():
+            cleaned = token.strip(".,;:!?¡¿\"'()[]—–-")
+            if cleaned:
+                story_words.add(cleaned)
+
+    # Resolve story words to lemmas
+    story_lemmas: set[str] = set(story_words)
+    for w in story_words:
+        if w in merged_map:
+            story_lemmas.add(merged_map[w])
+
+    # Filter frequency data
+    content_freq = {
+        w: rank for w, rank in frequency_data.items()
+        if w not in SPANISH_FUNCTION_WORDS
+    }
+    top_words = {w for w, rank in content_freq.items() if rank <= top_n}
+
+    def is_covered(word: str) -> bool:
+        return word in story_lemmas or merged_map.get(word, word) in story_lemmas
+
+    covered = {w for w in top_words if is_covered(w)}
+
+    # Missing lemmas (deduplicated)
+    missing_lemmas: set[str] = set()
+    for w in top_words:
+        if is_covered(w):
+            continue
+        lemma = merged_map.get(w, w)
+        if lemma in story_lemmas or lemma in inappropriate or w in inappropriate:
+            continue
+        if lemma in SPANISH_FUNCTION_WORDS:
+            continue
+        missing_lemmas.add(lemma)
+
+    missing_sorted = sorted(missing_lemmas, key=lambda w: content_freq.get(w, 999999))
+    pct = (len(covered) / len(top_words) * 100) if top_words else 0.0
+
+    return CoverageReport(
+        total_vocabulary=len(story_lemmas),
+        frequency_matched=0,
+        top_1000_covered=len(covered),
+        top_1000_total=len(top_words),
+        coverage_percent=round(pct, 1),
+        missing_words=missing_sorted,
+        thresholds={},
+        outside_top_n=0,
+        outside_top_n_label=f"top_{top_n}",
+    )
