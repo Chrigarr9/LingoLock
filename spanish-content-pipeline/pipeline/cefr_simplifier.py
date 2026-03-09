@@ -189,7 +189,13 @@ class CEFRSimplifier:
                         Shot(
                             focus=sh.get("focus", ""),
                             image_prompt=sh.get("image_prompt", ""),
-                            sentences=[ShotSentence(**sent) for sent in sh["sentences"]],
+                            sentences=[
+                                ShotSentence(
+                                    source=sent.get("source", sent.get("text", "")),
+                                    sentence_index=sent.get("sentence_index", 0),
+                                )
+                                for sent in sh["sentences"]
+                            ],
                         )
                         for sh in s["shots"]
                     ],
