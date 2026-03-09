@@ -94,7 +94,24 @@ class LLMClient:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
         result = self._call(messages, response_format=response_format)
-        result.parsed = json.loads(result.content)
+        try:
+            result.parsed = json.loads(result.content)
+        except json.JSONDecodeError:
+            text = result.content.strip()
+            start = text.find("{")
+            if start == -1:
+                raise
+            depth = 0
+            end = start
+            for i, ch in enumerate(text[start:], start):
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            result.parsed = json.loads(text[start : end + 1])
         return result
 
 
