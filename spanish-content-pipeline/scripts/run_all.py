@@ -503,32 +503,34 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
 
 
 def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
-    """Pass 3b: Generate gap-filling sentences and rebuild vocabulary."""
+    """Generate gap-filling sentences (standalone). Sentences are inserted during text stage."""
     from pipeline.gap_filler import GapFiller
-    from pipeline.models import FrequencyLemmaEntry, OrderedDeck
-    from pipeline.vocabulary_builder import merge_gap_sentences
+    from pipeline.models import FrequencyLemmaEntry
 
     out_dir = output_base / config.deck.id
-    vocab_path = out_dir / "vocabulary.json"
     lemma_path = out_dir / "frequency_lemmas.json"
 
-    if not vocab_path.exists():
-        print("Error: vocabulary.json not found. Run --stage text first.")
+    if not frequency_file:
+        print("Error: --frequency-file required for fill-gaps stage")
         sys.exit(1)
     if not lemma_path.exists():
         print("Error: frequency_lemmas.json not found. Run --stage lemmatize first.")
         sys.exit(1)
 
-    print("=== Pass 3b: Gap Filling ===")
-    deck = OrderedDeck(**json.loads(vocab_path.read_text()))
+    print("=== Gap Filling (standalone) ===")
+    frequency_data = load_frequency_data(Path(frequency_file))
     raw_lemmas = json.loads(lemma_path.read_text())
     frequency_lemmas = {k: FrequencyLemmaEntry(**v) for k, v in raw_lemmas.items()}
 
-    frequency_data = {}
-    if frequency_file:
-        freq_path = Path(frequency_file)
-        if freq_path.exists():
-            frequency_data = load_frequency_data(freq_path)
+    # Load stories for coverage scan
+    stories_dir = out_dir / "stories"
+    stories: dict[int, str] = {}
+    if stories_dir.exists():
+        from pipeline.models import ChapterScene
+        for story_file in sorted(stories_dir.glob("chapter_*.json")):
+            ch_num = int(story_file.stem.split("_")[1])
+            cs = ChapterScene(**json.loads(story_file.read_text()))
+            stories[ch_num - 1] = extract_flat_text(cs)
 
     filler = GapFiller(
         llm=llm,
@@ -536,10 +538,10 @@ def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
         config_chapters=config.story.chapters,
         target_language=config.languages.target,
         native_language=config.languages.native,
-        dialect=config.languages.dialect,
+        dialect=config.languages.dialect or "",
     )
     gap_results = filler.fill_gaps(
-        deck=deck,
+        stories=stories,
         frequency_data=frequency_data,
         frequency_lemmas=frequency_lemmas,
         top_n=top_n or config.story.coverage_top_n,
@@ -551,11 +553,7 @@ def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
 
     total_sentences = sum(len(s) for s in gap_results.values())
     print(f"  Generated {total_sentences} gap sentences across {len(gap_results)} chapters")
-
-    # Rebuild vocabulary with gap sentences merged
-    updated_deck = merge_gap_sentences(deck, gap_results, frequency_data)
-    vocab_path.write_text(json.dumps(updated_deck.model_dump(), ensure_ascii=False, indent=2))
-    print(f"  Vocabulary rebuilt: {updated_deck.total_words} words (was {deck.total_words})")
+    print("  Note: Run --stage text to insert these into stories and rebuild vocabulary.")
 
 
 def main():

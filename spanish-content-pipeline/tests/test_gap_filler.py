@@ -380,3 +380,23 @@ def test_gap_filler_prompt_includes_all_sentences_with_indices(tmp_path):
     assert "Sentence 14" in prompt
     # Prompt should ask for insert_after
     assert "insert_after" in prompt
+
+
+def test_gap_filler_prompt_mentions_coverage_target(tmp_path):
+    """The generation prompt should mention 90% coverage target."""
+    from pipeline.gap_filler import GapFiller
+
+    prompts = []
+    llm = MagicMock()
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"sentences": []}
+        return r
+    llm.complete_json = fake_complete_json
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path, config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    filler._generate_sentences(1, filler._chapters[0], ["casa", "perro", "gato"], [])
+    assert any("90%" in p for p in prompts)
