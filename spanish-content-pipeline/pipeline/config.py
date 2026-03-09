@@ -80,6 +80,13 @@ class AudioGenerationConfig(BaseModel):
     speaking_rate: float = 1.0  # Reserved for future use
 
 
+class AuditConfig(BaseModel):
+    enabled: bool = False
+    provider: str = "google"
+    model: str = "gemini-2.5-flash"
+    temperature: float = 0.3  # Low temp for analytical task
+
+
 class DeckConfig(BaseModel):
     deck: DeckInfo
     languages: Languages
@@ -89,6 +96,7 @@ class DeckConfig(BaseModel):
     llm: LLMConfig
     image_generation: ImageGenerationConfig | None = None
     audio_generation: AudioGenerationConfig | None = None
+    story_audit: AuditConfig | None = None
     secondary_characters: list[SecondaryCharacter] = []
 
     @property

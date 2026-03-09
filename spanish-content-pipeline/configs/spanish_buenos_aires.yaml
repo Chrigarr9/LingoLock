@@ -534,6 +534,11 @@ audio_generation:
   voice_name: "Aoede"
   speaking_rate: 1.0
 
+story_audit:
+  enabled: true
+  provider: "google"
+  model: "gemini-2.5-flash"
+
 secondary_characters:
   - name: "Ingrid"
     visual_tag: "Ingrid: early-50s German woman, short wavy light-brown hair, kind blue eyes, reading glasses on a chain, soft beige cardigan, warm and practical"
