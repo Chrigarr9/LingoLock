@@ -175,7 +175,14 @@ def _build_chapter_prompt(
     secondary_section = ""
     for sc in config.secondary_characters:
         if (chapter_index + 1) in sc.chapters:
-            secondary_section += f"\n- {sc.name}: MUST appear in at least one scene and speak at least one line of dialogue. Visual tag: {sc.visual_tag}"
+            first_chapter = min(sc.chapters) if sc.chapters else 999
+            is_first_appearance = (chapter_index + 1) == first_chapter
+            role_note = f" ({sc.role})" if sc.role else ""
+            intro_note = f" Introduce {sc.name} to the reader — make the relationship clear." if is_first_appearance else ""
+            secondary_section += (
+                f"\n- {sc.name}{role_note}: MUST appear in at least one scene and "
+                f"speak at least one line of dialogue. Visual tag: {sc.visual_tag}.{intro_note}"
+            )
     if secondary_section:
         secondary_section = (
             "\n\nMANDATORY characters in this chapter "
@@ -191,6 +198,15 @@ def _build_chapter_prompt(
             + "\n".join(previous_summaries)
         )
 
+    protagonist_intro = ""
+    if chapter_index == 0:
+        protagonist_intro = (
+            f"\n\nIMPORTANT: This is the first chapter. Introduce {config.protagonist.name} "
+            f"to the reader: she is from {config.protagonist.origin_country}, "
+            f"traveling to {config.destination.city}, {config.destination.country}. "
+            f"Make her name, origin, and reason for traveling clear in the first few sentences."
+        )
+
     return f"""Write Chapter {chapter_index + 1}: "{chapter.title}"
 
 Language: {config.languages.target} ({config.languages.dialect} dialect)
@@ -199,7 +215,7 @@ Length: {min_sentences}-{max_sentences} sentences total
 Protagonist: {p.name} — {p.visual_tag}
 Destination: {d.city}, {d.country}
 
-Chapter context: {chapter.context}{secondary_section}{story_so_far}
+Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{story_so_far}
 
 IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot can have 2-3 sentences. Aim for {min_sentences}-{max_sentences} sentences.
 Return the chapter as a JSON object with a "scenes" array following the format above.

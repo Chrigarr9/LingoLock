@@ -35,6 +35,7 @@ class SecondaryCharacter(BaseModel):
     name: str
     visual_tag: str
     chapters: list[int]  # 1-indexed chapter numbers where this character appears
+    role: str = ""
 
 
 class ChapterDef(BaseModel):
