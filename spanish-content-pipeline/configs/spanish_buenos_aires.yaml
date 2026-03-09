@@ -23,6 +23,7 @@ story:
   # Default CEFR level — overridden per chapter below.
   cefr_level: "A1"
   sentences_per_chapter: [25, 35]
+  coverage_top_n: 250
   narration_style: "third-person"
   grammar_targets:
     A1:
