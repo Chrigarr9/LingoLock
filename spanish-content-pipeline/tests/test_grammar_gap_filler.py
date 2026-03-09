@@ -228,3 +228,86 @@ def test_multiple_cefr_levels_batched(tmp_path):
 
     assert len(result) == 2
     assert llm.complete_json.call_count == 1
+
+
+def test_parses_insert_after(tmp_path):
+    """insert_after is parsed from LLM response."""
+    report = _make_audit_report({"A1": ["hay"]})
+
+    llm_response = {
+        "sentences": [
+            {
+                "source": "Hay una maleta en la habitación.",
+                "target": "Es gibt einen Koffer im Zimmer.",
+                "grammar_target": "hay",
+                "insert_after": 7,
+            }
+        ]
+    }
+    llm = _make_mock_llm([llm_response])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    result = filler.fill_gaps(report)
+
+    assert result[0].insert_after == 7
+
+
+def test_insert_after_defaults_to_minus_one(tmp_path):
+    """insert_after defaults to -1 when not provided by LLM."""
+    report = _make_audit_report({"A1": ["hay"]})
+
+    llm_response = {
+        "sentences": [
+            {
+                "source": "Hay una maleta.",
+                "target": "Es gibt einen Koffer.",
+                "grammar_target": "hay",
+            }
+        ]
+    }
+    llm = _make_mock_llm([llm_response])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    result = filler.fill_gaps(report)
+
+    assert result[0].insert_after == -1
+
+
+def test_prompt_includes_all_sentences_with_indices(tmp_path):
+    """Prompt includes ALL existing sentences with sentence_index numbers."""
+    report = _make_audit_report({"A1": ["hay"]})
+
+    trans_dir = tmp_path / "translations"
+    trans_dir.mkdir()
+    sentences = [
+        {"chapter": 1, "sentence_index": i,
+         "source": f"Sentence {i}.", "target": f"Satz {i}."}
+        for i in range(12)
+    ]
+    (trans_dir / "chapter_01.json").write_text(json.dumps(sentences))
+
+    llm = _make_mock_llm([{"sentences": [
+        {"source": "Hay algo.", "target": "Es gibt etwas.", "grammar_target": "hay"}
+    ]}])
+
+    filler = GrammarGapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=_make_chapter_defs(),
+        target_language="Spanish", native_language="German", dialect="",
+    )
+    filler.fill_gaps(report)
+
+    prompt = llm.complete_json.call_args_list[0][0][0]
+    # All 12 sentences should appear (no truncation)
+    assert "[11]" in prompt
+    assert "Sentence 11" in prompt
+    # Prompt should ask for insert_after
+    assert "insert_after" in prompt

@@ -212,9 +212,9 @@ class GapFiller:
 
         existing_text = ""
         if existing_sentences:
-            lines = [f'  "{s.source}"' for s in existing_sentences[:10]]
+            lines = [f'  [{s.sentence_index}] "{s.source}"' for s in existing_sentences]
             existing_text = (
-                f"\nExisting chapter sentences (for style/tone reference):\n"
+                f"\nExisting chapter sentences (numbered by sentence_index):\n"
                 + "\n".join(lines)
                 + "\n"
             )
@@ -237,7 +237,10 @@ class GapFiller:
             f"3. Each sentence must fit the chapter context and CEFR level.\n"
             f"4. Match the tone and style of the existing sentences above.{dialect_note}\n"
             f"5. Where natural, vary the grammatical form of each word across sentences "
-            f"— but only when it reads naturally.\n\n"
+            f"— but only when it reads naturally.\n"
+            f"6. For each new sentence, specify insert_after: the sentence_index of the "
+            f"existing sentence it should be placed after. Pick the position where the new "
+            f"sentence fits most naturally in the story flow. Use -1 to append at the end.\n\n"
             f"Return JSON:\n"
             f'{{\n'
             f'  "sentences": [\n'
@@ -245,6 +248,7 @@ class GapFiller:
             f'      "source": "{self._target_lang} sentence",\n'
             f'      "target": "{self._native_lang} translation",\n'
             f'      "covers": ["lemma1", "lemma2"],\n'
+            f'      "insert_after": 3,\n'
             f'      "word_annotations": {{\n'
             f'        "lemma1": {{"target": "{self._native_lang} translation", "pos": "noun"}}\n'
             f'      }}\n'
@@ -266,5 +270,6 @@ class GapFiller:
                 target=s.get("target", ""),
                 covers=s.get("covers", []),
                 word_annotations=word_annotations,
+                insert_after=int(s.get("insert_after", -1)),
             ))
         return result

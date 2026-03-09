@@ -5,6 +5,7 @@ Results cached to grammar_gap_sentences.json.
 """
 
 import json
+import re
 from pathlib import Path
 
 from pipeline.grammar_auditor import GrammarAuditReport
@@ -123,8 +124,8 @@ class GrammarGapFiller:
             existing = existing_by_chapter.get(ch_num, [])
             existing_text = ""
             if existing:
-                lines = [f'    "{s.source}"' for s in existing[:5]]
-                existing_text = "\n  Existing sentences:\n" + "\n".join(lines)
+                lines = [f'    [{s.sentence_index}] "{s.source}"' for s in existing]
+                existing_text = "\n  Existing sentences (numbered by sentence_index):\n" + "\n".join(lines)
 
             context_parts.append(
                 f"  Chapter {ch_num} [{cefr}]: \"{title}\" - {context}{existing_text}"
@@ -147,14 +148,18 @@ class GrammarGapFiller:
             f"2. Match the chapter context and CEFR level.\n"
             f"3. Match the tone and style of existing sentences.{dialect_note}\n"
             f"4. Provide a {self._native_lang} translation for each sentence.\n"
-            f"5. Use «guillemets» for any direct speech.\n\n"
+            f"5. Use «guillemets» for any direct speech.\n"
+            f"6. For each new sentence, specify insert_after: the sentence_index of the "
+            f"existing sentence it should be placed after. Pick the position where the new "
+            f"sentence fits most naturally in the story flow. Use -1 to append at the end.\n\n"
             f"Return JSON:\n"
             f'{{\n'
             f'  "sentences": [\n'
             f'    {{\n'
             f'      "source": "{self._target_lang} sentence",\n'
             f'      "target": "{self._native_lang} translation",\n'
-            f'      "grammar_target": "exact target description from the list above"\n'
+            f'      "grammar_target": "exact target description from the list above",\n'
+            f'      "insert_after": 3\n'
             f'    }}\n'
             f'  ]\n'
             f'}}'
@@ -168,7 +173,19 @@ class GrammarGapFiller:
         result = []
         for s in raw_sentences:
             grammar_target = s.get("grammar_target", "")
+            # Try exact match first, then fuzzy match
             cefr = target_to_cefr.get(grammar_target, "")
+            if not cefr:
+                # LLM often returns "[A2] target desc" — parse the CEFR prefix
+                m = re.match(r"\[([A-C][12])\]\s*", grammar_target)
+                if m:
+                    cefr = m.group(1)
+            if not cefr:
+                # Last resort: try substring match against known targets
+                for known_target, known_cefr in target_to_cefr.items():
+                    if known_target in grammar_target or grammar_target in known_target:
+                        cefr = known_cefr
+                        break
             chapter = cefr_to_chapter.get(cefr, 1)
             result.append(GrammarGapSentence(
                 source=s.get("source", ""),
@@ -176,6 +193,7 @@ class GrammarGapFiller:
                 grammar_target=grammar_target,
                 cefr_level=cefr,
                 chapter=chapter,
+                insert_after=int(s.get("insert_after", -1)),
             ))
 
         return result
