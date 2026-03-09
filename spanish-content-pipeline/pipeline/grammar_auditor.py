@@ -73,9 +73,19 @@ def audit_grammar(
                 example=rt.get("example", ""),
             ))
 
-        found_targets = {r.target for r in results}
+        # Match LLM results back to config targets (fuzzy: LLM often truncates)
+        matched_config_targets: set[str] = set()
+        for r in results:
+            for t in targets:
+                rt_lower = r.target.lower()
+                t_lower = t.lower()
+                if rt_lower == t_lower or rt_lower in t_lower or t_lower in rt_lower:
+                    # Normalize target name to config version
+                    r.target = t
+                    matched_config_targets.add(t)
+                    break
         for t in targets:
-            if t not in found_targets:
+            if t not in matched_config_targets:
                 results.append(GrammarTargetResult(target=t, present=False))
 
         present_count = sum(1 for r in results if r.present)

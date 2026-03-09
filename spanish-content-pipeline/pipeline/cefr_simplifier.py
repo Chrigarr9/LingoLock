@@ -10,12 +10,13 @@ from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
 
 _CEFR_CONSTRAINTS = {
     "A1": (
-        "**A1** — Max 8 words per sentence. Simple present tense only. "
+        "**A1** — Max 12 words per sentence. Simple present tense only. "
         "Subject + verb + object. No subordinate clauses (avoid: que, porque, cuando, si). "
         "No indirect object pronouns (le, les). Use only vocabulary a beginner learns in their "
-        "first two weeks of class. If in doubt, choose the simpler word.\n"
-        'Good A1 examples: "Maria abre la maleta." / "Ella tiene miedo." / '
-        '"El taxi es rápido." / "Maria lleva una maleta roja."'
+        "first month of class. If in doubt, choose the simpler word.\n"
+        'Good A1 examples: "Maria abre la maleta amarilla en el suelo." / '
+        '"Ella tiene un poco de miedo." / "El taxi rojo es muy rápido." / '
+        '"Ingrid dobla una camisa de algodón suave."'
     ),
     "A2": (
         "**A2** — Max 12 words. Simple past (pretérito indefinido) and imperfect (imperfecto) "
@@ -79,6 +80,9 @@ only simplify the grammar and vocabulary.
 - Preserve direct dialogue with «guillemets».
 - You may split one complex sentence into two simpler sentences if needed to stay within \
 the word limit. Never merge two sentences into one.
+- Preserve concrete nouns, colours, materials, and descriptive vocabulary from the original \
+(e.g. keep "camisa de algodón suave" rather than reducing to just "camisa"). Simplify grammar, \
+not the richness of the scene. A plane should "move slowly" not "walk."
 - Keep the same scene/shot structure. Same number of scenes, same number of shots per scene.
 - Return a JSON object with the same structure: {{"scenes": [...]}}
 - Each sentence must have "source" (simplified Spanish) and "sentence_index" (will be re-numbered later, \
