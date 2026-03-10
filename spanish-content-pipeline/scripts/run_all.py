@@ -383,12 +383,17 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
         for ch in config.story.chapters
     ]
 
-    fixes = audit_story(
+    fixes, unnamed_chars = audit_story(
         chapters=audit_chapters,
         characters=characters,
         chapter_configs=chapter_configs,
         llm=llm_audit,
     )
+
+    if unnamed_chars:
+        print(f"  Detected {len(unnamed_chars)} unnamed recurring characters:")
+        for uc in unnamed_chars:
+            print(f"    {uc.role} (chapters {uc.chapters}): {uc.suggested_visual_tag}")
 
     if fixes:
         print(f"  Found {len(fixes)} issues:")

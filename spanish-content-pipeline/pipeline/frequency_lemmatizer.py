@@ -54,13 +54,18 @@ class FrequencyLemmatizer:
             raw = json.loads(self.cache_path.read_text())
             return {k: FrequencyLemmaEntry(**v) for k, v in raw.items()}
 
-        # Step 1: spaCy lemmatization + function word filtering
+        # Step 1: spaCy lemmatization + function word filtering + bogus token filter
         word_to_lemma: dict[str, str] = {}
         for w in words:
             tokens = lemmatize_text(w, self._lang_code)
             if tokens and is_function_word(tokens[0]):
                 continue  # Skip function words
-            word_to_lemma[w] = lemmatize_word(w, self._lang_code)
+            lemma = lemmatize_word(w, self._lang_code)
+            # Filter bogus tokens: abbreviations (<=2 chars), multi-word tokens,
+            # and words spaCy doesn't recognize (lemma == surface and not in vocab)
+            if len(lemma) <= 2 or " " in w:
+                continue
+            word_to_lemma[w] = lemma
 
         # Step 2: Deduplicate lemmas for LLM call
         unique_lemmas = sorted(set(word_to_lemma.values()))

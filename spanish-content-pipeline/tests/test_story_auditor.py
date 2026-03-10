@@ -34,17 +34,17 @@ def test_audit_finds_verb_collocation_error():
     llm = MagicMock()
     llm.complete_json.return_value = _make_llm_response([fix])
 
-    result = audit_story(
+    fixes, unnamed = audit_story(
         chapters=chapters,
         characters=characters,
         chapter_configs=chapter_configs,
         llm=llm,
     )
 
-    assert len(result) == 1
-    assert result[0].chapter == 1
-    assert result[0].sentence_index == 1
-    assert "va despacio" in result[0].fixed
+    assert len(fixes) == 1
+    assert fixes[0].chapter == 1
+    assert fixes[0].sentence_index == 1
+    assert "va despacio" in fixes[0].fixed
 
 
 def test_audit_returns_empty_when_no_errors():
@@ -55,11 +55,11 @@ def test_audit_returns_empty_when_no_errors():
     llm = MagicMock()
     llm.complete_json.return_value = _make_llm_response([])
 
-    result = audit_story(
+    fixes, unnamed = audit_story(
         chapters=chapters, characters=characters,
         chapter_configs=chapter_configs, llm=llm,
     )
-    assert result == []
+    assert fixes == []
 
 
 def test_audit_fix_model():

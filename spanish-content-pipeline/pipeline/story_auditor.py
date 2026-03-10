@@ -18,6 +18,12 @@ class AuditFix(BaseModel):
     reason: str
 
 
+class UnnamedCharacter(BaseModel):
+    role: str
+    chapters: list[int]
+    suggested_visual_tag: str = ""
+
+
 def _build_audit_prompt(
     chapters: dict[int, list[str]],
     characters: list[dict],
@@ -89,7 +95,11 @@ def _build_audit_prompt(
         f"   - Actions must fit the setting described in context\n"
         f"   - Verb collocations must be correct (cars don't walk, people don't fly)\n"
         f"   - Contradictions within a chapter (e.g. \"many open suitcases\" when only one was mentioned)\n\n"
-        f"Return ONLY a JSON object with a 'fixes' array. Each fix:\n"
+        f"6. UNNAMED RECURRING CHARACTERS\n"
+        f"   - Detect unnamed characters who appear in multiple chapters (vendor, waiter, bus driver, etc.)\n"
+        f"   - If the same functional role appears in 2+ chapters, suggest a visual_tag for consistency\n"
+        f"   - Report these in a separate 'unnamed_characters' array (see format below)\n\n"
+        f"Return ONLY a JSON object with a 'fixes' array and optional 'unnamed_characters' array:\n"
         f'{{\n'
         f'  "fixes": [\n'
         f'    {{\n'
@@ -101,7 +111,13 @@ def _build_audit_prompt(
         f'    }}\n'
         f'  ]\n'
         f'}}\n\n'
-        f"If no errors found, return {{\"fixes\": []}}."
+        f"If no errors found, return {{\"fixes\": [], \"unnamed_characters\": []}}.\n\n"
+        f"unnamed_characters format:\n"
+        f'{{\n'
+        f'  "role": "bus driver",\n'
+        f'  "chapters": [3, 7],\n'
+        f'  "suggested_visual_tag": "middle-aged man, grey moustache, blue cap, bus uniform"\n'
+        f'}}'
     )
 
     return system, prompt
@@ -112,10 +128,10 @@ def audit_story(
     characters: list[dict],
     chapter_configs: list[dict],
     llm=None,
-) -> list[AuditFix]:
-    """Audit the full story and return a list of fixes."""
+) -> tuple[list[AuditFix], list[UnnamedCharacter]]:
+    """Audit the full story. Returns (fixes, unnamed_characters)."""
     if not chapters or llm is None:
-        return []
+        return [], []
 
     system, prompt = _build_audit_prompt(chapters, characters, chapter_configs)
     response = llm.complete_json(prompt, system=system)
@@ -126,9 +142,16 @@ def audit_story(
         try:
             fixes.append(AuditFix(**f))
         except Exception:
-            continue  # Skip malformed fixes
+            continue
 
-    return fixes
+    unnamed = []
+    for u in response.parsed.get("unnamed_characters", []):
+        try:
+            unnamed.append(UnnamedCharacter(**u))
+        except Exception:
+            continue
+
+    return fixes, unnamed
 
 
 def apply_fixes(
