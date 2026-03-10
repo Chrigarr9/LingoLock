@@ -15,8 +15,6 @@ sys.set_int_max_str_digits(0)
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
-OPENROUTER_GENERATION_URL = "https://openrouter.ai/api/v1/generation"
-
 
 @dataclass
 class Usage:
@@ -83,7 +81,8 @@ class LLMClient:
         content = data["choices"][0]["message"]["content"]
         generation_id = data.get("id")
         usage_data = data.get("usage", {})
-        cost_usd = self._fetch_generation_cost(generation_id) if generation_id else None
+        # OpenRouter returns cost inline in the usage object
+        cost_usd = usage_data.get("cost")
         usage = Usage(
             prompt_tokens=usage_data.get("prompt_tokens", 0),
             completion_tokens=usage_data.get("completion_tokens", 0),
@@ -92,22 +91,6 @@ class LLMClient:
             generation_id=generation_id,
         )
         return LLMResponse(content=content, usage=usage)
-
-    def _fetch_generation_cost(self, generation_id: str) -> float | None:
-        """Fetch actual cost from OpenRouter generation stats endpoint."""
-        try:
-            time.sleep(1)  # OpenRouter needs a moment to finalize stats
-            resp = self._client.get(
-                OPENROUTER_GENERATION_URL,
-                params={"id": generation_id},
-                headers={"Authorization": f"Bearer {self._api_key}"},
-            )
-            if resp.status_code == 200:
-                gen_data = resp.json().get("data", {})
-                return gen_data.get("total_cost")
-        except Exception:
-            pass
-        return None
 
     def complete(self, prompt: str, system: str | None = None) -> LLMResponse:
         messages = []
