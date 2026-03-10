@@ -205,6 +205,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             print("\n  No grammar gaps to fill.")
 
     # Pass 4: Vocabulary Gap Filling (requires frequency data + lemmas)
+    gap_words_by_chapter: dict[int, list[str]] = {}
     if frequency_file:
         from pipeline.coverage_checker import scan_story_coverage
         from pipeline.gap_filler import GapFiller
@@ -271,13 +272,17 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                     total_gap = sum(len(s) for s in gap_results.values())
                     print(f"  Generated {total_gap} gap sentences across {len(gap_results)} chapters")
 
-                    # Insert gap shots into stories
+                    # Insert gap shots into stories, collect gap words per chapter
+                    gap_words_by_chapter: dict[int, list[str]] = {}
                     for ch_num, gap_sents in gap_results.items():
                         ch_idx = ch_num - 1
                         if ch_idx in chapter_scenes:
                             chapter_scenes[ch_idx] = insert_shots_into_chapter_scene(
                                 chapter_scenes[ch_idx], gap_sents,
                             )
+                            gap_words_by_chapter[ch_num] = [
+                                w for gs in gap_sents for w in gs.covers
+                            ]
                             story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"
                             story_path.write_text(json.dumps(
                                 chapter_scenes[ch_idx].model_dump(), ensure_ascii=False, indent=2,
@@ -293,6 +298,64 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                     print(f"  Post-gap coverage: {post_report.top_1000_covered}/{post_report.top_1000_total} ({post_report.coverage_percent}%)")
             else:
                 print("  Coverage target met — no gaps to fill.")
+
+    # Pass 4b: Per-Chapter Narrative Audit
+    if gap_words_by_chapter:
+        from pipeline.chapter_auditor import audit_chapter, apply_chapter_actions
+
+        print("\n=== Pass 4b: Per-Chapter Narrative Audit ===")
+        llm_ch_audit = create_model_client(config.models.chapter_audit)
+
+        ch_characters = [{"name": config.protagonist.name, "role": "protagonist"}]
+        for sc in config.secondary_characters:
+            if any((i + 1) in sc.chapters for i in chapter_range):
+                ch_characters.append({"name": sc.name, "role": sc.role or "secondary character"})
+
+        for ch_num, gap_words in gap_words_by_chapter.items():
+            ch_idx = ch_num - 1
+            if ch_idx not in chapter_scenes:
+                continue
+
+            ch_config = {
+                "title": config.story.chapters[ch_idx].title,
+                "cefr_level": config.story.chapters[ch_idx].cefr_level or config.story.cefr_level,
+                "context": config.story.chapters[ch_idx].context,
+            }
+
+            # Filter characters to this chapter
+            ch_chars = [{"name": config.protagonist.name, "role": "protagonist"}]
+            for sc_char in config.secondary_characters:
+                if ch_num in sc_char.chapters:
+                    ch_chars.append({"name": sc_char.name, "role": sc_char.role or "secondary character"})
+
+            actions = audit_chapter(
+                chapter_scene=chapter_scenes[ch_idx],
+                chapter_config=ch_config,
+                characters=ch_chars,
+                llm=llm_ch_audit,
+                gap_words=gap_words,
+            )
+
+            if actions:
+                rewrites = sum(1 for a in actions if a.action == "rewrite")
+                removals = sum(1 for a in actions if a.action == "remove_shot")
+                print(f"  Chapter {ch_num}: {rewrites} rewrites, {removals} removals")
+                for a in actions:
+                    if a.action == "rewrite":
+                        print(f"    [sent {a.sentence_index}] {a.reason}")
+                        print(f"      {a.original}")
+                        print(f"      → {a.fixed}")
+                    else:
+                        print(f"    [shot {a.shot_index}] REMOVE: {a.reason}")
+
+                chapter_scenes[ch_idx] = apply_chapter_actions(chapter_scenes[ch_idx], actions)
+                story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"
+                story_path.write_text(json.dumps(
+                    chapter_scenes[ch_idx].model_dump(), ensure_ascii=False, indent=2,
+                ))
+                stories[ch_idx] = extract_flat_text(chapter_scenes[ch_idx])
+            else:
+                print(f"  Chapter {ch_num}: no issues found")
 
     # Pass 5: Story Audit (uses separate reasoning model)
     from pipeline.story_auditor import audit_story, apply_fixes
