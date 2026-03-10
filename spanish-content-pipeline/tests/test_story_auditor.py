@@ -34,7 +34,7 @@ def test_audit_finds_verb_collocation_error():
     llm = MagicMock()
     llm.complete_json.return_value = _make_llm_response([fix])
 
-    fixes, unnamed = audit_story(
+    (fixes, unnamed), _ = audit_story(
         chapters=chapters,
         characters=characters,
         chapter_configs=chapter_configs,
@@ -55,7 +55,7 @@ def test_audit_returns_empty_when_no_errors():
     llm = MagicMock()
     llm.complete_json.return_value = _make_llm_response([])
 
-    fixes, unnamed = audit_story(
+    (fixes, unnamed), _ = audit_story(
         chapters=chapters, characters=characters,
         chapter_configs=chapter_configs, llm=llm,
     )

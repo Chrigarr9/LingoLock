@@ -46,14 +46,14 @@ class GrammarGapFiller:
     def cache_path(self) -> Path:
         return self._output_dir / self.CACHE_FILE
 
-    def fill_gaps(self, report: GrammarAuditReport) -> list[GrammarGapSentence]:
+    def fill_gaps(self, report: GrammarAuditReport) -> tuple[list[GrammarGapSentence], object]:
         """Generate sentences for missing grammar targets.
 
-        Returns list of GrammarGapSentence. Cached to disk.
+        Returns (list of GrammarGapSentence, LLMResponse | None). Cached to disk.
         """
         if self.cache_path.exists():
             raw = json.loads(self.cache_path.read_text())
-            return [GrammarGapSentence(**s) for s in raw]
+            return [GrammarGapSentence(**s) for s in raw], None
 
         missing: list[tuple[str, str]] = []  # (cefr, target_description)
         for cefr, level_report in report.levels.items():
@@ -62,18 +62,18 @@ class GrammarGapFiller:
                     missing.append((cefr, t.target))
 
         if not missing:
-            return []
+            return [], None
 
         cefr_to_chapter = self._build_cefr_chapter_map()
         existing_by_chapter = self._load_existing_sentences(cefr_to_chapter)
-        sentences = self._generate(missing, cefr_to_chapter, existing_by_chapter)
+        sentences, response = self._generate(missing, cefr_to_chapter, existing_by_chapter)
 
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self.cache_path.write_text(
             json.dumps([s.model_dump() for s in sentences], ensure_ascii=False, indent=2)
         )
 
-        return sentences
+        return sentences, response
 
     def _build_cefr_chapter_map(self) -> dict[str, int]:
         """Map each CEFR level to the first chapter at that level."""
@@ -111,7 +111,7 @@ class GrammarGapFiller:
         missing: list[tuple[str, str]],
         cefr_to_chapter: dict[str, int],
         existing_by_chapter: dict[int, list[SentencePair]],
-    ) -> list[GrammarGapSentence]:
+    ) -> tuple[list[GrammarGapSentence], object]:
         """Single LLM call to generate sentences for all missing grammar targets."""
         targets_text = "\n".join(
             f"  - [{cefr}] {target}" for cefr, target in missing
@@ -173,8 +173,8 @@ class GrammarGapFiller:
             f'}}'
         )
 
-        response = self._llm.complete_json(prompt, system=system)
-        raw_sentences = response.parsed.get("sentences", [])
+        llm_response = self._llm.complete_json(prompt, system=system)
+        raw_sentences = llm_response.parsed.get("sentences", [])
 
         target_to_cefr = {target: cefr for cefr, target in missing}
 
@@ -205,4 +205,4 @@ class GrammarGapFiller:
                 insert_after=int(s.get("insert_after", -1)),
             ))
 
-        return result
+        return result, llm_response

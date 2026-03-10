@@ -27,12 +27,13 @@ def audit_grammar(
     chapters_by_cefr: dict[str, list[str]],
     grammar_targets: dict[str, list[str]],
     llm=None,
-) -> GrammarAuditReport:
+) -> tuple[GrammarAuditReport, list]:
     """Check which grammar targets appear in generated sentences."""
     if not grammar_targets or not chapters_by_cefr:
-        return GrammarAuditReport()
+        return GrammarAuditReport(), []
 
     report = GrammarAuditReport()
+    responses = []
 
     for cefr, targets in grammar_targets.items():
         if not targets:
@@ -63,6 +64,7 @@ def audit_grammar(
         )
 
         response = llm.complete_json(prompt, system=system)
+        responses.append(response)
         raw_targets = response.parsed.get("targets", [])
 
         results = []
@@ -99,4 +101,4 @@ def audit_grammar(
             coverage=coverage,
         )
 
-    return report
+    return report, responses

@@ -128,10 +128,10 @@ def audit_story(
     characters: list[dict],
     chapter_configs: list[dict],
     llm=None,
-) -> tuple[list[AuditFix], list[UnnamedCharacter]]:
-    """Audit the full story. Returns (fixes, unnamed_characters)."""
+) -> tuple[tuple[list[AuditFix], list[UnnamedCharacter]], object]:
+    """Audit the full story. Returns ((fixes, unnamed_characters), LLMResponse | None)."""
     if not chapters or llm is None:
-        return [], []
+        return ([], []), None
 
     system, prompt = _build_audit_prompt(chapters, characters, chapter_configs)
     response = llm.complete_json(prompt, system=system)
@@ -151,7 +151,7 @@ def audit_story(
         except Exception:
             continue
 
-    return fixes, unnamed
+    return (fixes, unnamed), response
 
 
 def apply_fixes(

@@ -1,10 +1,12 @@
 """Pass 2: Translate story sentences to the native language."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
 from pipeline.config import DeckConfig
-from pipeline.llm import LLMClient
+from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import SentencePair
 
 
@@ -37,13 +39,13 @@ class SentenceTranslator:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._translations_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def translate_chapter(self, chapter_index: int, story_text: str) -> list[SentencePair]:
+    def translate_chapter(self, chapter_index: int, story_text: str) -> tuple[list[SentencePair], LLMResponse | None]:
         path = self._chapter_path(chapter_index)
 
         # Skip if already translated
         if path.exists():
             data = json.loads(path.read_text())
-            return [SentencePair(**item) for item in data]
+            return [SentencePair(**item) for item in data], None
 
         prompt = _build_translation_prompt(self._config, story_text)
         result = self._llm.complete_json(prompt, system=SYSTEM_PROMPT)
@@ -63,4 +65,4 @@ class SentenceTranslator:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps([p.model_dump() for p in pairs], ensure_ascii=False, indent=2))
 
-        return pairs
+        return pairs, result

@@ -124,7 +124,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
         ch = config.story.chapters[i]
         cefr = ch.cefr_level or config.story.cefr_level
         print(f"  Chapter {i+1}: {ch.title} [{cefr}]...", end=" ", flush=True)
-        chapter_scenes[i] = simplifier.simplify_chapter(i, raw_chapters[idx])
+        chapter_scenes[i], _ = simplifier.simplify_chapter(i, raw_chapters[idx])
         stories[i] = extract_flat_text(chapter_scenes[i])
         print("done")
 
@@ -142,7 +142,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             sentences = stories[i].split("\n")
             chapters_by_cefr.setdefault(cefr, []).extend(sentences)
 
-        grammar_report = audit_grammar(
+        grammar_report, _ = audit_grammar(
             chapters_by_cefr=chapters_by_cefr,
             grammar_targets=config.story.grammar_targets,
             llm=llm_grammar,
@@ -171,7 +171,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             native_language=config.languages.native,
             dialect=config.languages.dialect or "",
         )
-        grammar_sentences = grammar_filler.fill_gaps(grammar_report)
+        grammar_sentences, _ = grammar_filler.fill_gaps(grammar_report)
 
         if grammar_sentences:
             print(f"\n=== Pass 2b: Grammar Gap Filling ===")
@@ -261,7 +261,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                     secondary_characters=config.secondary_characters,
                     grammar_targets=config.story.grammar_targets,
                 )
-                gap_results = filler.fill_gaps(
+                gap_results, _ = filler.fill_gaps(
                     stories=stories,
                     frequency_data=frequency_data_local,
                     top_n=effective_top_n,
@@ -328,7 +328,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                 if ch_num in sc_char.chapters:
                     ch_chars.append({"name": sc_char.name, "role": sc_char.role or "secondary character"})
 
-            actions = audit_chapter(
+            actions, _ = audit_chapter(
                 chapter_scene=chapter_scenes[ch_idx],
                 chapter_config=ch_config,
                 characters=ch_chars,
@@ -383,7 +383,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
         for ch in config.story.chapters
     ]
 
-    fixes, unnamed_chars = audit_story(
+    (fixes, unnamed_chars), _ = audit_story(
         chapters=audit_chapters,
         characters=characters,
         chapter_configs=chapter_configs,
@@ -423,7 +423,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
     for i in chapter_range:
         ch = config.story.chapters[i]
         print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        all_pairs[i] = translator.translate_chapter(i, stories[i])
+        all_pairs[i], _ = translator.translate_chapter(i, stories[i])
         print(f"done ({len(all_pairs[i])} sentences)")
 
     # Pass 7: Word extraction
@@ -434,7 +434,7 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
     for i in chapter_range:
         ch = config.story.chapters[i]
         print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
-        chapter_words = extractor.extract_chapter(i, all_pairs[i])
+        chapter_words, _ = extractor.extract_chapter(i, all_pairs[i])
         all_chapters.append(chapter_words)
         print(f"done ({len(chapter_words.words)} words)")
 
@@ -660,7 +660,7 @@ def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
         secondary_characters=config.secondary_characters,
         grammar_targets=config.story.grammar_targets,
     )
-    gap_results = filler.fill_gaps(
+    gap_results, _ = filler.fill_gaps(
         stories=stories,
         frequency_data=frequency_data,
         top_n=top_n or config.story.coverage_top_n,

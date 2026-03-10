@@ -62,7 +62,7 @@ def test_extract_uses_spacy_for_tokenization(tmp_path):
     pairs = [SentencePair(chapter=1, sentence_index=0,
                           source="Charlotte está nerviosa.", target="Charlotte ist nervös.")]
     extractor = WordExtractor(config, mock_llm, output_base=tmp_path)
-    result = extractor.extract_chapter(0, pairs)
+    result, _ = extractor.extract_chapter(0, pairs)
 
     assert isinstance(result, ChapterWords)
     # spaCy should identify tokens; LLM should be called for annotations
@@ -90,7 +90,7 @@ def test_extract_preserves_spacy_lemma_and_pos(tmp_path):
     pairs = [SentencePair(chapter=1, sentence_index=0,
                           source="Maria camina.", target="Maria geht.")]
     extractor = WordExtractor(config, mock_llm, output_base=tmp_path)
-    result = extractor.extract_chapter(0, pairs)
+    result, _ = extractor.extract_chapter(0, pairs)
 
     camina = next((w for w in result.words if w.source == "camina"), None)
     assert camina is not None
@@ -115,7 +115,7 @@ def test_extract_skips_if_exists(tmp_path):
 
     pairs = [SentencePair(chapter=1, sentence_index=0, source="Hola.", target="Hallo.")]
     extractor = WordExtractor(config, mock_llm, output_base=tmp_path)
-    result = extractor.extract_chapter(0, pairs)
+    result, _ = extractor.extract_chapter(0, pairs)
 
     assert len(result.words) == 1
     mock_llm.complete_json.assert_not_called()
@@ -140,7 +140,7 @@ def test_extract_includes_similar_words(tmp_path):
     pairs = [SentencePair(chapter=1, sentence_index=0,
                           source="Ella tiene un perro.", target="Sie hat einen Hund.")]
     extractor = WordExtractor(config, mock_llm, output_base=tmp_path)
-    result = extractor.extract_chapter(0, pairs)
+    result, _ = extractor.extract_chapter(0, pairs)
 
     perro = next((w for w in result.words if w.source == "perro"), None)
     assert perro is not None

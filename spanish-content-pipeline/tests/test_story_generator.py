@@ -100,7 +100,7 @@ def test_generate_chapter_produces_chapter_scene(tmp_path):
     )
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    chapter_data = gen.generate_chapter(0)
+    chapter_data, _ = gen.generate_chapter(0)
 
     assert isinstance(chapter_data, ChapterScene)
     assert chapter_data.chapter == 1
@@ -121,7 +121,7 @@ def test_saves_to_stories_raw_directory(tmp_path):
     )
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    gen.generate_chapter(0)
+    _, _ = gen.generate_chapter(0)
 
     # Must be in stories_raw/, NOT stories/
     story_file = tmp_path / "test-deck" / "stories_raw" / "chapter_01.json"
@@ -180,7 +180,7 @@ def test_skips_if_cached(tmp_path):
     (story_dir / "chapter_01.json").write_text(json.dumps(cached))
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    result = gen.generate_chapter(0)
+    result, _ = gen.generate_chapter(0)
 
     assert result.chapter == 1
     assert result.scenes == []

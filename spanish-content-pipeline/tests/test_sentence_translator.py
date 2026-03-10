@@ -74,7 +74,7 @@ def test_translate_chapter_returns_sentence_pairs(tmp_path):
 
     translator = SentenceTranslator(config, mock_llm, output_base=tmp_path)
     story_text = "Charlotte está nerviosa. Ella tiene una maleta."
-    pairs = translator.translate_chapter(0, story_text)
+    pairs, _ = translator.translate_chapter(0, story_text)
 
     assert len(pairs) == 2
     assert isinstance(pairs[0], SentencePair)
@@ -99,7 +99,7 @@ def test_translate_chapter_saves_json(tmp_path):
     )
 
     translator = SentenceTranslator(config, mock_llm, output_base=tmp_path)
-    translator.translate_chapter(0, "Hola.")
+    _, _ = translator.translate_chapter(0, "Hola.")
 
     json_path = tmp_path / "test-deck" / "translations" / "chapter_01.json"
     assert json_path.exists()
@@ -118,7 +118,7 @@ def test_translate_chapter_skips_if_exists(tmp_path):
     (trans_dir / "chapter_01.json").write_text(json.dumps(existing))
 
     translator = SentenceTranslator(config, mock_llm, output_base=tmp_path)
-    pairs = translator.translate_chapter(0, "Hola.")
+    pairs, _ = translator.translate_chapter(0, "Hola.")
 
     assert len(pairs) == 1
     mock_llm.complete_json.assert_not_called()

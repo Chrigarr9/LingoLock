@@ -36,7 +36,7 @@ def test_audit_chapter_no_issues():
     cs = _make_chapter_scene(["María camina.", "Ella sonríe."])
     llm = _make_mock_llm({"actions": []})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -54,7 +54,7 @@ def test_audit_chapter_rewrite():
          "reason": "No father character in this chapter"},
     ]})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -73,7 +73,7 @@ def test_audit_chapter_remove_shot():
          "reason": "Philosophical non-sequitur"},
     ]})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -131,7 +131,7 @@ def test_apply_no_actions_returns_same():
 def test_audit_chapter_none_llm():
     """Returns empty list when llm is None."""
     cs = _make_chapter_scene(["Test."])
-    actions = audit_chapter(cs, {}, [], llm=None)
+    actions, _ = audit_chapter(cs, {}, [], llm=None)
     assert actions == []
 
 

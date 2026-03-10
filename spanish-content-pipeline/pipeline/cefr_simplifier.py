@@ -1,10 +1,12 @@
 """Pass 1 (CEFR simplification): Simplify raw story chapters to target CEFR level."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
 from pipeline.config import DeckConfig
-from pipeline.llm import LLMClient
+from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
 
 
@@ -158,13 +160,13 @@ class CEFRSimplifier:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._story_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def simplify_chapter(self, chapter_index: int, raw_chapter: ChapterScene) -> ChapterScene:
+    def simplify_chapter(self, chapter_index: int, raw_chapter: ChapterScene) -> tuple[ChapterScene, LLMResponse | None]:
         path = self._chapter_path(chapter_index)
 
         # Skip if already simplified (cached)
         if path.exists():
             data = json.loads(path.read_text())
-            return ChapterScene(**data)
+            return ChapterScene(**data), None
 
         # Determine CEFR level
         chapter_def = self._config.story.chapters[chapter_index]
@@ -211,4 +213,4 @@ class CEFRSimplifier:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(chapter_data.model_dump(), ensure_ascii=False, indent=2))
 
-        return chapter_data
+        return chapter_data, result

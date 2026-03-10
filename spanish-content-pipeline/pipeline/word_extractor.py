@@ -4,12 +4,14 @@ Hybrid approach: spaCy identifies all tokens (deterministic), then LLM provides
 contextual translations, similar words, and grammar notes (generative).
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
 from pipeline.config import DeckConfig
 from pipeline.lemmatizer import is_function_word, lemmatize_text
-from pipeline.llm import LLMClient
+from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterWords, SentencePair, WordAnnotation
 
 
@@ -64,13 +66,13 @@ class WordExtractor:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._words_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def extract_chapter(self, chapter_index: int, pairs: list[SentencePair]) -> ChapterWords:
+    def extract_chapter(self, chapter_index: int, pairs: list[SentencePair]) -> tuple[ChapterWords, LLMResponse | None]:
         path = self._chapter_path(chapter_index)
 
         # Skip if already extracted
         if path.exists():
             data = json.loads(path.read_text())
-            return ChapterWords(**data)
+            return ChapterWords(**data), None
 
         lang = self._config.languages.target_code
 
@@ -134,4 +136,4 @@ class WordExtractor:
             json.dumps(chapter_words.model_dump(), ensure_ascii=False, indent=2)
         )
 
-        return chapter_words
+        return chapter_words, result

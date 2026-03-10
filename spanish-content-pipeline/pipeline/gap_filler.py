@@ -7,6 +7,8 @@ Two LLM calls:
 Both are cached to disk.
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
@@ -76,10 +78,10 @@ class GapFiller:
         top_n: int = 1000,
         stories: dict[int, str] | None = None,
         inappropriate_lemmas: set[str] | None = None,
-    ) -> dict[int, list[GapShot]]:
+    ) -> tuple[dict[int, list[GapShot]], list]:
         """Assign missing words to chapters and generate gap shots.
 
-        Returns dict mapping chapter number → list of GapShot.
+        Returns (dict mapping chapter number → list of GapShot, list of LLMResponse).
         Caches assignment and per-chapter shots to disk.
         """
         if frequency_data is None:
@@ -100,12 +102,15 @@ class GapFiller:
         missing = report.missing_words
 
         if not missing:
-            return {}
+            return {}, []
 
         # Call A: assign words to chapters (cached)
-        assignment = self._get_assignment(missing)
+        assignment, assign_response = self._get_assignment(missing)
 
         results: dict[int, list[GapShot]] = {}
+        llm_responses = []
+        if assign_response is not None:
+            llm_responses.append(assign_response)
         self.gap_dir.mkdir(parents=True, exist_ok=True)
 
         for chapter_num, words in sorted(assignment.items()):
@@ -118,30 +123,31 @@ class GapFiller:
             # Call B: generate shots for this chapter
             existing_context = self._load_existing_context(chapter_num)
             ch_def = self._chapters[chapter_num - 1] if chapter_num <= len(self._chapters) else None
-            shots = self._generate_shots(chapter_num, ch_def, words, existing_context)
+            shots, gen_response = self._generate_shots(chapter_num, ch_def, words, existing_context)
             results[chapter_num] = shots
+            llm_responses.append(gen_response)
 
             cache_path.write_text(
                 json.dumps([s.model_dump() for s in shots], ensure_ascii=False, indent=2)
             )
 
-        return results
+        return results, llm_responses
 
     # ------------------------------------------------------------------ #
     # Call A: Assignment                                                   #
     # ------------------------------------------------------------------ #
 
-    def _get_assignment(self, missing_words: list[str]) -> dict[int, list[str]]:
-        """Return word→chapter assignment, using cache if available."""
+    def _get_assignment(self, missing_words: list[str]) -> tuple[dict[int, list[str]], object]:
+        """Return (word→chapter assignment, LLMResponse | None), using cache if available."""
         if self.assignment_path.exists():
             raw = json.loads(self.assignment_path.read_text())
             # raw is {word: chapter_num}
             assignment: dict[int, list[str]] = {}
             for word, ch in raw.items():
                 assignment.setdefault(int(ch), []).append(word)
-            return assignment
+            return assignment, None
 
-        raw_assignment = self._assign_via_llm(missing_words)
+        raw_assignment, response = self._assign_via_llm(missing_words)
 
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self.assignment_path.write_text(
@@ -151,9 +157,9 @@ class GapFiller:
         assignment: dict[int, list[str]] = {}
         for word, ch in raw_assignment.items():
             assignment.setdefault(int(ch), []).append(word)
-        return assignment
+        return assignment, response
 
-    def _assign_via_llm(self, missing_words: list[str]) -> dict[str, int]:
+    def _assign_via_llm(self, missing_words: list[str]) -> tuple[dict[str, int], object]:
         """Single LLM call: assign each missing word to a chapter number."""
         if self._target_chapters is not None:
             target_indices = list(self._target_chapters)  # 0-based indices
@@ -209,7 +215,7 @@ class GapFiller:
             if ch_num not in valid_nums:
                 ch_num = valid_nums[0]
             result[word] = ch_num
-        return result
+        return result, response
 
     # ------------------------------------------------------------------ #
     # Call B: Generation                                                   #
@@ -287,7 +293,7 @@ class GapFiller:
         ch_def,
         words: list[str],
         existing_context: str,
-    ) -> list[GapShot]:
+    ) -> tuple[list[GapShot], object]:
         """Generate shots covering all `words`, using existing context for style."""
         if ch_def is not None and hasattr(ch_def, "title"):
             title = ch_def.title
@@ -351,7 +357,7 @@ class GapFiller:
         response = self._llm.complete_json(prompt, system=system)
         raw_shots: list[dict] = response.parsed.get("shots", [])
 
-        result = []
+        result: list[GapShot] = []
         for s in raw_shots:
             if not isinstance(s, dict):
                 continue
@@ -370,7 +376,7 @@ class GapFiller:
                 covers=s.get("covers", []),
                 insert_after_shot=clamped_idx,
             ))
-        return result
+        return result, response
 
     def _count_existing_shots(self, chapter_num: int) -> int:
         """Count total shots in the existing chapter JSON."""

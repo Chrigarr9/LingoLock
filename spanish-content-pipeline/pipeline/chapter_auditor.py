@@ -128,10 +128,10 @@ def audit_chapter(
     characters: list[dict],
     llm=None,
     gap_words: list[str] | None = None,
-) -> list[ChapterAuditAction]:
-    """Audit a single chapter and return a list of actions."""
+) -> tuple[list[ChapterAuditAction], object]:
+    """Audit a single chapter and return (actions, LLMResponse | None)."""
     if llm is None:
-        return []
+        return [], None
 
     system, prompt = _build_chapter_audit_prompt(
         chapter_scene, chapter_config, characters,
@@ -146,7 +146,7 @@ def audit_chapter(
             actions.append(ChapterAuditAction(**a))
         except Exception:
             continue
-    return actions
+    return actions, response
 
 
 def apply_chapter_actions(

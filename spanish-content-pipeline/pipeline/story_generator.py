@@ -1,11 +1,13 @@
 """Pass 0 (unconstrained): Generate natural Spanish story chapters without CEFR constraints."""
 
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
 
 from pipeline.config import DeckConfig
-from pipeline.llm import LLMClient
+from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterScene, ImageManifest, ImagePrompt, Scene, Shot, ShotSentence
 
 
@@ -340,13 +342,13 @@ class StoryGenerator:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._story_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def generate_chapter(self, chapter_index: int, previous_summaries: list[str] | None = None) -> ChapterScene:
+    def generate_chapter(self, chapter_index: int, previous_summaries: list[str] | None = None) -> tuple[ChapterScene, LLMResponse | None]:
         path = self._chapter_path(chapter_index)
 
         # Skip if already generated (cached)
         if path.exists():
             data = json.loads(path.read_text())
-            return ChapterScene(**data)
+            return ChapterScene(**data), None
 
         prompt = _build_chapter_prompt(self._config, chapter_index, previous_summaries=previous_summaries)
         system = _build_system_prompt(self._config)
@@ -379,7 +381,7 @@ class StoryGenerator:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(chapter_data.model_dump(), ensure_ascii=False, indent=2))
 
-        return chapter_data
+        return chapter_data, result
 
     def generate_all(self, chapter_range: range | None = None) -> list[ChapterScene]:
         if chapter_range is None:
@@ -392,7 +394,7 @@ class StoryGenerator:
             # Load cached summary if it exists (for already-generated chapters)
             summary_path = self._story_dir() / f"summary_{i + 1:02d}.txt"
 
-            chapter = self.generate_chapter(i, previous_summaries=summaries if summaries else None)
+            chapter, _ = self.generate_chapter(i, previous_summaries=summaries if summaries else None)
             chapters.append(chapter)
 
             # Generate and cache summary

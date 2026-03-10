@@ -151,7 +151,7 @@ def test_simplify_chapter_returns_chapter_scene(tmp_path):
     mock_llm = _mock_llm(MOCK_SIMPLIFIED_RESPONSE)
 
     simplifier = CEFRSimplifier(config, mock_llm, output_base=tmp_path)
-    result = simplifier.simplify_chapter(0, make_raw_chapter())
+    result, _ = simplifier.simplify_chapter(0, make_raw_chapter())
 
     assert isinstance(result, ChapterScene)
     assert result.chapter == 1
@@ -171,7 +171,7 @@ def test_preserves_image_prompts(tmp_path):
 
     simplifier = CEFRSimplifier(config, mock_llm, output_base=tmp_path)
     raw = make_raw_chapter()
-    result = simplifier.simplify_chapter(0, raw)
+    result, _ = simplifier.simplify_chapter(0, raw)
 
     # Image prompts must come from RAW, not LLM
     assert result.scenes[0].shots[0].image_prompt == "RAW: A huge red suitcase on the bed"
@@ -194,7 +194,7 @@ def test_saves_to_stories_directory(tmp_path):
     mock_llm = _mock_llm(MOCK_SIMPLIFIED_RESPONSE)
 
     simplifier = CEFRSimplifier(config, mock_llm, output_base=tmp_path)
-    simplifier.simplify_chapter(0, make_raw_chapter())
+    _, _ = simplifier.simplify_chapter(0, make_raw_chapter())
 
     # Must be in stories/, NOT stories_raw/
     story_file = tmp_path / "test-deck" / "stories" / "chapter_01.json"
@@ -220,7 +220,7 @@ def test_skips_if_cached(tmp_path):
     (story_dir / "chapter_01.json").write_text(json.dumps(cached))
 
     simplifier = CEFRSimplifier(config, mock_llm, output_base=tmp_path)
-    result = simplifier.simplify_chapter(0, make_raw_chapter())
+    result, _ = simplifier.simplify_chapter(0, make_raw_chapter())
 
     assert result.chapter == 1
     assert result.scenes == []
@@ -260,7 +260,7 @@ def test_handles_sentence_splitting(tmp_path):
 
     simplifier = CEFRSimplifier(config, mock_llm, output_base=tmp_path)
     raw = make_raw_chapter()
-    result = simplifier.simplify_chapter(0, raw)
+    result, _ = simplifier.simplify_chapter(0, raw)
 
     # Shot 1 had 2 raw sentences, LLM split into 3 — should be accepted
     shot1_sentences = result.scenes[0].shots[0].sentences
