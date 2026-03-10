@@ -44,6 +44,9 @@ class GapFiller:
         lang_code: str = "es",
         max_new_words_per_sentence: int = 3,
         chapter_range: range | None = None,
+        protagonist_name: str = "",
+        secondary_characters: list | None = None,
+        grammar_targets: dict[str, list[str]] | None = None,
     ):
         self._llm = llm
         self._output_dir = output_dir
@@ -54,6 +57,9 @@ class GapFiller:
         self._lang_code = lang_code
         self._max_new_words = max_new_words_per_sentence
         self._target_chapters = chapter_range  # None = all chapters
+        self._protagonist_name = protagonist_name
+        self._secondary_characters = secondary_characters or []
+        self._grammar_targets = grammar_targets or {}
 
     @property
     def gap_dir(self) -> Path:
@@ -210,7 +216,7 @@ class GapFiller:
     # ------------------------------------------------------------------ #
 
     def _load_existing_context(self, chapter_num: int) -> str:
-        """Load existing chapter and format as shot-grouped context."""
+        """Load existing chapter and format as shot-grouped context with image prompts."""
         story_path = self._output_dir / "stories" / f"chapter_{chapter_num:02d}.json"
         if not story_path.exists():
             return ""
@@ -219,8 +225,9 @@ class GapFiller:
         shot_idx = 0
         for scene in chapter_data.scenes:
             for shot in scene.shots:
+                lines.append(f"  [shot {shot_idx}] image: {shot.image_prompt}")
                 for sent in shot.sentences:
-                    lines.append(f'  [shot {shot_idx}, sent {sent.sentence_index}] "{sent.source}"')
+                    lines.append(f'    [sent {sent.sentence_index}] "{sent.source}"')
                 shot_idx += 1
         if not lines:
             return ""
@@ -229,6 +236,50 @@ class GapFiller:
             + "\n".join(lines)
             + "\n"
         )
+
+    def _get_characters_for_chapter(self, chapter_num: int) -> str:
+        """Build a character list string for a specific chapter."""
+        chars = []
+        if self._protagonist_name:
+            chars.append(f"  - {self._protagonist_name} (protagonist, present in every chapter)")
+        for sc in self._secondary_characters:
+            ch_list = getattr(sc, "chapters", None) or sc.get("chapters", [])
+            if chapter_num in ch_list:
+                name = getattr(sc, "name", None) or sc.get("name", "")
+                role = getattr(sc, "role", None) or sc.get("role", "")
+                role_note = f" — {role}" if role else ""
+                chars.append(f"  - {name}{role_note}")
+        if not chars:
+            return ""
+        return "\nCharacters in this chapter:\n" + "\n".join(chars) + "\n"
+
+    def _get_grammar_constraints(self, cefr_level: str) -> str:
+        """Build CEFR grammar constraint text for the generation prompt."""
+        # Collect allowed grammar from this level and all levels below
+        cefr_order = ["A1", "A2", "B1", "B2", "C1", "C2"]
+        try:
+            level_idx = cefr_order.index(cefr_level)
+        except ValueError:
+            level_idx = 1  # default to A2
+
+        allowed = []
+        forbidden = []
+        for i, level in enumerate(cefr_order):
+            targets = self._grammar_targets.get(level, [])
+            if i <= level_idx:
+                allowed.extend(targets)
+            else:
+                forbidden.extend(targets)
+
+        if not allowed and not forbidden:
+            return ""
+
+        parts = [f"\nGrammar constraints for {cefr_level}:"]
+        if allowed:
+            parts.append("  ALLOWED: " + "; ".join(allowed))
+        if forbidden:
+            parts.append(f"  FORBIDDEN (above {cefr_level}): " + "; ".join(forbidden[:6]))
+        return "\n".join(parts) + "\n"
 
     def _generate_shots(
         self,
@@ -253,6 +304,11 @@ class GapFiller:
 
         dialect_note = f" Use {self._dialect} dialect." if self._dialect else ""
         words_text = ", ".join(words)
+        character_section = self._get_characters_for_chapter(chapter_num)
+        grammar_section = self._get_grammar_constraints(cefr_level)
+
+        # Count existing shots for valid insert_after_shot range
+        total_existing = self._count_existing_shots(chapter_num)
 
         system = (
             f"You are a {self._target_lang} language learning content creator. "
@@ -261,7 +317,7 @@ class GapFiller:
         prompt = (
             f"Chapter {chapter_num}: \"{title}\"\n"
             f"Context: {context}\n"
-            f"CEFR level: {cefr_level}{existing_context}\n"
+            f"CEFR level: {cefr_level}{character_section}{grammar_section}{existing_context}\n"
             f"Words to introduce ({len(words)} words): {words_text}\n\n"
             f"Generate SHOTS (groups of 1-3 sentences) that cover these words. "
             f"Each shot will have its own illustration.\n\n"
@@ -270,11 +326,16 @@ class GapFiller:
             f"2. Use at most {self._max_new_words} of the listed words per sentence.\n"
             f"3. Target at least 90% coverage — cover at least "
             f"{max(1, int(len(words) * 0.9))} of the {len(words)} words.\n"
-            f"4. Each sentence must fit the chapter context and CEFR level.\n"
+            f"4. Each sentence must fit the chapter context and CEFR level.{grammar_section and ' Follow the grammar constraints above strictly.' or ''}\n"
             f"5. Match the tone and style of the existing sentences above.{dialect_note}\n"
             f"6. The image_prompt should visually illustrate the vocabulary in the sentences.\n"
-            f"7. For insert_after_shot: specify which existing shot index (0-based) this new shot "
-            f"should be placed after. Use -1 to append at the end of the chapter.\n\n"
+            f"7. For insert_after_shot: specify which existing shot index (0-based, range 0–{max(0, total_existing - 1)}) "
+            f"this new shot should be placed after.\n"
+            f"8. ONLY use characters listed above. Do NOT invent new characters (no unnamed father, vendor, stranger, etc.). "
+            f"If an unnamed character (bus driver, vendor, waiter) already appears in the existing shots above, "
+            f"reuse their exact visual description from the image_prompt.\n"
+            f"9. Every shot must happen in the chapter's physical setting and advance the chapter's story. "
+            f"No abstract thoughts, philosophical tangents, or scenes in a different location.\n\n"
             f"Return JSON:\n"
             f'{{\n'
             f'  "shots": [\n'
@@ -295,10 +356,24 @@ class GapFiller:
             sentences = s.get("sentences", [])
             if isinstance(sentences, str):
                 sentences = [sentences]
+            raw_idx = int(s.get("insert_after_shot", -1))
+            # Clamp -1 or out-of-range to last existing shot
+            if raw_idx < 0 or total_existing == 0:
+                clamped_idx = max(0, total_existing - 1)
+            else:
+                clamped_idx = min(raw_idx, total_existing - 1)
             result.append(GapShot(
                 sentences=sentences[:3],  # enforce max 3
                 image_prompt=s.get("image_prompt", ""),
                 covers=s.get("covers", []),
-                insert_after_shot=int(s.get("insert_after_shot", -1)),
+                insert_after_shot=clamped_idx,
             ))
         return result
+
+    def _count_existing_shots(self, chapter_num: int) -> int:
+        """Count total shots in the existing chapter JSON."""
+        story_path = self._output_dir / "stories" / f"chapter_{chapter_num:02d}.json"
+        if not story_path.exists():
+            return 0
+        chapter_data = ChapterScene(**json.loads(story_path.read_text()))
+        return sum(len(scene.shots) for scene in chapter_data.scenes)

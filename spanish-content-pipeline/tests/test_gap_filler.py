@@ -264,20 +264,23 @@ def test_gap_filler_generation_prompt_mentions_max_words_per_sentence(tmp_path):
     assert "3" in generation_prompt
 
 
-def test_gap_filler_parses_insert_after_shot(tmp_path):
-    """insert_after_shot is parsed from LLM response."""
+def test_gap_filler_parses_insert_after_shot_clamped(tmp_path):
+    """insert_after_shot from LLM is clamped to valid range."""
     deck = _make_deck({1: []})
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_stories(out_dir, 1, [])
+    # Write a chapter with 1 shot (so valid range is [0, 0])
+    _write_stories(out_dir, 1, [
+        {"source": "Test sentence.", "sentence_index": 0},
+    ])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     generation_response = {"shots": [
         {"sentences": ["Caminamos por el parque."],
          "image_prompt": "People walking in a park",
          "covers": ["caminar"],
-         "insert_after_shot": 5},
+         "insert_after_shot": 5},  # out of range — should clamp to 0
     ]}
     llm = _make_mock_llm([generation_response])
 
@@ -290,24 +293,27 @@ def test_gap_filler_parses_insert_after_shot(tmp_path):
         top_n=1000,
     )
 
-    assert results[1][0].insert_after_shot == 5
+    assert results[1][0].insert_after_shot == 0  # clamped to last valid shot
     assert results[1][0].sentences == ["Caminamos por el parque."]
     assert results[1][0].image_prompt == "People walking in a park"
 
 
-def test_gap_filler_insert_after_shot_defaults_to_minus_one(tmp_path):
-    """insert_after_shot defaults to -1 when not provided by LLM."""
+def test_gap_filler_insert_after_shot_minus_one_clamped_to_last(tmp_path):
+    """insert_after_shot -1 is clamped to last existing shot index."""
     deck = _make_deck({1: []})
     frequency_data = {"caminar": 50}
 
     out_dir = tmp_path
-    _write_stories(out_dir, 1, [])
+    _write_stories(out_dir, 1, [
+        {"source": "Test sentence.", "sentence_index": 0},
+    ])
     (out_dir / "gap_word_assignment.json").write_text(json.dumps({"caminar": 1}))
 
     generation_response = {"shots": [
         {"sentences": ["Caminamos por el parque."],
          "image_prompt": "Walking in a park",
          "covers": ["caminar"]},
+         # no insert_after_shot → defaults to -1 → clamped to 0
     ]}
     llm = _make_mock_llm([generation_response])
 
@@ -320,7 +326,7 @@ def test_gap_filler_insert_after_shot_defaults_to_minus_one(tmp_path):
         top_n=1000,
     )
 
-    assert results[1][0].insert_after_shot == -1
+    assert results[1][0].insert_after_shot == 0  # not -1 anymore
 
 
 def test_gap_filler_prompt_includes_shot_boundaries(tmp_path):
@@ -432,3 +438,166 @@ def test_gap_filler_shot_string_sentence_coerced_to_list(tmp_path):
     )
 
     assert results[1][0].sentences == ["Caminamos por el parque."]
+
+
+# --- New tests for Phase 2 gap filler improvements ---
+
+
+def test_gap_filler_prompt_includes_characters(tmp_path):
+    """Generation prompt lists characters present in the chapter."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    secondary_chars = [
+        {"name": "Ingrid", "chapters": [1], "role": "Maria's mother"},
+        {"name": "Sofia", "chapters": [5, 6], "role": "best friend"},
+    ]
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+        protagonist_name="Maria",
+        secondary_characters=secondary_chars,
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "Maria" in prompt
+    assert "Ingrid" in prompt
+    assert "Maria's mother" in prompt
+    # Sofia is not in chapter 1
+    assert "Sofia" not in prompt
+
+
+def test_gap_filler_prompt_includes_grammar_constraints(tmp_path):
+    """Generation prompt includes CEFR grammar constraints."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    grammar_targets = {
+        "A1": ["simple present tense"],
+        "A2": ["pretérito indefinido", "reflexive verbs"],
+    }
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+        grammar_targets=grammar_targets,
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "simple present tense" in prompt
+    # A2 grammar should be forbidden for A1 chapter
+    assert "FORBIDDEN" in prompt
+    assert "pretérito indefinido" in prompt
+
+
+def test_gap_filler_prompt_forbids_invented_characters(tmp_path):
+    """Generation prompt instructs LLM not to invent characters."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+        protagonist_name="Maria",
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "ONLY use characters listed above" in prompt
+    assert "Do NOT invent" in prompt
+
+
+def test_gap_filler_prompt_requires_setting_coherence(tmp_path):
+    """Generation prompt requires shots to match chapter setting."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "physical setting" in prompt
+    assert "No abstract" in prompt
+
+
+def test_gap_filler_prompt_shows_valid_shot_range(tmp_path):
+    """Generation prompt shows valid insert_after_shot range."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "range 0" in prompt
+    assert "insert_after_shot" in prompt
+
+
+def test_gap_filler_prompt_instructs_visual_consistency(tmp_path):
+    """Generation prompt tells LLM to reuse unnamed character descriptions."""
+    prompts = []
+    llm = MagicMock()
+
+    def fake_complete_json(prompt, system=None):
+        prompts.append(prompt)
+        r = MagicMock()
+        r.parsed = {"shots": []}
+        return r
+    llm.complete_json = fake_complete_json
+
+    filler = GapFiller(
+        llm=llm, output_dir=tmp_path,
+        config_chapters=[{"title": "Test", "context": "test", "vocab_focus": [], "cefr_level": "A1"}],
+        target_language="Spanish", native_language="German", dialect="", lang_code="es",
+    )
+    filler._generate_shots(1, filler._chapters[0], ["casa"], "")
+
+    prompt = prompts[0]
+    assert "reuse their exact visual description" in prompt

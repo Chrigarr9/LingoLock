@@ -256,6 +256,9 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                     dialect=config.languages.dialect or "",
                     lang_code=lang_code,
                     chapter_range=chapter_range,
+                    protagonist_name=config.protagonist.name,
+                    secondary_characters=config.secondary_characters,
+                    grammar_targets=config.story.grammar_targets,
                 )
                 gap_results = filler.fill_gaps(
                     stories=stories,
@@ -585,6 +588,9 @@ def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
         native_language=config.languages.native,
         dialect=config.languages.dialect or "",
         lang_code=lang_code,
+        protagonist_name=config.protagonist.name,
+        secondary_characters=config.secondary_characters,
+        grammar_targets=config.story.grammar_targets,
     )
     gap_results = filler.fill_gaps(
         stories=stories,
