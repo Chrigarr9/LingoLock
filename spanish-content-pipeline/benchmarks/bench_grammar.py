@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage
 from pipeline.config import DeckConfig
 from pipeline.grammar_auditor import GrammarAuditReport, audit_grammar
 from pipeline.grammar_gap_filler import GrammarGapFiller
@@ -76,7 +76,7 @@ def run_grammar_benchmark(bench_config_path: Path | None = None):
 
         try:
             # Grammar audit
-            (report, audit_duration) = run_with_timing(
+            ((report, audit_responses), audit_duration) = run_with_timing(
                 lambda: audit_grammar(chapters_by_cefr, fixture_config.story.grammar_targets, llm=llm)
             )
             audit_metrics = compute_grammar_audit_metrics(report)
@@ -95,10 +95,12 @@ def run_grammar_benchmark(bench_config_path: Path | None = None):
                     native_language=fixture_config.languages.native,
                     dialect=fixture_config.languages.dialect or "",
                 )
-                (gap_sentences, fill_duration) = run_with_timing(
+                ((gap_sentences, fill_response), fill_duration) = run_with_timing(
                     lambda: filler.fill_gaps(report)
                 )
 
+            all_responses = audit_responses + ([fill_response] if fill_response else [])
+            usage = sum_usage(all_responses)
             total_duration = audit_duration + fill_duration
             metrics = {
                 **audit_metrics,
@@ -114,7 +116,8 @@ def run_grammar_benchmark(bench_config_path: Path | None = None):
                 temperature=temperature,
                 input_fixture="raw_chapter.json",
                 duration_seconds=round(total_duration, 2),
-                usage={},
+                usage=usage,
+                cost_estimate_usd=usage["cost_usd"] if usage["cost_usd"] else None,
                 raw_output=json.dumps({
                     "audit": report.model_dump(),
                     "gap_sentences": [s.model_dump() for s in gap_sentences],

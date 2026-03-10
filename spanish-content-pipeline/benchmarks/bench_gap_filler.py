@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage
 from pipeline.config import DeckConfig
 from pipeline.gap_filler import GapFiller
 from pipeline.llm import create_client
@@ -105,7 +105,7 @@ def run_gap_filler_benchmark(bench_config_path: Path | None = None):
             )
 
             try:
-                (gap_results, duration) = run_with_timing(
+                ((gap_results, llm_responses), duration) = run_with_timing(
                     lambda: filler.fill_gaps(
                         stories=stories,
                         frequency_data=frequency_data,
@@ -114,6 +114,7 @@ def run_gap_filler_benchmark(bench_config_path: Path | None = None):
                 )
                 all_shots = [shot for shots in gap_results.values() for shot in shots]
                 metrics = compute_gap_filler_metrics(missing_words, all_shots)
+                usage = sum_usage(llm_responses)
 
                 result = BenchmarkResult(
                     task="gap_filler",
@@ -122,7 +123,8 @@ def run_gap_filler_benchmark(bench_config_path: Path | None = None):
                     temperature=temperature,
                     input_fixture="raw_chapter.json",
                     duration_seconds=round(duration, 2),
-                    usage={},
+                    usage=usage,
+                    cost_estimate_usd=usage["cost_usd"] if usage["cost_usd"] else None,
                     raw_output=json.dumps(
                         {str(k): [s.model_dump() for s in v] for k, v in gap_results.items()},
                         ensure_ascii=False,

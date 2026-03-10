@@ -58,7 +58,7 @@ def run_chapter_audit_benchmark(bench_config_path: Path | None = None):
         llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
 
         try:
-            ((actions), duration) = run_with_timing(
+            ((actions, llm_response), duration) = run_with_timing(
                 lambda: audit_chapter(
                     chapter_scene=poisoned,
                     chapter_config=ch_config,
@@ -90,7 +90,8 @@ def run_chapter_audit_benchmark(bench_config_path: Path | None = None):
                 temperature=temperature,
                 input_fixture="poisoned_chapter.json",
                 duration_seconds=round(duration, 2),
-                usage={},
+                usage=usage_from_llm_response(llm_response) if llm_response else {},
+                cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
                 raw_output=json.dumps([a.model_dump() for a in actions]),
                 parsed_output=[a.model_dump() for a in actions],
                 deterministic_metrics=metrics,

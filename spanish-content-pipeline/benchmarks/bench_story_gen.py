@@ -99,7 +99,7 @@ def run_story_gen_benchmark(bench_config_path: Path | None = None):
             gen = StoryGenerator(fixture_config, llm, output_base=tmp_path)
 
             try:
-                (chapter, duration) = run_with_timing(
+                ((chapter, llm_response), duration) = run_with_timing(
                     lambda: gen.generate_chapter(0)
                 )
                 metrics = compute_deterministic_metrics(
@@ -114,7 +114,8 @@ def run_story_gen_benchmark(bench_config_path: Path | None = None):
                     temperature=temperature,
                     input_fixture="test_chapter.yaml",
                     duration_seconds=round(duration, 2),
-                    usage={},
+                    usage=usage_from_llm_response(llm_response) if llm_response else {},
+                    cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
                     raw_output=chapter.model_dump_json(),
                     parsed_output=chapter.model_dump(),
                     deterministic_metrics=metrics,

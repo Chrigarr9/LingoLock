@@ -72,3 +72,18 @@ def usage_from_llm_response(response) -> dict:
 def cost_from_llm_response(response) -> float | None:
     """Extract cost_usd from an LLMResponse."""
     return response.usage.cost_usd
+
+
+def sum_usage(responses: list) -> dict:
+    """Sum usage across multiple LLMResponse objects."""
+    total = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost_usd": 0.0}
+    for r in responses:
+        if r is None:
+            continue
+        u = r.usage
+        total["prompt_tokens"] += u.prompt_tokens
+        total["completion_tokens"] += u.completion_tokens
+        total["total_tokens"] += u.total_tokens
+        if u.cost_usd:
+            total["cost_usd"] += u.cost_usd
+    return total

@@ -86,7 +86,7 @@ def run_word_extraction_benchmark(bench_config_path: Path | None = None):
             extractor = WordExtractor(fixture_config, llm, output_base=Path(tmp))
 
             try:
-                (chapter_words, duration) = run_with_timing(
+                ((chapter_words, llm_response), duration) = run_with_timing(
                     lambda: extractor.extract_chapter(0, pairs)
                 )
                 extracted = [w.model_dump() for w in chapter_words.words]
@@ -99,7 +99,8 @@ def run_word_extraction_benchmark(bench_config_path: Path | None = None):
                     temperature=temperature,
                     input_fixture="raw_chapter.json",
                     duration_seconds=round(duration, 2),
-                    usage={},
+                    usage=usage_from_llm_response(llm_response) if llm_response else {},
+                    cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
                     raw_output=json.dumps(extracted, ensure_ascii=False),
                     parsed_output=extracted,
                     deterministic_metrics=metrics,

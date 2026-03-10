@@ -73,7 +73,7 @@ def run_translation_benchmark(bench_config_path: Path | None = None):
             translator = SentenceTranslator(fixture_config, llm, output_base=Path(tmp))
 
             try:
-                (pairs, duration) = run_with_timing(
+                ((pairs, llm_response), duration) = run_with_timing(
                     lambda: translator.translate_chapter(0, flat_text)
                 )
                 pairs_dicts = [p.model_dump() for p in pairs]
@@ -86,7 +86,8 @@ def run_translation_benchmark(bench_config_path: Path | None = None):
                     temperature=temperature,
                     input_fixture="raw_chapter.json",
                     duration_seconds=round(duration, 2),
-                    usage={},
+                    usage=usage_from_llm_response(llm_response) if llm_response else {},
+                    cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
                     raw_output=json.dumps(pairs_dicts, ensure_ascii=False),
                     parsed_output=pairs_dicts,
                     deterministic_metrics=metrics,
