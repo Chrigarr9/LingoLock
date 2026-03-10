@@ -1,0 +1,22 @@
+{
+  "pairs": [
+    {"source": "Maria abrió la puerta del café.", "target": "Maria öffnete die Tür des Cafés."},
+    {"source": "Si hubiera sabido lo que le esperaba, habría corrido más rápido.", "target": "Wenn sie gewusst hätte, was sie erwartet, wäre sie schneller gelaufen."},
+    {"source": "Sofia estaba sentada junto a la ventana.", "target": "Sofia saß am Fenster."},
+    {"source": "«¡Maria! ¡Qué alegría!», dijo Sofia con su pelo rubio brillante.", "target": "«Maria! Was für eine Freude!», sagte Sofia mit ihrem glänzenden blonden Haar."},
+    {"source": "Las amigas se abrazaron.", "target": "Die Freundinnen umarmten sich."},
+    {"source": "Maria camina hacia la mesa y se sienta.", "target": "Maria geht zum Tisch und setzt sich."},
+    {"source": "El camarero trajo dos cortados.", "target": "Der Kellner brachte zwei Cortados."},
+    {"source": "Diego se sentó con ellas y pidió una cerveza.", "target": "Diego setzte sich zu ihnen und bestellte ein Bier."},
+    {"source": "Sofia desplegó un mapa sobre la mesa.", "target": "Sofia breitete eine Karte auf dem Tisch aus."},
+    {"source": "«Aquí está la playa donde vamos a nadar mañana», dijo Sofia.", "target": "«Hier ist der Strand, an dem wir morgen schwimmen gehen», sagte Sofia."},
+    {"source": "Maria no obstante consideró que las circunstancias geopolíticas del barrio habían transformado inexorablemente la fisonomía urbana del sector.", "target": "Maria erwog dennoch, dass die geopolitischen Umstände des Viertels die urbane Physiognomie des Sektors unaufhaltsam verändert hatten."},
+    {"source": "Maria se siente muy emocionada por los planes.", "target": "Maria fühlt sich sehr begeistert über die Pläne."},
+    {"source": "Es importante que Maria haya podido viajar a Buenos Aires para que su vida hubiera cambiado.", "target": "Es ist wichtig, dass Maria nach Buenos Aires reisen konnte, damit sich ihr Leben verändert hätte."},
+    {"source": "Maria y Sofia corrieron hacia el mar azul.", "target": "Maria und Sofia rannten zum blauen Meer."},
+    {"source": "El vendedor de helados les ofreció dos copas grandes.", "target": "Der Eisverkäufer bot ihnen zwei große Becher an."},
+    {"source": "Maria mira la puesta de sol con su chaqueta verde.", "target": "Maria schaut den Sonnenuntergang mit ihrer grünen Jacke an."},
+    {"source": "Sofia dijo que Maria tenía el pelo negro y corto.", "target": "Sofia sagte, dass Maria kurzes schwarzes Haar hatte."},
+    {"source": "Maria sacó tres maletas enormes del bolso pequeño.", "target": "Maria holte drei riesige Koffer aus der kleinen Tasche."}
+  ]
+}

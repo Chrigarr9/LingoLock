@@ -1,0 +1,20 @@
+{
+  "issues": [
+    {"sentence_index": 1, "category": "cefr_violation", "description": "B2+ pluperfect subjunctive 'hubiera sabido' and conditional perfect 'habría corrido' in A2 chapter"},
+    {"sentence_index": 3, "category": "character_description", "description": "Sofia described with 'pelo rubio' but her visual_tag says 'long dark curly hair'"},
+    {"sentence_index": 5, "category": "tense_inconsistency", "description": "Switches to present tense 'camina/se sienta' when surrounding sentences use preterite"},
+    {"sentence_index": 7, "category": "wrong_character", "description": "Diego appears but only Maria and Sofia are allowed in this chapter"},
+    {"sentence_index": 9, "category": "setting_violation", "description": "References 'la playa' (beach) in a café chapter set in San Telmo"},
+    {"sentence_index": 10, "category": "cefr_violation", "description": "Sentence is B2+/C1 level: 'circunstancias geopolíticas', 'inexorablemente', 'fisonomía urbana' — far too complex for A2"},
+    {"sentence_index": 10, "category": "sentence_complexity", "description": "Sentence has 20+ words, far exceeding A2 max of 12 words"},
+    {"sentence_index": 11, "category": "tense_inconsistency", "description": "Present tense 'se siente' when context is past narration"},
+    {"sentence_index": 12, "category": "cefr_violation", "description": "Perfect subjunctive 'haya podido' and pluperfect subjunctive 'hubiera cambiado' are B2+ in A2 chapter"},
+    {"sentence_index": 12, "category": "scene_logic", "description": "Nonsensical causal chain: 'es importante que haya podido viajar para que hubiera cambiado' is logically incoherent"},
+    {"sentence_index": 13, "category": "setting_violation", "description": "Scene jumps to beach ('corrieron hacia el mar') — chapter is set in a café in San Telmo"},
+    {"sentence_index": 14, "category": "setting_violation", "description": "Ice cream vendor on beach — inconsistent with café setting"},
+    {"sentence_index": 15, "category": "tense_inconsistency", "description": "Present tense 'mira' in past-tense narration"},
+    {"sentence_index": 15, "category": "continuity_error", "description": "Maria wears 'chaqueta verde' but her visual tag has 'dark-teal cardigan' (not green jacket)"},
+    {"sentence_index": 16, "category": "character_description", "description": "Says Maria has 'pelo negro y corto' but her visual_tag says 'wavy shoulder-length light-brown hair'"},
+    {"sentence_index": 17, "category": "scene_logic", "description": "Physically impossible: 'tres maletas enormes del bolso pequeño' — three huge suitcases from a small bag"}
+  ]
+}

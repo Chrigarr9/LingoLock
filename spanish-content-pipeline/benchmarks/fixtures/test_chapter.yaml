@@ -1,0 +1,76 @@
+deck:
+  name: "Benchmark Test Deck"
+  id: "bench-test"
+
+languages:
+  target: "Spanish"
+  target_code: "es"
+  native: "German"
+  native_code: "de"
+  dialect: ""
+
+protagonist:
+  name: "Maria"
+  gender: "female"
+  origin_country: "Germany"
+  visual_tag: "Maria: slim young woman, mid-20s, wavy shoulder-length light-brown hair"
+
+destination:
+  country: "Argentina"
+  city: "Buenos Aires"
+
+secondary_characters:
+  - name: "Sofia"
+    visual_tag: "Sofia: Argentine woman, mid-20s, long dark curly hair, olive skin"
+    chapters: [1]
+    role: "best friend and host"
+
+story:
+  cefr_level: "A2"
+  sentences_per_chapter: [15, 20]
+  coverage_top_n: 50
+  narration_style: "third-person"
+  grammar_targets:
+    A2:
+      - "pretérito indefinido (simple past: fui, compré, comí)"
+      - "reflexive verbs (levantarse, llamarse, sentirse)"
+      - "modal verbs (poder, querer, deber)"
+  chapters:
+    - title: "Café con Sofia"
+      cefr_level: "A2"
+      context: >
+        Maria meets Sofia at a small café in San Telmo. They order coffee and
+        medialunas. Sofia shows Maria her neighborhood on a hand-drawn map.
+        They talk about their plans for the week. Maria is happy to finally be
+        in Buenos Aires. A street musician plays tango outside.
+      vocab_focus:
+        - "café and food (café, medialuna, leche, azúcar, agua)"
+        - "furniture (mesa, silla, ventana, puerta)"
+        - "emotions (feliz, contenta, sorprendida)"
+        - "directions (izquierda, derecha, cerca, lejos)"
+
+models:
+  story_generation:
+    model: "deepseek/deepseek-v3.2"
+    temperature: 0.8
+  cefr_simplification:
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+  grammar:
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+  gap_filling:
+    model: "deepseek/deepseek-v3.2"
+    temperature: 0.7
+  chapter_audit:
+    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    temperature: 0.3
+  story_audit:
+    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    temperature: 0.3
+  translation:
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+  word_extraction:
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
