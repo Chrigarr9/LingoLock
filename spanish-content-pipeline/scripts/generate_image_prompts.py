@@ -1,7 +1,6 @@
 """Standalone: Run just Pass 4 (image prompt generation)."""
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -11,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.config import load_config
 from pipeline.image_prompter import ImagePrompter
-from pipeline.llm import create_client
+from scripts.run_all import create_model_client
 
 
 def main():
@@ -22,16 +21,7 @@ def main():
     load_dotenv()
     config = load_config(Path(args.config))
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY not set")
-        sys.exit(1)
-
-    llm = create_client(
-        provider=config.llm.provider, api_key=api_key,
-        model=config.llm.model, temperature=config.llm.temperature,
-        max_retries=config.llm.max_retries,
-    )
+    llm = create_model_client(config.models.story_generation)
 
     output_base = Path("output")
 

@@ -11,7 +11,6 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -20,7 +19,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.config import load_config
-from pipeline.llm import create_client
+from scripts.run_all import create_model_client
 
 # ── Approach A: Pure prose ──────────────────────────────────────────────
 
@@ -246,19 +245,18 @@ def main():
     load_dotenv()
     config = load_config(Path(args.config))
 
-    model = args.model or config.llm.model
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY not set")
-        sys.exit(1)
+    story_model_config = config.models.story_generation
+    if args.model:
+        from pipeline.config import ModelConfig
+        story_model_config = ModelConfig(
+            provider=story_model_config.provider,
+            model=args.model,
+            temperature=story_model_config.temperature,
+            max_retries=story_model_config.max_retries,
+        )
 
-    llm = create_client(
-        provider=config.llm.provider,
-        api_key=api_key,
-        model=model,
-        temperature=config.llm.temperature,
-        max_retries=config.llm.max_retries,
-    )
+    llm = create_model_client(story_model_config)
+    model = story_model_config.model
 
     output_dir = Path("output") / config.deck.id / "story_test"
     output_dir.mkdir(parents=True, exist_ok=True)

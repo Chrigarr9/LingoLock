@@ -84,15 +84,29 @@ def get_api_key_for_provider(provider: str) -> str:
 
 
 def get_api_key(config: DeckConfig) -> str:
-    return get_api_key_for_provider(config.llm.provider)
+    return get_api_key_for_provider(config.models.story_generation.provider)
 
 
-def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None, audit_llm=None):
+def create_model_client(model_config, transport=None):
+    """Create an LLM client from a ModelConfig."""
+    api_key = get_api_key_for_provider(model_config.provider)
+    return create_client(
+        provider=model_config.provider,
+        api_key=api_key,
+        model=model_config.model,
+        temperature=model_config.temperature,
+        max_retries=model_config.max_retries,
+        transport=transport,
+    )
+
+
+def run_text_stage(config, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None):
     """Full text pipeline: generate → simplify → grammar gaps → insert → vocab gaps → audit → translate → extract."""
 
     # Pass 0: Unconstrained story generation → stories_raw/
     print("=== Pass 0: Unconstrained Story Generation ===")
-    story_gen = StoryGenerator(config, llm, output_base=output_base)
+    llm_story = create_model_client(config.models.story_generation)
+    story_gen = StoryGenerator(config, llm_story, output_base=output_base)
     raw_chapters = story_gen.generate_all(chapter_range=chapter_range)
     for idx, i in enumerate(chapter_range):
         ch = config.story.chapters[i]
@@ -102,7 +116,8 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
     # Pass 1: CEFR simplification → stories/
     print("\n=== Pass 1: CEFR Simplification ===")
-    simplifier = CEFRSimplifier(config, llm, output_base=output_base)
+    llm_simplify = create_model_client(config.models.cefr_simplification)
+    simplifier = CEFRSimplifier(config, llm_simplify, output_base=output_base)
     chapter_scenes: dict[int, ChapterScene] = {}
     stories: dict[int, str] = {}
     for idx, i in enumerate(chapter_range):
@@ -119,6 +134,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
         from pipeline.grammar_gap_filler import GrammarGapFiller
 
         print("\n=== Pass 2: Grammar Audit ===")
+        llm_grammar = create_model_client(config.models.grammar)
         chapters_by_cefr: dict[str, list[str]] = {}
         for i in chapter_range:
             ch = config.story.chapters[i]
@@ -129,7 +145,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
         grammar_report = audit_grammar(
             chapters_by_cefr=chapters_by_cefr,
             grammar_targets=config.story.grammar_targets,
-            llm=llm,
+            llm=llm_grammar,
         )
 
         for cefr, level_report in sorted(grammar_report.levels.items()):
@@ -144,7 +160,7 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
         # Pass 2b: Grammar Gap Filling
         grammar_filler = GrammarGapFiller(
-            llm=llm,
+            llm=llm_grammar,
             output_dir=output_base / config.deck.id,
             config_chapters=[
                 {"title": ch.title, "context": ch.context,
@@ -230,8 +246,9 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
                 if assignment_cache.exists():
                     assignment_cache.unlink()
 
+                llm_gap = create_model_client(config.models.gap_filling)
                 filler = GapFiller(
-                    llm=llm,
+                    llm=llm_gap,
                     output_dir=output_base / config.deck.id,
                     config_chapters=config.story.chapters,
                     target_language=config.languages.target,
@@ -274,61 +291,63 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
             else:
                 print("  Coverage target met — no gaps to fill.")
 
-    # Pass 5: Story Audit (optional — uses separate reasoning model)
-    if audit_llm:
-        from pipeline.story_auditor import audit_story, apply_fixes
+    # Pass 5: Story Audit (uses separate reasoning model)
+    from pipeline.story_auditor import audit_story, apply_fixes
 
-        print("\n=== Pass 5: Story Audit ===")
-        # Build chapters dict: {chapter_num: [sentence1, sentence2, ...]}
-        audit_chapters: dict[int, list[str]] = {}
+    print("\n=== Pass 5: Story Audit ===")
+    llm_audit = create_model_client(config.models.story_audit)
+
+    # Build chapters dict: {chapter_num: [sentence1, sentence2, ...]}
+    audit_chapters: dict[int, list[str]] = {}
+    for i in chapter_range:
+        audit_chapters[i + 1] = stories[i].split("\n")
+
+    # Build characters list from config
+    characters = [{"name": config.protagonist.name, "role": "protagonist"}]
+    for sc in config.secondary_characters:
+        characters.append({
+            "name": sc.name,
+            "role": "secondary character",
+            "chapters": sc.chapters,
+        })
+
+    # Build chapter configs
+    chapter_configs = [
+        {"title": ch.title, "cefr_level": ch.cefr_level or config.story.cefr_level, "context": ch.context}
+        for ch in config.story.chapters
+    ]
+
+    fixes = audit_story(
+        chapters=audit_chapters,
+        characters=characters,
+        chapter_configs=chapter_configs,
+        llm=llm_audit,
+    )
+
+    if fixes:
+        print(f"  Found {len(fixes)} issues:")
+        for fix in fixes:
+            print(f"    Ch{fix.chapter}[{fix.sentence_index}]: {fix.reason}")
+            print(f"      {fix.original}")
+            print(f"      → {fix.fixed}")
+
+        stories_dir = output_base / config.deck.id / "stories"
+        applied = apply_fixes(fixes, stories_dir)
+        print(f"  Applied {applied}/{len(fixes)} fixes to stories/")
+
+        # Reload chapter_scenes and stories from fixed files
         for i in chapter_range:
-            audit_chapters[i + 1] = stories[i].split("\n")
-
-        # Build characters list from config
-        characters = [{"name": config.protagonist.name, "role": "protagonist"}]
-        for sc in config.secondary_characters:
-            characters.append({
-                "name": sc.name,
-                "role": "secondary character",
-                "chapters": sc.chapters,
-            })
-
-        # Build chapter configs
-        chapter_configs = [
-            {"title": ch.title, "cefr_level": ch.cefr_level or config.story.cefr_level, "context": ch.context}
-            for ch in config.story.chapters
-        ]
-
-        fixes = audit_story(
-            chapters=audit_chapters,
-            characters=characters,
-            chapter_configs=chapter_configs,
-            llm=audit_llm,
-        )
-
-        if fixes:
-            print(f"  Found {len(fixes)} issues:")
-            for fix in fixes:
-                print(f"    Ch{fix.chapter}[{fix.sentence_index}]: {fix.reason}")
-                print(f"      {fix.original}")
-                print(f"      → {fix.fixed}")
-
-            stories_dir = output_base / config.deck.id / "stories"
-            applied = apply_fixes(fixes, stories_dir)
-            print(f"  Applied {applied}/{len(fixes)} fixes to stories/")
-
-            # Reload chapter_scenes and stories from fixed files
-            for i in chapter_range:
-                story_path = stories_dir / f"chapter_{i+1:02d}.json"
-                if story_path.exists():
-                    chapter_scenes[i] = ChapterScene(**json.loads(story_path.read_text()))
-                    stories[i] = extract_flat_text(chapter_scenes[i])
-        else:
-            print("  No issues found — clean bill of health!")
+            story_path = stories_dir / f"chapter_{i+1:02d}.json"
+            if story_path.exists():
+                chapter_scenes[i] = ChapterScene(**json.loads(story_path.read_text()))
+                stories[i] = extract_flat_text(chapter_scenes[i])
+    else:
+        print("  No issues found — clean bill of health!")
 
     # Pass 6: Translation (on final, clean source text)
     print("\n=== Pass 6: Sentence Translation ===")
-    translator = SentenceTranslator(config, llm, output_base=output_base)
+    llm_translate = create_model_client(config.models.translation)
+    translator = SentenceTranslator(config, llm_translate, output_base=output_base)
     all_pairs: dict[int, list[SentencePair]] = {}
     for i in chapter_range:
         ch = config.story.chapters[i]
@@ -338,7 +357,8 @@ def run_text_stage(config, llm, chapter_range, output_base, frequency_file=None,
 
     # Pass 7: Word extraction
     print("\n=== Pass 7: Word Extraction ===")
-    extractor = WordExtractor(config, llm, output_base=output_base)
+    llm_extract = create_model_client(config.models.word_extraction)
+    extractor = WordExtractor(config, llm_extract, output_base=output_base)
     all_chapters = []
     for i in chapter_range:
         ch = config.story.chapters[i]
@@ -481,7 +501,7 @@ def run_media_stage(config, chapter_range, output_base, skip_audio=False):
         print(f"  {success} audio files generated, {failed} failed")
 
 
-def run_lemmatize_stage(config, llm, output_base, frequency_file):
+def run_lemmatize_stage(config, output_base, frequency_file):
     """Pass 0: LLM-lemmatize frequency file. Cached — safe to re-run."""
     from pipeline.frequency_lemmatizer import FrequencyLemmatizer
 
@@ -500,8 +520,10 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
     print("=== Pass 0: Frequency Lemmatization ===")
     frequency_data = load_frequency_data(freq_path)
 
+    lemma_model = config.models.lemmatization or config.models.cefr_simplification
+    llm_lemma = create_model_client(lemma_model)
     lem = FrequencyLemmatizer(
-        llm=llm,
+        llm=llm_lemma,
         output_dir=out_dir,
         target_language=config.languages.target,
         lang_code=config.languages.target_code,
@@ -518,7 +540,7 @@ def run_lemmatize_stage(config, llm, output_base, frequency_file):
     print(f"  Saved to {lem.cache_path}")
 
 
-def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
+def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
     """Generate gap-filling sentences (standalone). Sentences are inserted during text stage."""
     from pipeline.gap_filler import GapFiller
 
@@ -554,8 +576,9 @@ def run_fill_gaps_stage(config, llm, output_base, frequency_file, top_n=None):
             cs = ChapterScene(**json.loads(story_file.read_text()))
             stories[ch_num - 1] = extract_flat_text(cs)
 
+    llm_gap = create_model_client(config.models.gap_filling)
     filler = GapFiller(
-        llm=llm,
+        llm=llm_gap,
         output_dir=out_dir,
         config_chapters=config.story.chapters,
         target_language=config.languages.target,
@@ -613,37 +636,14 @@ def main():
     print(f"Stage:    {args.stage}")
     print()
 
-    needs_llm = args.stage in ("text", "lemmatize", "fill-gaps", "all")
-    llm = None
-    if needs_llm:
-        api_key = get_api_key(config)
-        llm = create_client(
-            provider=config.llm.provider,
-            api_key=api_key,
-            model=config.llm.model,
-            temperature=config.llm.temperature,
-            max_retries=config.llm.max_retries,
-        )
-
-    # Separate audit LLM client (reasoning model for story audit)
-    audit_llm = None
-    if config.story_audit and config.story_audit.enabled:
-        audit_key = get_api_key_for_provider(config.story_audit.provider)
-        audit_llm = create_client(
-            provider=config.story_audit.provider,
-            api_key=audit_key,
-            model=config.story_audit.model,
-            temperature=config.story_audit.temperature,
-        )
-
     if args.stage in ("lemmatize", "all"):
-        run_lemmatize_stage(config, llm, output_base, args.frequency_file)
+        run_lemmatize_stage(config, output_base, args.frequency_file)
 
     if args.stage in ("text", "all"):
-        run_text_stage(config, llm, chapter_range, output_base, args.frequency_file, args.config, top_n=args.top_n, audit_llm=audit_llm)
+        run_text_stage(config, chapter_range, output_base, args.frequency_file, args.config, top_n=args.top_n)
 
     if args.stage in ("fill-gaps", "all"):
-        run_fill_gaps_stage(config, llm, output_base, args.frequency_file, top_n=args.top_n)
+        run_fill_gaps_stage(config, output_base, args.frequency_file, top_n=args.top_n)
 
     if args.stage in ("media", "all"):
         run_media_stage(config, chapter_range, output_base, args.skip_audio)

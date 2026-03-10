@@ -514,12 +514,54 @@ story:
         She already knows she will.
       vocab_focus: ["farewell (despedida, adiós, agradecimiento, recuerdo, extrañar)", "reflecting on growth (he aprendido que, lo que más me llevo, me ha cambiado)", "perfect subjunctive (si hubiera sabido, ojalá hubiera tenido más tiempo)", "conditional perfect (habría hecho las cosas de otra manera)", "future and hope (volveré, quizás el año que viene, sé que voy a volver)"]
 
-llm:
-  provider: "openrouter"
-  model: "google/gemini-3.1-flash-lite-preview"
-  fallback_model: "google/gemini-3-flash-preview"
-  temperature: 0.7
-  max_retries: 3
+models:
+  # Pass 0: Story generation — creative writing, done once per chapter
+  story_generation:
+    provider: "openrouter"
+    model: "deepseek/deepseek-v3.2"
+    temperature: 0.8
+
+  # Pass 1: CEFR simplification — rule-following, high volume
+  cefr_simplification:
+    provider: "openrouter"
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+
+  # Pass 2-3: Grammar audit + gap fill — structured analysis
+  grammar:
+    provider: "openrouter"
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+
+  # Pass 4: Vocab gap filling — creative + context-aware
+  gap_filling:
+    provider: "openrouter"
+    model: "deepseek/deepseek-v3.2"
+    temperature: 0.7
+
+  # Pass 4b: Per-chapter narrative audit — reasoning
+  chapter_audit:
+    provider: "openrouter"
+    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    temperature: 0.3
+
+  # Pass 5: Cross-story consistency audit — reasoning
+  story_audit:
+    provider: "openrouter"
+    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    temperature: 0.3
+
+  # Pass 6: Translation — accuracy, multilingual
+  translation:
+    provider: "openrouter"
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
+
+  # Pass 7: Word extraction — structured output
+  word_extraction:
+    provider: "openrouter"
+    model: "qwen/qwen3-30b-a3b"
+    temperature: 0.3
 
 image_generation:
   enabled: true
@@ -534,12 +576,6 @@ audio_generation:
   model: "gemini-2.5-flash-preview-tts"
   voice_name: "Aoede"
   speaking_rate: 1.0
-
-story_audit:
-  enabled: true
-  provider: "openrouter"
-  model: "google/gemini-3.1-pro-preview"
-  temperature: 0.3
 
 secondary_characters:
   - name: "Ingrid"

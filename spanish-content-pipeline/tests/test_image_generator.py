@@ -28,9 +28,15 @@ def make_config(tmp_path: Path):
             "cefr_level": "A1-A2", "sentences_per_chapter": [8, 12],
             "chapters": [{"title": "Preparation", "context": "Packing", "vocab_focus": ["clothing"]}],
         },
-        "llm": {
-            "provider": "google", "model": "gemini-2.5-flash-lite",
-            "fallback_model": "gemini-2.5-flash", "temperature": 0.7, "max_retries": 3,
+        "models": {
+            "story_generation": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "cefr_simplification": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
         "image_generation": {
             "enabled": True, "provider": "together",
@@ -193,9 +199,15 @@ def make_gemini_config(tmp_path):
             "cefr_level": "A1-A2", "sentences_per_chapter": [8, 12],
             "chapters": [{"title": "Preparation", "context": "Packing", "vocab_focus": ["clothing"]}],
         },
-        "llm": {
-            "provider": "google", "model": "gemini-2.5-flash-lite",
-            "fallback_model": "gemini-2.5-flash", "temperature": 0.7, "max_retries": 3,
+        "models": {
+            "story_generation": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "cefr_simplification": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
         "image_generation": {
             "enabled": True,

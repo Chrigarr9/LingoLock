@@ -40,12 +40,15 @@ def make_mock_config(tmp_path: Path):
                 {"title": "Test", "context": "Test context", "vocab_focus": ["test"]},
             ],
         },
-        "llm": {
-            "provider": "openrouter",
-            "model": "test/model",
-            "fallback_model": "test/fallback",
-            "temperature": 0.7,
-            "max_retries": 3,
+        "models": {
+            "story_generation": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "cefr_simplification": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
     }
     config_path = tmp_path / "config.yaml"

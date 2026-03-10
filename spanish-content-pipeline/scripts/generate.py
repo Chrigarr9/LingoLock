@@ -1,7 +1,6 @@
 """Run Pass 1: Story Generation only."""
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -10,9 +9,8 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.config import load_config
-from pipeline.llm import create_client
 from pipeline.story_generator import StoryGenerator
-from scripts.run_all import get_api_key, parse_chapter_range
+from scripts.run_all import create_model_client, parse_chapter_range
 
 
 def main():
@@ -23,7 +21,6 @@ def main():
 
     load_dotenv()
     config = load_config(Path(args.config))
-    api_key = get_api_key(config)
 
     chapter_range = (
         parse_chapter_range(args.chapters, config.chapter_count)
@@ -31,13 +28,7 @@ def main():
         else range(config.chapter_count)
     )
 
-    llm = create_client(
-        provider=config.llm.provider,
-        api_key=api_key,
-        model=config.llm.model,
-        temperature=config.llm.temperature,
-        max_retries=config.llm.max_retries,
-    )
+    llm = create_model_client(config.models.story_generation)
 
     print("=== Pass 1: Story Generation ===")
     gen = StoryGenerator(config, llm)

@@ -54,12 +54,25 @@ class StoryConfig(BaseModel):
     narration_style: str = "third-person"  # "third-person" or "first-person"
 
 
-class LLMConfig(BaseModel):
-    provider: str
+class ModelConfig(BaseModel):
+    """Configuration for a single LLM model used by one pipeline step."""
+    provider: str = "openrouter"
     model: str
-    fallback_model: str
-    temperature: float
-    max_retries: int
+    temperature: float = 0.7
+    max_retries: int = 3
+
+
+class ModelsConfig(BaseModel):
+    """Per-step model configuration. Each pipeline pass uses its own model."""
+    story_generation: ModelConfig
+    cefr_simplification: ModelConfig
+    grammar: ModelConfig
+    gap_filling: ModelConfig
+    chapter_audit: ModelConfig
+    story_audit: ModelConfig
+    translation: ModelConfig
+    word_extraction: ModelConfig
+    lemmatization: ModelConfig | None = None  # Falls back to cefr_simplification
 
 
 class ImageGenerationConfig(BaseModel):
@@ -81,23 +94,15 @@ class AudioGenerationConfig(BaseModel):
     speaking_rate: float = 1.0  # Reserved for future use
 
 
-class AuditConfig(BaseModel):
-    enabled: bool = False
-    provider: str = "google"
-    model: str = "gemini-2.5-flash"
-    temperature: float = 0.3  # Low temp for analytical task
-
-
 class DeckConfig(BaseModel):
     deck: DeckInfo
     languages: Languages
     protagonist: Protagonist
     destination: Destination
     story: StoryConfig
-    llm: LLMConfig
+    models: ModelsConfig
     image_generation: ImageGenerationConfig | None = None
     audio_generation: AudioGenerationConfig | None = None
-    story_audit: AuditConfig | None = None
     secondary_characters: list[SecondaryCharacter] = []
 
     @property

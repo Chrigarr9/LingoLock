@@ -38,12 +38,15 @@ SAMPLE_CONFIG = {
             },
         ],
     },
-    "llm": {
-        "provider": "openrouter",
-        "model": "google/gemini-2.5-flash-lite",
-        "fallback_model": "openai/gpt-4o-mini",
-        "temperature": 0.7,
-        "max_retries": 3,
+    "models": {
+        "story_generation": {"provider": "openrouter", "model": "deepseek/deepseek-v3.2", "temperature": 0.8},
+        "cefr_simplification": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
+        "grammar": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
+        "gap_filling": {"provider": "openrouter", "model": "deepseek/deepseek-v3.2", "temperature": 0.7},
+        "chapter_audit": {"provider": "openrouter", "model": "qwen/qwen3-235b-a22b-thinking-2507", "temperature": 0.3},
+        "story_audit": {"provider": "openrouter", "model": "qwen/qwen3-235b-a22b-thinking-2507", "temperature": 0.3},
+        "translation": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
+        "word_extraction": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
     },
 }
 
@@ -59,7 +62,7 @@ def test_load_config_from_yaml():
     assert config.protagonist.name == "Charlotte"
     assert config.destination.city == "Buenos Aires"
     assert len(config.story.chapters) == 1
-    assert config.llm.model == "google/gemini-2.5-flash-lite"
+    assert config.models.story_generation.model == "deepseek/deepseek-v3.2"
 
 
 def test_config_chapter_count():
