@@ -55,3 +55,20 @@ def run_with_timing(fn):
     result = fn()
     duration = time.monotonic() - start
     return result, duration
+
+
+def usage_from_llm_response(response) -> dict:
+    """Extract usage dict from an LLMResponse for BenchmarkResult storage."""
+    u = response.usage
+    return {
+        "prompt_tokens": u.prompt_tokens,
+        "completion_tokens": u.completion_tokens,
+        "total_tokens": u.total_tokens,
+        "cost_usd": u.cost_usd,
+        "generation_id": u.generation_id,
+    }
+
+
+def cost_from_llm_response(response) -> float | None:
+    """Extract cost_usd from an LLMResponse."""
+    return response.usage.cost_usd

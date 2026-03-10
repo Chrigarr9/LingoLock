@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response
 from pipeline.llm import create_client
 from scripts.run_all import get_api_key_for_provider
 
@@ -116,7 +116,8 @@ def run_multilingual_translation_benchmark(bench_config_path: Path | None = None
                     temperature=temperature,
                     input_fixture="flores_30.json",
                     duration_seconds=round(duration, 2),
-                    usage={},
+                    usage=usage_from_llm_response(response),
+                    cost_estimate_usd=cost_from_llm_response(response),
                     raw_output=json.dumps(raw_translations, ensure_ascii=False),
                     parsed_output={"translations": raw_translations, "reference": reference},
                     deterministic_metrics=metrics,
