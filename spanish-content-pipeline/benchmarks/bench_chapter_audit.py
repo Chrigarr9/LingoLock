@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchmarks.bench_audit import compute_audit_metrics
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel
 from pipeline.chapter_auditor import audit_chapter
 from pipeline.config import DeckConfig
 from pipeline.llm import create_client
@@ -22,7 +22,71 @@ FIXTURES = BENCH_DIR / "fixtures"
 RESULTS = BENCH_DIR / "results"
 
 
-def run_chapter_audit_benchmark(bench_config_path: Path | None = None):
+def _run_single_model(model_entry: dict, poisoned: ChapterScene, ch_config: dict,
+                       characters: list[dict], expected: dict):
+    """Run chapter audit for a single model."""
+    model_name = model_entry["model"]
+    provider = model_entry.get("provider", "openrouter")
+    temperature = model_entry.get("temperature", 0.3)
+
+    api_key = get_api_key_for_provider(provider)
+    llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
+
+    try:
+        ((actions, llm_response), duration) = run_with_timing(
+            lambda: audit_chapter(
+                chapter_scene=poisoned,
+                chapter_config=ch_config,
+                characters=characters,
+                llm=llm,
+                gap_words=[],
+            )
+        )
+        found_indices = set()
+        for a in actions:
+            if a.sentence_index is not None:
+                found_indices.add(a.sentence_index)
+            if a.shot_index is not None:
+                shot_idx = 0
+                for scene in poisoned.scenes:
+                    for shot in scene.shots:
+                        if shot_idx == a.shot_index:
+                            for sent in shot.sentences:
+                                found_indices.add(sent.sentence_index)
+                        shot_idx += 1
+
+        metrics = compute_audit_metrics(expected["issues"], found_indices, total_fixes=len(actions))
+
+        result = BenchmarkResult(
+            task="chapter_audit",
+            model=model_name,
+            provider=provider,
+            temperature=temperature,
+            input_fixture="poisoned_chapter.json",
+            duration_seconds=round(duration, 2),
+            usage=usage_from_llm_response(llm_response) if llm_response else {},
+            cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
+            raw_output=json.dumps([a.model_dump() for a in actions]),
+            parsed_output=[a.model_dump() for a in actions],
+            deterministic_metrics=metrics,
+        )
+        print(f"  [{model_name}] P={metrics['precision']:.2f} R={metrics['recall']:.2f} F1={metrics['f1']:.2f} "
+              f"({metrics['true_positives']}tp/{metrics['false_positives']}fp/{metrics['false_negatives']}fn) "
+              f"{duration:.1f}s")
+    except Exception as e:
+        result = BenchmarkResult(
+            task="chapter_audit", model=model_name, provider=provider,
+            temperature=temperature, input_fixture="poisoned_chapter.json",
+            duration_seconds=0, usage={}, raw_output="", parsed_output=None,
+            deterministic_metrics={}, error=str(e),
+        )
+        print(f"  [{model_name}] ERROR: {e}")
+
+    save_result(result, RESULTS)
+    return result
+
+
+def run_chapter_audit_benchmark(bench_config_path: Path | None = None, parallel: bool = False, max_workers: int = 4):
     """Run chapter audit benchmark with poisoned chapter."""
     load_dotenv()
 
@@ -47,68 +111,16 @@ def run_chapter_audit_benchmark(bench_config_path: Path | None = None):
         print("No chapter_audit models in bench_config.yaml")
         return
 
-    print(f"=== Benchmark: Chapter Audit ({len(models)} models, {len(expected['issues'])} seeded issues) ===")
-    for model_entry in models:
-        model_name = model_entry["model"]
-        provider = model_entry.get("provider", "openrouter")
-        temperature = model_entry.get("temperature", 0.3)
-        print(f"\n  Model: {model_name}")
+    print(f"=== Benchmark: Chapter Audit ({len(models)} models, {len(expected['issues'])} seeded issues{', parallel' if parallel else ''}) ===")
 
-        api_key = get_api_key_for_provider(provider)
-        llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
+    def run_one(entry):
+        return _run_single_model(entry, poisoned, ch_config, characters, expected)
 
-        try:
-            ((actions, llm_response), duration) = run_with_timing(
-                lambda: audit_chapter(
-                    chapter_scene=poisoned,
-                    chapter_config=ch_config,
-                    characters=characters,
-                    llm=llm,
-                    gap_words=[],
-                )
-            )
-            found_indices = set()
-            for a in actions:
-                if a.sentence_index is not None:
-                    found_indices.add(a.sentence_index)
-                if a.shot_index is not None:
-                    # Map shot_index back to sentence indices
-                    shot_idx = 0
-                    for scene in poisoned.scenes:
-                        for shot in scene.shots:
-                            if shot_idx == a.shot_index:
-                                for sent in shot.sentences:
-                                    found_indices.add(sent.sentence_index)
-                            shot_idx += 1
-
-            metrics = compute_audit_metrics(expected["issues"], found_indices, total_fixes=len(actions))
-
-            result = BenchmarkResult(
-                task="chapter_audit",
-                model=model_name,
-                provider=provider,
-                temperature=temperature,
-                input_fixture="poisoned_chapter.json",
-                duration_seconds=round(duration, 2),
-                usage=usage_from_llm_response(llm_response) if llm_response else {},
-                cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
-                raw_output=json.dumps([a.model_dump() for a in actions]),
-                parsed_output=[a.model_dump() for a in actions],
-                deterministic_metrics=metrics,
-            )
-            print(f"    P={metrics['precision']:.2f} R={metrics['recall']:.2f} F1={metrics['f1']:.2f} "
-                  f"({metrics['true_positives']}tp/{metrics['false_positives']}fp/{metrics['false_negatives']}fn) "
-                  f"{duration:.1f}s")
-        except Exception as e:
-            result = BenchmarkResult(
-                task="chapter_audit", model=model_name, provider=provider,
-                temperature=temperature, input_fixture="poisoned_chapter.json",
-                duration_seconds=0, usage={}, raw_output="", parsed_output=None,
-                deterministic_metrics={}, error=str(e),
-            )
-            print(f"    ERROR: {e}")
-
-        save_result(result, RESULTS)
+    if parallel:
+        run_models_parallel(models, run_one, max_workers=max_workers)
+    else:
+        for entry in models:
+            run_one(entry)
 
 
 if __name__ == "__main__":

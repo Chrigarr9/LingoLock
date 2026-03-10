@@ -14,6 +14,7 @@ from benchmarks.bench_chapter_audit import run_chapter_audit_benchmark
 from benchmarks.bench_audit import run_audit_benchmark
 from benchmarks.bench_translation import run_translation_benchmark
 from benchmarks.bench_word_extraction import run_word_extraction_benchmark
+
 TASK_CONFIG_KEY = {
     "story_gen": "story_generation",
     "simplification": "cefr_simplification",
@@ -64,6 +65,14 @@ def main():
         "--config", default=None,
         help="Path to bench_config.yaml. Default: benchmarks/bench_config.yaml",
     )
+    parser.add_argument(
+        "--parallel", action="store_true",
+        help="Run models within each task in parallel using ThreadPoolExecutor.",
+    )
+    parser.add_argument(
+        "--workers", type=int, default=4,
+        help="Max parallel workers per task (default: 4).",
+    )
     args = parser.parse_args()
 
     bench_dir = Path(__file__).resolve().parent
@@ -81,13 +90,14 @@ def main():
             print(f"Unknown task: {name}. Available: {', '.join(ALL_TASKS.keys())}")
             sys.exit(1)
 
-    print(f"Running {len(task_names)} benchmark(s): {', '.join(task_names)}")
+    mode = "parallel" if args.parallel else "sequential"
+    print(f"Running {len(task_names)} benchmark(s): {', '.join(task_names)} [{mode}]")
     if args.tier:
         print(f"Tier: {args.tier} (config: {config_path.name})")
     print()
 
     for name in task_names:
-        ALL_TASKS[name](config_path)
+        ALL_TASKS[name](config_path, parallel=args.parallel, max_workers=args.workers)
         print()
 
     print("All benchmarks complete. Results in benchmarks/results/")

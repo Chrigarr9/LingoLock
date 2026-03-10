@@ -2,6 +2,7 @@
 
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -87,3 +88,34 @@ def sum_usage(responses: list) -> dict:
         if u.cost_usd:
             total["cost_usd"] += u.cost_usd
     return total
+
+
+def run_models_parallel(
+    model_entries: list[dict],
+    run_fn,
+    max_workers: int = 4,
+) -> list:
+    """Run a benchmark function across models in parallel using ThreadPoolExecutor.
+
+    Args:
+        model_entries: List of model config dicts (each has "model", "provider", "temperature").
+        run_fn: Callable(model_entry) -> any result. Called once per model.
+        max_workers: Max concurrent threads.
+
+    Returns:
+        List of results from run_fn, in completion order.
+    """
+    results = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {
+            pool.submit(run_fn, entry): entry
+            for entry in model_entries
+        }
+        for future in as_completed(futures):
+            entry = futures[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"    ERROR [{entry['model']}]: {e}")
+    return results

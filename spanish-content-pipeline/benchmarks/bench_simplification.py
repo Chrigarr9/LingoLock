@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel
 from pipeline.cefr_simplifier import CEFRSimplifier
 from pipeline.config import DeckConfig
 from pipeline.llm import create_client
@@ -52,7 +52,54 @@ def compute_deterministic_metrics(chapter: ChapterScene, cefr_level: str, lang: 
     }
 
 
-def run_simplification_benchmark(bench_config_path: Path | None = None):
+def _run_single_model(model_entry: dict, fixture_config: DeckConfig, raw_chapter: ChapterScene, cefr: str):
+    """Run CEFR simplification for a single model."""
+    model_name = model_entry["model"]
+    provider = model_entry.get("provider", "openrouter")
+    temperature = model_entry.get("temperature", 0.3)
+
+    api_key = get_api_key_for_provider(provider)
+    llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        simplifier = CEFRSimplifier(fixture_config, llm, output_base=Path(tmp))
+
+        try:
+            ((chapter, llm_response), duration) = run_with_timing(
+                lambda: simplifier.simplify_chapter(0, raw_chapter)
+            )
+            metrics = compute_deterministic_metrics(chapter, cefr)
+            result = BenchmarkResult(
+                task="simplification",
+                model=model_name,
+                provider=provider,
+                temperature=temperature,
+                input_fixture="raw_chapter.json",
+                duration_seconds=round(duration, 2),
+                usage=usage_from_llm_response(llm_response) if llm_response else {},
+                cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
+                raw_output=chapter.model_dump_json(),
+                parsed_output=chapter.model_dump(),
+                deterministic_metrics=metrics,
+            )
+            exceed = metrics["sentences_exceeding_word_limit"]
+            print(f"  [{model_name}] {metrics['sentence_count']} sentences, "
+                  f"avg {metrics['avg_sentence_length_words']} words, "
+                  f"{exceed} exceeding limit, {duration:.1f}s")
+        except Exception as e:
+            result = BenchmarkResult(
+                task="simplification", model=model_name, provider=provider,
+                temperature=temperature, input_fixture="raw_chapter.json",
+                duration_seconds=0, usage={}, raw_output="", parsed_output=None,
+                deterministic_metrics={}, error=str(e),
+            )
+            print(f"  [{model_name}] ERROR: {e}")
+
+        save_result(result, RESULTS)
+        return result
+
+
+def run_simplification_benchmark(bench_config_path: Path | None = None, parallel: bool = False, max_workers: int = 4):
     """Run CEFR simplification benchmark across all candidate models."""
     load_dotenv()
 
@@ -67,51 +114,16 @@ def run_simplification_benchmark(bench_config_path: Path | None = None):
         print("No cefr_simplification models in bench_config.yaml")
         return
 
-    print(f"=== Benchmark: CEFR Simplification ({len(models)} models, target {cefr}) ===")
-    for model_entry in models:
-        model_name = model_entry["model"]
-        provider = model_entry.get("provider", "openrouter")
-        temperature = model_entry.get("temperature", 0.3)
-        print(f"\n  Model: {model_name}")
+    print(f"=== Benchmark: CEFR Simplification ({len(models)} models, target {cefr}{', parallel' if parallel else ''}) ===")
 
-        api_key = get_api_key_for_provider(provider)
-        llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
+    def run_one(entry):
+        return _run_single_model(entry, fixture_config, raw_chapter, cefr)
 
-        with tempfile.TemporaryDirectory() as tmp:
-            simplifier = CEFRSimplifier(fixture_config, llm, output_base=Path(tmp))
-
-            try:
-                ((chapter, llm_response), duration) = run_with_timing(
-                    lambda: simplifier.simplify_chapter(0, raw_chapter)
-                )
-                metrics = compute_deterministic_metrics(chapter, cefr)
-                result = BenchmarkResult(
-                    task="simplification",
-                    model=model_name,
-                    provider=provider,
-                    temperature=temperature,
-                    input_fixture="raw_chapter.json",
-                    duration_seconds=round(duration, 2),
-                    usage=usage_from_llm_response(llm_response) if llm_response else {},
-                    cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
-                    raw_output=chapter.model_dump_json(),
-                    parsed_output=chapter.model_dump(),
-                    deterministic_metrics=metrics,
-                )
-                exceed = metrics["sentences_exceeding_word_limit"]
-                print(f"    {metrics['sentence_count']} sentences, "
-                      f"avg {metrics['avg_sentence_length_words']} words, "
-                      f"{exceed} exceeding limit, {duration:.1f}s")
-            except Exception as e:
-                result = BenchmarkResult(
-                    task="simplification", model=model_name, provider=provider,
-                    temperature=temperature, input_fixture="raw_chapter.json",
-                    duration_seconds=0, usage={}, raw_output="", parsed_output=None,
-                    deterministic_metrics={}, error=str(e),
-                )
-                print(f"    ERROR: {e}")
-
-            save_result(result, RESULTS)
+    if parallel:
+        run_models_parallel(models, run_one, max_workers=max_workers)
+    else:
+        for entry in models:
+            run_one(entry)
 
 
 if __name__ == "__main__":
