@@ -1,10 +1,16 @@
 """LLM clients for OpenRouter and Google Gemini with retry and JSON mode support."""
 
 import json
+import sys
 import time
 from dataclasses import dataclass
 
 import httpx
+
+# Allow arbitrarily large integers in JSON responses from LLMs.
+# Python 3.11+ limits int↔str conversion to 4300 digits (CVE-2020-10735),
+# but models occasionally return huge numbers in JSON output.
+sys.set_int_max_str_digits(0)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
