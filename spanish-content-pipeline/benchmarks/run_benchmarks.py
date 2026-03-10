@@ -14,6 +14,17 @@ from benchmarks.bench_chapter_audit import run_chapter_audit_benchmark
 from benchmarks.bench_audit import run_audit_benchmark
 from benchmarks.bench_translation import run_translation_benchmark
 from benchmarks.bench_word_extraction import run_word_extraction_benchmark
+TASK_CONFIG_KEY = {
+    "story_gen": "story_generation",
+    "simplification": "cefr_simplification",
+    "grammar": "grammar",
+    "gap_filler": "gap_filling",
+    "chapter_audit": "chapter_audit",
+    "audit": "story_audit",
+    "translation": "translation",
+    "word_extraction": "word_extraction",
+}
+
 ALL_TASKS = {
     "story_gen": run_story_gen_benchmark,
     "simplification": run_simplification_benchmark,
