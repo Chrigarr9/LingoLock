@@ -180,6 +180,8 @@ class GrammarGapFiller:
 
         result = []
         for s in raw_sentences:
+            if not isinstance(s, dict):
+                continue
             grammar_target = s.get("grammar_target", "")
             # Try exact match first, then fuzzy match
             cefr = target_to_cefr.get(grammar_target, "")

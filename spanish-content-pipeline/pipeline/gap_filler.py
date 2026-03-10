@@ -353,6 +353,8 @@ class GapFiller:
 
         result = []
         for s in raw_shots:
+            if not isinstance(s, dict):
+                continue
             sentences = s.get("sentences", [])
             if isinstance(sentences, str):
                 sentences = [sentences]

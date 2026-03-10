@@ -104,6 +104,8 @@ class WordExtractor:
         # Build lookup: source text → LLM annotation
         annotation_map: dict[str, dict] = {}
         for ann in raw_annotations:
+            if not isinstance(ann, dict):
+                continue
             source = ann.get("source", "")
             annotation_map[source] = ann
 

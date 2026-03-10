@@ -67,6 +67,8 @@ def audit_grammar(
 
         results = []
         for rt in raw_targets:
+            if not isinstance(rt, dict):
+                continue
             results.append(GrammarTargetResult(
                 target=rt.get("target", ""),
                 present=rt.get("present", False),
