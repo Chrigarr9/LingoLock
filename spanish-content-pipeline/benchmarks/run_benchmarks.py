@@ -14,8 +14,6 @@ from benchmarks.bench_chapter_audit import run_chapter_audit_benchmark
 from benchmarks.bench_audit import run_audit_benchmark
 from benchmarks.bench_translation import run_translation_benchmark
 from benchmarks.bench_word_extraction import run_word_extraction_benchmark
-from benchmarks.bench_translation_multilingual import run_multilingual_translation_benchmark
-
 ALL_TASKS = {
     "story_gen": run_story_gen_benchmark,
     "simplification": run_simplification_benchmark,
@@ -24,7 +22,6 @@ ALL_TASKS = {
     "chapter_audit": run_chapter_audit_benchmark,
     "audit": run_audit_benchmark,
     "translation": run_translation_benchmark,
-    "translation_multilingual": run_multilingual_translation_benchmark,
     "word_extraction": run_word_extraction_benchmark,
 }
 
@@ -36,7 +33,7 @@ TIER_CONFIGS = {
 
 TIER_TASKS = {
     "cheap": ["story_gen", "simplification", "grammar", "gap_filler", "translation",
-              "translation_multilingual", "word_extraction"],
+              "word_extraction"],
     "thinking": ["chapter_audit", "audit"],
     "premium": list(ALL_TASKS.keys()),
 }
