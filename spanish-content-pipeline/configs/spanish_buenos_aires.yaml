@@ -23,8 +23,10 @@ story:
   # Default CEFR level — overridden per chapter below.
   cefr_level: "A1"
   sentences_per_chapter: [25, 35]
-  coverage_top_n: 250
+  coverage_top_n: 150
+  frequency_file: "data/frequency/es_50k.txt"
   narration_style: "third-person"
+  audit_max_iterations: 1
   grammar_targets:
     A1:
       - "simple present tense (indicativo presente)"
@@ -515,52 +517,70 @@ story:
       vocab_focus: ["farewell (despedida, adiós, agradecimiento, recuerdo, extrañar)", "reflecting on growth (he aprendido que, lo que más me llevo, me ha cambiado)", "perfect subjunctive (si hubiera sabido, ojalá hubiera tenido más tiempo)", "conditional perfect (habría hecho las cosas de otra manera)", "future and hope (volveré, quizás el año que viene, sé que voy a volver)"]
 
 models:
-  # Pass 0: Story generation — creative writing, done once per chapter
+  # Pass 0: Story generation — Gemini 2.5 Flash (7.5/10 quality, 0.34¢, 6.5s)
   story_generation:
     provider: "openrouter"
-    model: "deepseek/deepseek-v3.2"
+    model: "google/gemini-2.5-flash"
     temperature: 0.8
 
-  # Pass 1: CEFR simplification — rule-following, high volume
+  # Pass 1: CEFR simplification — Gemini 3.1 FL (1.0 score, 0.25¢, 7.8s)
   cefr_simplification:
     provider: "openrouter"
-    model: "qwen/qwen3-30b-a3b"
+    model: "google/gemini-3.1-flash-lite-preview"
     temperature: 0.3
 
-  # Pass 2-3: Grammar audit + gap fill — structured analysis
+  # Pass 2-3: Grammar audit — Gemini 2.5 FL (1.0 coverage, 0.01¢, 1.9s)
   grammar:
     provider: "openrouter"
-    model: "qwen/qwen3-30b-a3b"
+    model: "google/gemini-2.5-flash-lite"
     temperature: 0.3
 
-  # Pass 4: Vocab gap filling — creative + context-aware
+  # Pass 4: Vocab gap filling — Qwen3 Max Think (reasoning for better narrative fit)
   gap_filling:
     provider: "openrouter"
-    model: "deepseek/deepseek-v3.2"
+    model: "qwen/qwen3-max-thinking"
     temperature: 0.7
 
-  # Pass 4b: Per-chapter narrative audit — reasoning
+  # Pass 4b: Per-chapter narrative audit — Qwen3 Max Think (F1=0.917, 0.51¢, 39s)
   chapter_audit:
     provider: "openrouter"
-    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    model: "qwen/qwen3-max-thinking"
     temperature: 0.3
 
-  # Pass 5: Cross-story consistency audit — reasoning
-  story_audit:
+  # Pass 5a: Story review — Sonnet 4.6 (finds issues across chapters)
+  story_review:
     provider: "openrouter"
-    model: "qwen/qwen3-235b-a22b-thinking-2507"
+    model: "anthropic/claude-sonnet-4-6"
     temperature: 0.3
 
-  # Pass 6: Translation — accuracy, multilingual
+  # Pass 5b: Story fix — Gemini 3.1 FL (cheap, applies fixes in parallel)
+  story_fix:
+    provider: "openrouter"
+    model: "google/gemini-3.1-flash-lite-preview"
+    temperature: 0.3
+
+  # Pass 5c: Image prompt review — Sonnet 4.6
+  image_review:
+    provider: "openrouter"
+    model: "anthropic/claude-sonnet-4-6"
+    temperature: 0.3
+
+  # Pass 5c: Image prompt fix — Gemini 3.1 FL
+  image_fix:
+    provider: "openrouter"
+    model: "google/gemini-3.1-flash-lite-preview"
+    temperature: 0.3
+
+  # Pass 6: Translation — Gemini 3.1 FL (50.5 chrF, 100% reliable, 5.24¢/10 pairs)
   translation:
     provider: "openrouter"
-    model: "qwen/qwen3-30b-a3b"
+    model: "google/gemini-3.1-flash-lite-preview"
     temperature: 0.3
 
-  # Pass 7: Word extraction — structured output
+  # Pass 7: Word extraction — Gemini 3.1 FL (0.930 score, 86% trans accuracy, 1.25¢)
   word_extraction:
     provider: "openrouter"
-    model: "qwen/qwen3-30b-a3b"
+    model: "google/gemini-3.1-flash-lite-preview"
     temperature: 0.3
 
 image_generation:

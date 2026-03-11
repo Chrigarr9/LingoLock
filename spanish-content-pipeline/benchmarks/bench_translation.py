@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from benchmarks.common import (
     BenchmarkResult, load_bench_config, save_result, run_with_timing,
     usage_from_llm_response, cost_from_llm_response, run_models_parallel,
+    has_result,
 )
 from pipeline.config import DeckConfig, DeckInfo, Languages, Protagonist, Destination, StoryConfig, ChapterDef, ModelsConfig, ModelConfig
 from pipeline.llm import create_client
@@ -64,7 +65,10 @@ def _make_bench_config(source_lang: str, target_lang: str, model: str) -> DeckCo
             grammar=ModelConfig(model=model),
             gap_filling=ModelConfig(model=model),
             chapter_audit=ModelConfig(model=model),
-            story_audit=ModelConfig(model=model),
+            story_review=ModelConfig(model=model),
+            story_fix=ModelConfig(model=model),
+            image_review=ModelConfig(model=model),
+            image_fix=ModelConfig(model=model),
             translation=ModelConfig(model=model),
             word_extraction=ModelConfig(model=model),
         ),
@@ -122,6 +126,9 @@ def _run_single_model(model_entry: dict, flores: dict):
 
     results = []
     for source_code, target_code, source_lang, target_lang, pair_iso in LANGUAGE_PAIRS:
+        if has_result(f"translation_{pair_iso}", model_name, RESULTS):
+            print(f"  [SKIP] {model_name} {pair_iso} — result exists")
+            continue
         source_sentences = [s[source_code] for s in flores["sentences"]]
         reference = [s[target_code] for s in flores["sentences"]]
         story_text = "\n".join(source_sentences)

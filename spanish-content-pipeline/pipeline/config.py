@@ -51,7 +51,9 @@ class StoryConfig(BaseModel):
     chapters: list[ChapterDef]
     grammar_targets: dict[str, list[str]] = {}  # Optional: CEFR level -> grammar targets
     coverage_top_n: int = 1000  # Target top-N frequency words for coverage/gap-filling
+    frequency_file: str | None = None  # Path to frequency word list (relative to config dir)
     narration_style: str = "third-person"  # "third-person" or "first-person"
+    audit_max_iterations: int = 1  # Max find→fix cycles in story audit
 
 
 class ModelConfig(BaseModel):
@@ -69,7 +71,10 @@ class ModelsConfig(BaseModel):
     grammar: ModelConfig
     gap_filling: ModelConfig
     chapter_audit: ModelConfig
-    story_audit: ModelConfig
+    story_review: ModelConfig      # Pass 5a: find issues (e.g. Sonnet)
+    story_fix: ModelConfig         # Pass 5b: fix issues in parallel (e.g. Gemini Flash)
+    image_review: ModelConfig      # Pass 5c: review image prompts
+    image_fix: ModelConfig         # Pass 5c: fix image prompts in parallel
     translation: ModelConfig
     word_extraction: ModelConfig
     lemmatization: ModelConfig | None = None  # Falls back to cefr_simplification

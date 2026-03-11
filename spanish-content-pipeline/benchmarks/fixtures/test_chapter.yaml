@@ -65,8 +65,17 @@ models:
   chapter_audit:
     model: "qwen/qwen3-235b-a22b-thinking-2507"
     temperature: 0.3
-  story_audit:
-    model: "qwen/qwen3-235b-a22b-thinking-2507"
+  story_review:
+    model: "anthropic/claude-sonnet-4-6"
+    temperature: 0.3
+  story_fix:
+    model: "google/gemini-3.1-flash-lite-preview"
+    temperature: 0.3
+  image_review:
+    model: "anthropic/claude-sonnet-4-6"
+    temperature: 0.3
+  image_fix:
+    model: "google/gemini-3.1-flash-lite-preview"
     temperature: 0.3
   translation:
     model: "qwen/qwen3-30b-a3b"
