@@ -12,10 +12,11 @@ from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
 
 _CEFR_CONSTRAINTS = {
     "A1": (
-        "**A1** — Max 12 words per sentence. Simple present tense only. "
-        "Subject + verb + object. No subordinate clauses (avoid: que, porque, cuando, si). "
-        "No indirect object pronouns (le, les). Use only vocabulary a beginner learns in their "
-        "first month of class. If in doubt, choose the simpler word.\n"
+        "**A1** — Max 12 words per sentence. Simple present tense only (ser, estar, hay, "
+        "tener, ir + regular verbs). Subject + verb + object. "
+        "No subordinate clauses (avoid: que, porque, cuando, si). "
+        "No indirect object pronouns (le, les). No subjunctive, no compound tenses, "
+        "no future tense, no imperatives, no preterite, no imperfecto.\n"
         'Good A1 examples: "Maria abre la maleta amarilla en el suelo." / '
         '"Ella tiene un poco de miedo." / "El taxi rojo es muy rápido." / '
         '"Ingrid dobla una camisa de algodón suave."'
@@ -23,7 +24,8 @@ _CEFR_CONSTRAINTS = {
     "A2": (
         "**A2** — Max 12 words. Simple past (pretérito indefinido) and imperfect (imperfecto) "
         "allowed. Basic connectors (pero, y, también, porque). Light use of common pronouns. "
-        "One dependent clause at most. Reflexive verbs (levantarse, llamarse) encouraged."
+        "One dependent clause at most. Reflexive verbs (levantarse, llamarse) encouraged. "
+        "No subjunctive, no compound tenses, no future tense."
     ),
     "B1": (
         "**B1** — Up to 18 words. All indicative tenses freely used (present, past, future, "
@@ -35,7 +37,7 @@ _CEFR_CONSTRAINTS = {
     "B2": (
         "**B2** — Up to 25 words. Full subjunctive freely used (querer que, esperar que, "
         "dudar que). Complex conditionals (si hubiera…). Passive voice occasionally. "
-        "Abstract vocabulary, idiomatic expressions, nuanced connectors (sin embargo, a pesar "
+        "Idiomatic expressions, nuanced connectors (sin embargo, a pesar "
         "de, dado que). Rich descriptions, implied emotion, cultural references."
     ),
 }
@@ -68,23 +70,47 @@ def _build_system_prompt(cefr_level: str, narration_style: str, dialect: str) ->
     )
 
     return f"""\
-You are a CEFR-level language simplifier for Spanish ({dialect} dialect).
+You are a CEFR-level grammar simplifier for Spanish ({dialect} dialect).
 
-Your task: take an existing chapter of a Spanish story and simplify every sentence \
-to match the {cefr_level} level. Preserve the story, characters, dialogue, and emotions — \
-only simplify the grammar and vocabulary.
+Your task: take an existing chapter of a Spanish story and simplify the GRAMMAR and \
+SENTENCE LENGTH of every sentence to match the {cefr_level} level. Focus on grammar — \
+keep the story's content, meaning, and richness intact.
 
 ## CEFR grammar constraints (strictly enforced)
 {constraint_block}
 
+## What you MUST preserve
+- Character names AND relationships (e.g. "su madre Ingrid" must stay, not become just "Ingrid")
+- Dialogue: who says what, the meaning, direct speech with «guillemets»
+- Plot information: where characters go, why, what they do
+- Descriptions: colors, materials, sizes, emotions ("maleta amarilla", "camisa de algodón suave")
+- Scene context: if someone is nervous, at an airport, packing — keep that information
+
+## What you CAN change
+- Verb tenses: convert to tenses allowed at {cefr_level}
+- Sentence structure: break complex sentences into shorter ones
+- Remove subordinate clauses by splitting into separate sentences
+- Simplify function words (prepositions, conjunctions) if needed
+- Replace multi-word technical terms with simpler equivalents that convey the same meaning \
+(e.g. "cinta transportadora" → "cinta", "indicaciones luminosas" → "señales", \
+"rayos X" → "máquina de seguridad"). Single concrete nouns (colors, objects, places, \
+emotions) should stay even if advanced.
+
+## Writing style
+- Use natural pronoun variation. Do NOT start every sentence with the character's name. \
+Use "ella/él" or implicit subjects where the referent is clear from context. \
+Only repeat the name when the subject changes or after 3+ sentences.
+- TENSE CONSISTENCY: If the narrative uses past tense, dialogue tags MUST also use past \
+tense ("dijo Maria", "preguntó Sofia", "respondió él"). Do NOT mix present-tense \
+dialogue tags ("dice", "pregunta") into a past-tense narrative. Keep all tags in the \
+same tense as the surrounding narration.
+
 ## Rules
 - {narration_rule}
-- Preserve direct dialogue with «guillemets».
+- Preserve direct dialogue with «guillemets». Dialogue can use simpler grammar but must \
+keep the same meaning, speaker, and content words.
 - You may split one complex sentence into two simpler sentences if needed to stay within \
 the word limit. Never merge two sentences into one.
-- Preserve concrete nouns, colours, materials, and descriptive vocabulary from the original \
-(e.g. keep "camisa de algodón suave" rather than reducing to just "camisa"). Simplify grammar, \
-not the richness of the scene. A plane should "move slowly" not "walk."
 - Keep the same scene/shot structure. Same number of scenes, same number of shots per scene.
 - Return a JSON object with the same structure: {{"scenes": [...]}}
 - Each sentence must have "source" (simplified Spanish) and "sentence_index" (will be re-numbered later, \
@@ -96,16 +122,19 @@ but keep them sequential starting from 0).
 def _build_user_prompt(raw_chapter: ChapterScene, cefr_level: str) -> str:
     chapter_json = json.dumps(raw_chapter.model_dump(), ensure_ascii=False, indent=2)
     return f"""\
-Simplify this chapter to CEFR level {cefr_level}.
+Simplify this chapter's grammar to CEFR level {cefr_level}.
 
 Here is the raw chapter JSON:
 {chapter_json}
 
 Instructions:
-- Simplify each "source" field to match {cefr_level} grammar and vocabulary constraints.
+- Simplify the GRAMMAR of each "source" field to match {cefr_level} constraints.
+- Keep ALL vocabulary from the original. Do not replace words with simpler synonyms.
 - Keep the same number of scenes and shots. You may add sentences (split complex ones) \
 but never remove or merge sentences.
-- Preserve all dialogue — simplify the words but keep it as direct speech with «guillemets».
+- Preserve all dialogue — simplify the grammar but keep the same meaning, speaker, and \
+content words. Keep direct speech with «guillemets».
+- Preserve character relationships (e.g. "su madre Ingrid" not just "Ingrid").
 - Return the full JSON with the same structure."""
 
 

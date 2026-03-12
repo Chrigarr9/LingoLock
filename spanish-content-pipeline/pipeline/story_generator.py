@@ -44,7 +44,7 @@ with light-brown hair")
   - Camera angle: prefer close-up or medium shots. Avoid wide/establishing shots.
   Do NOT include art style prefixes or "no text" suffixes — these are added later.
   Keep under 200 characters.
-- "sentences": array of 1-2 sentences for this shot. Each has:
+- "sentences": array of 1-3 sentences for this shot (prefer 1-2). Each has:
   - "source": EXACTLY ONE sentence in the target language — one subject-verb pair, \
 one terminating punctuation mark. Never combine two sentences into one source field.
   - "sentence_index": sequential 0-based index across ALL scenes in the chapter
@@ -209,6 +209,17 @@ def _build_chapter_prompt(
             f"Make her name, origin, and reason for traveling clear in the first few sentences."
         )
 
+    # Vocabulary focus — thematic guidance, not a strict checklist
+    vocab_section = ""
+    if chapter.vocab_focus:
+        vocab_lines = "\n".join(f"  - {vf}" for vf in chapter.vocab_focus)
+        vocab_section = (
+            f"\n\nVOCABULARY THEMES (weave these naturally into the story):\n"
+            f"{vocab_lines}\n"
+            f"Use words from these categories where they fit the narrative. "
+            f"Prefer specific words (camisa, suéter) over generic ones (ropa) when natural."
+        )
+
     return f"""Write Chapter {chapter_index + 1}: "{chapter.title}"
 
 Language: {config.languages.target} ({config.languages.dialect} dialect)
@@ -217,36 +228,75 @@ Length: {min_sentences}-{max_sentences} sentences total
 Protagonist: {p.name} — {p.visual_tag}
 Destination: {d.city}, {d.country}
 
-Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{story_so_far}
+Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{vocab_section}{story_so_far}
 
-IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot can have 2-3 sentences. Aim for {min_sentences}-{max_sentences} sentences.
+IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot should have 1-2 sentences (maximum 3). Each shot illustrates ONE visual moment — keep it focused. Aim for {min_sentences}-{max_sentences} sentences.
 Return the chapter as a JSON object with a "scenes" array following the format above.
 Ensure sentence_index values are sequential starting from 0."""
 
 
+def _replace_character(raw: str, placeholder: str, name: str, tag: str) -> str:
+    """Replace character placeholder with name + tag (first mention) or plain name.
+
+    Rules:
+      1. First non-possessive mention → "Name (tag)"
+      2. Subsequent non-possessive mentions → "Name"
+      3. Possessive "PLACEHOLDER's" → "Name's" (no tag)
+      4. If ONLY possessive mentions exist → first becomes "Name (tag)'s"
+    """
+    possessive = f"{placeholder}'s"
+    has_non_possessive = raw.replace(possessive, "").count(placeholder) > 0
+
+    if has_non_possessive:
+        raw = raw.replace(possessive, f"{name}'s")
+        raw = raw.replace(placeholder, f"{name} ({tag})", 1)
+        raw = raw.replace(placeholder, name)
+    elif possessive in raw:
+        raw = raw.replace(possessive, f"{name} ({tag})'s", 1)
+        raw = raw.replace(possessive, f"{name}'s")
+
+    return raw
+
+
+def finalize_image_prompt(raw: str, config: DeckConfig) -> str:
+    """Apply character tag replacement + style/suffix injection to a raw image prompt.
+
+    Exported for use by both _post_process (Pass 0) and image_auditor (Pass 8).
+    """
+    p = config.protagonist
+    p_tag = p.image_tag or p.visual_tag
+
+    if "PROTAGONIST" in raw:
+        raw = _replace_character(raw, "PROTAGONIST", p.name, p_tag)
+    elif p.name.upper() in raw:
+        raw = _replace_character(raw, p.name.upper(), p.name, p_tag)
+    elif p.name in raw and p_tag not in raw:
+        raw = _replace_character(raw, p.name, p.name, p_tag)
+
+    for sc in config.secondary_characters:
+        sc_tag = sc.image_tag or sc.visual_tag
+        name_upper = sc.name.upper()
+        if name_upper in raw:
+            raw = _replace_character(raw, name_upper, sc.name, sc_tag)
+        elif sc.name in raw and sc_tag not in raw:
+            raw = _replace_character(raw, sc.name, sc.name, sc_tag)
+
+    if raw.endswith("."):
+        raw = raw[:-1]
+
+    style = config.image_generation.style if config.image_generation else ""
+    suffix = "no text, no writing, no letters"
+    return f"{style}, {raw}. {suffix}"
+
+
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:
     """Replace character placeholders in image prompts and sentence source text."""
-    style = config.image_generation.style if config.image_generation else ""
-    suffix = "no text, no writing, no letters."
     p = config.protagonist
-    visual_tag = p.visual_tag
 
     for scene in chapter_data.scenes:
         for shot in scene.shots:
-            # --- Image prompt: replace with visual_tag for image model ---
-            raw = shot.image_prompt.strip()
-            raw = raw.replace("PROTAGONIST", visual_tag)
-            if p.name in raw and visual_tag not in raw:
-                raw = raw.replace(p.name, f"{p.name} ({visual_tag})", 1)
-            for sc in config.secondary_characters:
-                name_upper = sc.name.upper()
-                if name_upper in raw:
-                    raw = raw.replace(name_upper, sc.visual_tag)
-                elif sc.name in raw and sc.visual_tag not in raw:
-                    raw = raw.replace(sc.name, f"{sc.name} ({sc.visual_tag})", 1)
-            if raw.endswith("."):
-                raw = raw[:-1]
-            shot.image_prompt = f"{style}. {raw}. {suffix}"
+            # --- Image prompt: replace with image_tag + style/suffix ---
+            shot.image_prompt = finalize_image_prompt(shot.image_prompt.strip(), config)
 
             # --- Sentence source: replace with plain name for learners ---
             known_upper = {p.name.upper(), "PROTAGONIST"} | {

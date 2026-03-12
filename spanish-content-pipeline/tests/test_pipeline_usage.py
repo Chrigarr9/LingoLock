@@ -188,31 +188,31 @@ def test_chapter_auditor_no_llm_returns_none():
 
 
 def test_story_auditor_returns_usage():
-    from pipeline.story_auditor import audit_story
+    from pipeline.story_auditor import find_issues
 
     llm = MagicMock()
     llm.complete_json.return_value = _make_response({
-        "fixes": [], "unnamed_characters": []
+        "issues": [], "unnamed_characters": []
     })
 
-    result = audit_story(
+    result = find_issues(
         chapters={1: ["Hola."]},
         characters=[{"name": "Maria"}],
         chapter_configs=[{"title": "Ch1", "cefr_level": "A1", "context": "test"}],
         llm=llm,
     )
     assert isinstance(result, tuple) and len(result) == 2
-    (fixes, unnamed), response = result
+    (issues, unnamed), response = result
     assert response is not None
 
 
 def test_story_auditor_no_llm_returns_none():
-    from pipeline.story_auditor import audit_story
+    from pipeline.story_auditor import find_issues
 
-    (fixes, unnamed), response = audit_story(
+    (issues, unnamed), response = find_issues(
         chapters={}, characters=[], chapter_configs=[], llm=None,
     )
-    assert fixes == []
+    assert issues == []
     assert unnamed == []
     assert response is None
 

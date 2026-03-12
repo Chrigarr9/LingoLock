@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from pipeline.config import DeckConfig
-from pipeline.lemmatizer import is_function_word, lemmatize_text
+from pipeline.lemmatizer import TokenInfo, is_function_word, lemmatize_text
 from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterWords, SentencePair, WordAnnotation
 
@@ -59,12 +59,59 @@ class WordExtractor:
         self._config = config
         self._llm = llm
         self._output_base = output_base or Path("output")
+        # Character/place names that should stay filtered as PROPN
+        self._proper_names: frozenset[str] = frozenset(
+            n.lower() for n in self._collect_proper_names(config)
+        )
+
+    @staticmethod
+    def _collect_proper_names(config: DeckConfig) -> set[str]:
+        """Gather all proper names from config (protagonist, characters, places)."""
+        names: set[str] = set()
+        # Split multi-word names into individual tokens
+        for raw in [
+            config.protagonist.name,
+            config.destination.city,
+            config.destination.country,
+            config.protagonist.origin_country,
+        ]:
+            names.update(raw.split())
+        for sc in config.secondary_characters:
+            names.update(sc.name.split())
+        return names
 
     def _words_dir(self) -> Path:
         return self._output_base / self._config.deck.id / "words"
 
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._words_dir() / f"chapter_{chapter_index + 1:02d}.json"
+
+    def _recover_propn(self, token: TokenInfo, lang: str) -> TokenInfo | None:
+        """Recover content words that spaCy mistagged as PROPN.
+
+        spaCy's small models often tag capitalized sentence-initial words as
+        PROPN. We re-check the lowercase form: if spaCy gives it a content POS,
+        the capitalized version was a false PROPN. Config character/place names
+        are excluded so real proper nouns stay filtered.
+        """
+        if token.pos != "PROPN":
+            return None
+        if token.text.lower() in self._proper_names:
+            return None  # Real name from config — keep as PROPN
+        # Re-check: does the lowercase form have a content-word POS?
+        lower_lemma_pos = lemmatize_text(token.text.lower(), lang)
+        if not lower_lemma_pos:
+            return None
+        recovered_pos = lower_lemma_pos[0].pos
+        if recovered_pos == "PROPN":
+            return None  # Still PROPN when lowercase — genuinely proper
+        return TokenInfo(
+            text=token.text,
+            lemma=lower_lemma_pos[0].lemma,
+            pos=recovered_pos,
+            morph=lower_lemma_pos[0].morph,
+            sentence_index=token.sentence_index,
+        )
 
     def extract_chapter(self, chapter_index: int, pairs: list[SentencePair]) -> tuple[ChapterWords, LLMResponse | None]:
         path = self._chapter_path(chapter_index)
@@ -86,7 +133,11 @@ class WordExtractor:
             sent_words = []
             for token in tokens:
                 if is_function_word(token):
-                    continue
+                    # Try to recover false PROPNs (capitalized content words)
+                    recovered = self._recover_propn(token, lang)
+                    if recovered is None or is_function_word(recovered):
+                        continue
+                    token = recovered
                 entry = {
                     "source": token.text,
                     "lemma": token.lemma,
@@ -122,6 +173,7 @@ class WordExtractor:
                 pos=sw["pos"],          # From spaCy (deterministic)
                 context_note=ann.get("context_note", ""),
                 similar_words=ann.get("similar_words", []),
+                sentence_index=sw["sentence_index"],
             ))
 
         chapter_words = ChapterWords(
