@@ -12,6 +12,7 @@ dependencies = [
     "sacrebleu>=2.0",
     "matplotlib>=3.10.8",
     "numpy>=2.4.3",
+    "json-repair>=0.58.5",
 ]
 
 [project.optional-dependencies]

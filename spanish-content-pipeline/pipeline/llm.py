@@ -1,11 +1,13 @@
 """LLM clients for OpenRouter and Google Gemini with retry and JSON mode support."""
 
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
 
 import httpx
+import json_repair
 
 # Allow arbitrarily large integers in JSON responses from LLMs.
 # Python 3.11+ limits int↔str conversion to 4300 digits (CVE-2020-10735),
@@ -30,6 +32,65 @@ class LLMResponse:
     content: str
     usage: Usage
     parsed: dict | list | None = None
+
+
+def _parse_json_robust(text: str) -> dict | list:
+    """Parse JSON from LLM output, handling thinking tags, markdown fences, etc."""
+    if not text or not text.strip():
+        raise ValueError("LLM returned empty content — cannot parse JSON")
+
+    # Strip <think>...</think> blocks (Qwen 3.5, DeepSeek R1, etc.)
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+    # Strip markdown code fences
+    cleaned = re.sub(r"^```(?:json)?\s*\n?", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
+    cleaned = cleaned.strip()
+
+    # Try direct parse first
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Deterministic repair: fix trailing commas, unquoted keys, missing delimiters, etc.
+    try:
+        repaired = json_repair.loads(cleaned)
+        if isinstance(repaired, (dict, list)):
+            return repaired
+    except Exception:
+        pass
+
+    # Fallback: extract outermost JSON object by brace-matching
+    start = cleaned.find("{")
+    if start == -1:
+        raise json.JSONDecodeError(
+            f"No JSON object found in LLM output (first 200 chars): {text[:200]}", text, 0
+        )
+    depth = 0
+    in_string = False
+    escape_next = False
+    end = start
+    for i, ch in enumerate(cleaned[start:], start):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\":
+            escape_next = True
+            continue
+        if ch == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    return json.loads(cleaned[start : end + 1])
 
 
 class LLMClient:
@@ -67,6 +128,13 @@ class LLMClient:
         last_error = None
         for attempt in range(self._max_retries):
             response = self._client.post(OPENROUTER_URL, json=payload, headers=headers)
+            if response.status_code == 429:
+                # Rate-limited — back off using Retry-After header or exponential delay
+                retry_after = int(response.headers.get("retry-after", 2 * (attempt + 1)))
+                last_error = response
+                if attempt < self._max_retries - 1:
+                    time.sleep(retry_after)
+                    continue
             if response.status_code < 500:
                 response.raise_for_status()
                 break
@@ -78,7 +146,14 @@ class LLMClient:
                 last_error.raise_for_status()
 
         data = response.json()
-        content = data["choices"][0]["message"]["content"]
+        if "choices" not in data or not data["choices"]:
+            error_msg = data.get("error", {}).get("message", str(data))
+            raise RuntimeError(f"OpenRouter returned no choices: {error_msg}")
+        message = data["choices"][0]["message"]
+        content = message.get("content") or ""
+        # Thinking models may put output in reasoning_content or reasoning field
+        if not content:
+            content = message.get("reasoning_content") or message.get("reasoning") or ""
         generation_id = data.get("id")
         usage_data = data.get("usage", {})
         # OpenRouter returns cost inline in the usage object
@@ -107,26 +182,17 @@ class LLMClient:
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        result = self._call(messages, response_format=response_format)
-        try:
-            result.parsed = json.loads(result.content)
-        except json.JSONDecodeError:
-            text = result.content.strip()
-            start = text.find("{")
-            if start == -1:
-                raise
-            depth = 0
-            end = start
-            for i, ch in enumerate(text[start:], start):
-                if ch == "{":
-                    depth += 1
-                elif ch == "}":
-                    depth -= 1
-                    if depth == 0:
-                        end = i
-                        break
-            result.parsed = json.loads(text[start : end + 1])
-        return result
+        last_err = None
+        for attempt in range(self._max_retries):
+            result = self._call(messages, response_format=response_format)
+            try:
+                result.parsed = _parse_json_robust(result.content)
+                return result
+            except (json.JSONDecodeError, ValueError) as e:
+                last_err = e
+                if attempt < self._max_retries - 1:
+                    time.sleep(1 * (attempt + 1))
+        raise last_err
 
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -211,32 +277,21 @@ class GeminiClient:
             system_instruction = {"parts": [{"text": system}]}
         contents = [{"role": "user", "parts": [{"text": prompt}]}]
         generation_config = {"responseMimeType": "application/json"}
-        result = self._call(
-            contents,
-            system_instruction=system_instruction,
-            generation_config=generation_config,
-        )
-        try:
-            result.parsed = json.loads(result.content)
-        except json.JSONDecodeError:
-            # Model sometimes appends trailing text after the closing brace.
-            # Find the outermost JSON object by matching braces.
-            text = result.content.strip()
-            start = text.find("{")
-            if start == -1:
-                raise
-            depth = 0
-            end = start
-            for i, ch in enumerate(text[start:], start):
-                if ch == "{":
-                    depth += 1
-                elif ch == "}":
-                    depth -= 1
-                    if depth == 0:
-                        end = i
-                        break
-            result.parsed = json.loads(text[start : end + 1])
-        return result
+        last_err = None
+        for attempt in range(self._max_retries):
+            result = self._call(
+                contents,
+                system_instruction=system_instruction,
+                generation_config=generation_config,
+            )
+            try:
+                result.parsed = _parse_json_robust(result.content)
+                return result
+            except (json.JSONDecodeError, ValueError) as e:
+                last_err = e
+                if attempt < self._max_retries - 1:
+                    time.sleep(1 * (attempt + 1))
+        raise last_err
 
 
 def create_client(

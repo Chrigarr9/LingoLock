@@ -24,6 +24,7 @@ class Protagonist(BaseModel):
     gender: str
     origin_country: str
     visual_tag: str = ""
+    image_tag: str = ""
 
 
 class Destination(BaseModel):
@@ -34,6 +35,7 @@ class Destination(BaseModel):
 class SecondaryCharacter(BaseModel):
     name: str
     visual_tag: str
+    image_tag: str = ""
     chapters: list[int]  # 1-indexed chapter numbers where this character appears
     role: str = ""
 
