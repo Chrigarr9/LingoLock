@@ -27,6 +27,7 @@ interface PipelineWord {
   lemma: string;       // Base form (e.g., "habitación")
   pos: string;         // Part of speech
   context_note: string;
+  sentence_index?: number;  // Which sentence this word occurrence is from
 }
 
 interface PipelineChapter {
@@ -44,6 +45,13 @@ interface VocabEntry {
   cefr_level: string | null;
 }
 
+interface SentenceVariantData {
+  sentence: string;
+  sentenceTranslation: string;
+  chapter: number;
+  sentenceIndex: number;
+}
+
 interface ClozeCardData {
   id: string;
   lemma: string;
@@ -58,6 +66,7 @@ interface ClozeCardData {
   distractors: string[];
   image?: string;
   audio?: string;
+  sentenceVariants?: SentenceVariantData[];
 }
 
 // ---------------------------------------------------------------------------
@@ -130,10 +139,11 @@ function generateDistractors(
  * Returns null if the word is not found in the sentence.
  */
 function makeCloze(sentence: string, wordInContext: string): string | null {
-  // Build a regex that matches the word, allowing for surrounding punctuation.
-  // We use unicode flag (u) and case-insensitive (i).
+  // Build a regex that matches the word at word boundaries only.
+  // Uses Unicode \p{L} lookbehind/lookahead to prevent matching inside other words
+  // (e.g., "es" must not match inside "está").
   const escaped = wordInContext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(escaped, 'iu');
+  const re = new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'iu');
 
   if (!re.test(sentence)) {
     return null;
@@ -147,10 +157,12 @@ function makeCloze(sentence: string, wordInContext: string): string | null {
 // Card ID generation
 // ---------------------------------------------------------------------------
 
-function makeCardId(lemma: string, chapter: number, sentenceIndex: number): string {
+function makeCardId(lemma: string, form: string, chapter: number, sentenceIndex: number): string {
   const chStr = String(chapter).padStart(2, '0');
   const sStr = String(sentenceIndex).padStart(2, '0');
-  return `${lemma}-ch${chStr}-s${sStr}`;
+  // Include form in ID when it differs from lemma (e.g., ser.es, ser.son)
+  const key = form !== lemma ? `${lemma}.${form}` : lemma;
+  return `${key}-ch${chStr}-s${sStr}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -268,96 +280,161 @@ const chapterFiles = fs
 
 console.log(`  Found ${chapterFiles.length} chapter file(s): ${chapterFiles.join(', ')}`);
 
-const allChapters: { chapterNumber: number; cards: ClozeCardData[] }[] = [];
-let totalCards = 0;
-let totalSkipped = 0;
+// ---------------------------------------------------------------------------
+// Pass 1: Load all chapters and build a global map of surface form → occurrences.
+// Each unique surface form (e.g., "es", "son", "era") becomes its own card,
+// so FSRS tracks each conjugation/declension independently.
+// ---------------------------------------------------------------------------
+
+interface WordOccurrence {
+  word: PipelineWord;
+  chapter: number;
+  sentence: PipelineSentence;
+  cloze: string;
+}
+
+interface LoadedChapter {
+  chapterNum: number;
+  chapterData: PipelineChapter;
+}
+
+/** Composite key for grouping: same lemma + same surface form */
+function formKey(lemma: string, source: string): string {
+  return `${lemma.toLowerCase().trim()}\0${source.toLowerCase().trim()}`;
+}
+
+const loadedChapters: LoadedChapter[] = [];
+// formKey → all (chapter, sentence, cloze) occurrences across the full story
+const globalOccurrences = new Map<string, WordOccurrence[]>();
 
 for (const filename of chapterFiles) {
   const filePath = path.join(WORDS_DIR, filename);
   const raw = fs.readFileSync(filePath, 'utf-8');
   const chapterData = JSON.parse(raw) as PipelineChapter;
-
   const chapterNum = chapterData.chapter;
+
   const sentenceMap = new Map<number, PipelineSentence>();
   for (const s of chapterData.sentences) {
     sentenceMap.set(s.sentence_index, s);
   }
 
-  const cards: ClozeCardData[] = [];
-  // Track (lemma, sentenceIndex) pairs to deduplicate same word in same sentence
-  const seenPairs = new Set<string>();
+  loadedChapters.push({ chapterNum, chapterData });
+
+  // Dedup within this chapter: same surface form + same sentence → keep first
+  const seenInChapter = new Map<string, Set<number>>();
 
   for (const word of chapterData.words) {
-    const lemma = word.lemma.toLowerCase().trim();
+    const key = formKey(word.lemma, word.source);
 
-    // Find the first sentence in this chapter that contains the word's surface form
-    let matchedSentence: PipelineSentence | null = null;
-    for (const s of chapterData.sentences) {
-      if (s.source.toLowerCase().includes(word.source.toLowerCase())) {
-        matchedSentence = s;
-        break;
+    // Find the sentence for this word occurrence
+    let matched: PipelineSentence | null = null;
+    if (word.sentence_index != null && word.sentence_index >= 0) {
+      matched = sentenceMap.get(word.sentence_index) ?? null;
+    }
+    if (!matched) {
+      // Fallback: substring search (for old cached files without sentence_index)
+      for (const s of chapterData.sentences) {
+        const seen = seenInChapter.get(key);
+        if (s.source.toLowerCase().includes(word.source.toLowerCase()) && (!seen || !seen.has(s.sentence_index))) {
+          matched = s;
+          break;
+        }
       }
     }
+    if (!matched) continue;
 
-    if (!matchedSentence) {
-      console.warn(`  SKIP: No sentence found for word "${word.source}" (lemma: ${lemma}) in chapter ${chapterNum}`);
+    if (!seenInChapter.has(key)) seenInChapter.set(key, new Set());
+    if (seenInChapter.get(key)!.has(matched.sentence_index)) continue;
+    seenInChapter.get(key)!.add(matched.sentence_index);
+
+    const cloze = makeCloze(matched.source, word.source);
+    if (!cloze) continue;
+
+    if (!globalOccurrences.has(key)) globalOccurrences.set(key, []);
+    globalOccurrences.get(key)!.push({ word, chapter: chapterNum, sentence: matched, cloze });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pass 2: Generate one card per unique surface form, assigned to first-seen chapter.
+// "es" (ser) and "son" (ser) become separate cards, each with their own sentences.
+// Later occurrences of the SAME form become sentenceVariants (progressively unlocked).
+// ---------------------------------------------------------------------------
+
+const allChapters: { chapterNumber: number; cards: ClozeCardData[] }[] = [];
+let totalCards = 0;
+let totalSkipped = 0;
+let totalVariants = 0;
+const globalSeenForms = new Set<string>();
+
+for (const { chapterNum, chapterData } of loadedChapters) {
+  const cards: ClozeCardData[] = [];
+
+  // Iterate words in story order to preserve introduction sequence
+  for (const word of chapterData.words) {
+    const lemma = word.lemma.toLowerCase().trim();
+    const form = word.source.toLowerCase().trim();
+    const key = formKey(word.lemma, word.source);
+    if (globalSeenForms.has(key)) continue;
+    globalSeenForms.add(key);
+
+    const allOccurrences = globalOccurrences.get(key) ?? [];
+    if (allOccurrences.length === 0) {
       totalSkipped++;
       continue;
     }
 
-    const pairKey = `${lemma}:${matchedSentence.sentence_index}`;
-    if (seenPairs.has(pairKey)) {
-      // Duplicate: same lemma in same sentence — skip
-      continue;
-    }
-    seenPairs.add(pairKey);
+    const first = allOccurrences[0];
 
-    // Build cloze sentence
-    const cloze = makeCloze(matchedSentence.source, word.source);
-    if (!cloze) {
-      console.warn(`  SKIP: Could not create cloze for "${word.source}" in sentence: "${matchedSentence.source}"`);
-      totalSkipped++;
-      continue;
-    }
+    // Build variants from all occurrences of this SAME form across the story
+    const variants: SentenceVariantData[] = allOccurrences.map((occ) => ({
+      sentence: occ.cloze,
+      sentenceTranslation: occ.sentence.target,
+      chapter: occ.chapter,
+      sentenceIndex: occ.sentence.sentence_index,
+    }));
 
-    // Look up CEFR level from vocabulary.json
+    // Look up CEFR level from vocabulary.json (by lemma)
     const vocabEntry = vocabByLemma.get(lemma);
     const cefrLevel = vocabEntry?.cefr_level ?? null;
 
-    // Generate card ID
-    const cardId = makeCardId(lemma, chapterNum, matchedSentence.sentence_index);
+    // Card ID includes form when it differs from lemma (e.g., ser.es-ch01-s00)
+    const cardId = makeCardId(lemma, form, chapterNum, first.sentence.sentence_index);
 
-    // Generate distractors
-    const distractors = generateDistractors(lemma, word.pos, cefrLevel, vocabPool);
+    // Generate distractors (by lemma for broader pool)
+    const distractors = generateDistractors(lemma, first.word.pos, cefrLevel, vocabPool);
 
-    // Look up bundled image and audio for this sentence
-    const imgKey = `ch${String(chapterNum).padStart(2, '0')}_s${String(matchedSentence.sentence_index).padStart(2, '0')}`;
+    // Image/audio from primary sentence
+    const imgKey = `ch${String(chapterNum).padStart(2, '0')}_s${String(first.sentence.sentence_index).padStart(2, '0')}`;
     const image = imageKeys.has(imgKey) ? imgKey : undefined;
     const audio = audioKeys.has(imgKey) ? imgKey : undefined;
 
     cards.push({
       id: cardId,
       lemma,
-      wordInContext: word.source,
-      germanHint: word.target,
-      sentence: cloze,
-      sentenceTranslation: matchedSentence.target,
-      pos: word.pos,
-      contextNote: word.context_note,
+      wordInContext: first.word.source,
+      germanHint: first.word.target,
+      sentence: first.cloze,
+      sentenceTranslation: first.sentence.target,
+      pos: first.word.pos,
+      contextNote: first.word.context_note,
       chapter: chapterNum,
       cefrLevel,
       distractors,
       image,
       audio,
+      // Include sentenceVariants when there are 2+ sentences with this same form
+      ...(variants.length > 1 ? { sentenceVariants: variants } : {}),
     });
+    if (variants.length > 1) totalVariants += variants.length;
   }
 
   allChapters.push({ chapterNumber: chapterNum, cards });
   totalCards += cards.length;
-  console.log(`  Chapter ${chapterNum}: ${cards.length} cards generated`);
+  console.log(`  Chapter ${chapterNum}: ${cards.length} cards (${cards.filter(c => c.sentenceVariants).length} with variants)`);
 }
 
-console.log(`  Total: ${totalCards} cards, ${totalSkipped} skipped`);
+console.log(`  Total: ${totalCards} cards, ${totalSkipped} skipped, ${totalVariants} sentence variants`);
 
 // ---------------------------------------------------------------------------
 // Emit bundle.ts
@@ -373,6 +450,7 @@ for (const ch of allChapters) {
     const optionalFields: string[] = [];
     if (card.image !== undefined) optionalFields.push(`    image: ${JSON.stringify(card.image)},`);
     if (card.audio !== undefined) optionalFields.push(`    audio: ${JSON.stringify(card.audio)},`);
+    if (card.sentenceVariants) optionalFields.push(`    sentenceVariants: ${JSON.stringify(card.sentenceVariants)},`);
 
     cardLines.push(
       `    {\n` +
