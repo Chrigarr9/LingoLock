@@ -1,32 +1,67 @@
-# Cheap tier: 4 fast models — high-volume, cost-efficient
+# Cheap tier: 8 models — fast & cost-efficient + provider reference points
+# --- Budget models ---
+# Gemini 2.5 Flash Lite ($0.10/$0.40) — previous gen, cheapest Gemini
+# Qwen 3.5 Flash ($0.10/$0.40) — newest Qwen, 1M ctx
+# Qwen 3.5 35B-A3B ($0.16/$1.30) — MoE successor to Qwen3 30B
+# --- Baseline ---
+# Gemini 3.1 Flash Lite ($0.25/$1.50) — current winner
+# --- Mid-range ---
+# GPT-5 Mini ($0.25/$2.00) — OpenAI's cheapest
+# Gemini 2.5 Flash ($0.30/$2.50) — previous gen Flash
+# Gemini 3 Flash ($0.50/$3.00) — newest Gemini Flash
+# Claude Haiku 4.5 ($1.00/$5.00) — Anthropic's cheapest
 models:
   story_generation:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.8 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.8 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.8 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.8 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.8 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.8 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.8 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.8 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.8 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.8 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.8 }
   cefr_simplification:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.3 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.3 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.3 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.3 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.3 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.3 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.3 }
   grammar:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.3 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.3 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.3 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.3 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.3 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.3 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.3 }
   gap_filling:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.7 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.7 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.7 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.7 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.7 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.7 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.7 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.7 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.7 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.7 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.7 }
   translation:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.3 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.3 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.3 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.3 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.3 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.3 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.3 }
   word_extraction:
+    - { provider: openrouter, model: "google/gemini-2.5-flash-lite", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-flash-02-23", temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.5-35b-a3b", temperature: 0.3 }
     - { provider: openrouter, model: "google/gemini-3.1-flash-lite-preview", temperature: 0.3 }
-    - { provider: openrouter, model: "meta-llama/llama-3.3-70b-instruct", temperature: 0.3 }
-    - { provider: openrouter, model: "bytedance-seed/seed-1.6-flash", temperature: 0.3 }
-    - { provider: openrouter, model: "qwen/qwen3-30b-a3b", temperature: 0.3 }
+    - { provider: openrouter, model: "openai/gpt-5-mini", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-2.5-flash", temperature: 0.3 }
+    - { provider: openrouter, model: "google/gemini-3-flash-preview", temperature: 0.3 }
+    - { provider: openrouter, model: "anthropic/claude-haiku-4.5", temperature: 0.3 }

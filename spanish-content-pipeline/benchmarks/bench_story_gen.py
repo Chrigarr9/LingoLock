@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel, model_slug
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel, model_slug, filter_new_models
 from pipeline.config import DeckConfig
 from pipeline.llm import create_client
 from pipeline.models import ChapterScene
@@ -135,6 +135,7 @@ def run_story_gen_benchmark(bench_config_path: Path | None = None, parallel: boo
     fixture_config = DeckConfig(**yaml.safe_load((FIXTURES / "test_chapter.yaml").read_text()))
 
     models = bench_config["models"].get("story_generation", [])
+    models = filter_new_models("story_gen", models, RESULTS)
     if not models:
         print("No story_generation models in bench_config.yaml")
         return

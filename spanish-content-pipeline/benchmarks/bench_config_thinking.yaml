@@ -1,5 +1,12 @@
-# Thinking tier: reasoning-capable models for audit tasks
+# Thinking tier: reasoning-capable models for audit + gap filling tasks
 models:
+  gap_filling:
+    - { provider: openrouter, model: "qwen/qwen3.5-plus-02-15", temperature: 0.7 }
+    - { provider: openrouter, model: "minimax/minimax-m2.5", temperature: 0.7 }
+    - { provider: openrouter, model: "qwen/qwen3.5-397b-a17b", temperature: 0.7 }
+    - { provider: openrouter, model: "deepseek/deepseek-v3.2-speciale", temperature: 0.7 }
+    - { provider: openrouter, model: "moonshotai/kimi-k2.5", temperature: 0.7 }
+    - { provider: openrouter, model: "qwen/qwen3-max-thinking", temperature: 0.7 }
   chapter_audit:
     - { provider: openrouter, model: "qwen/qwen3.5-plus-02-15", temperature: 0.3 }
     - { provider: openrouter, model: "minimax/minimax-m2.5", temperature: 0.3 }

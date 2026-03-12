@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage, run_models_parallel
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage, run_models_parallel, filter_new_models
 from pipeline.config import DeckConfig
 from pipeline.gap_filler import GapFiller
 from pipeline.llm import create_client
@@ -44,9 +44,10 @@ def compute_gap_filler_metrics(target_words: list[str], shots: list[GapShot]) ->
     }
 
 
-# Simulate missing words — common words not in the fixture
-MISSING_WORDS = ["restaurante", "cocinar", "plato", "caminar", "dormir",
-                 "habitación", "calle", "autobús", "tienda", "dinero"]
+# Words verified absent from raw_chapter.json fixture (no exact or lemma overlap).
+# "mercado" and "ventana" were in the fixture text; replaced with "hospital" and "paraguas".
+MISSING_WORDS = ["restaurante", "cocinar", "hospital", "caminar", "dormir",
+                 "biblioteca", "autobús", "tienda", "dinero", "paraguas"]
 
 
 def _run_single_model(model_entry: dict, fixture_config: DeckConfig, raw_chapter: ChapterScene, flat_text: str):
@@ -141,6 +142,7 @@ def run_gap_filler_benchmark(bench_config_path: Path | None = None, parallel: bo
     flat_text = extract_flat_text(raw_chapter)
 
     models = bench_config["models"].get("gap_filling", [])
+    models = filter_new_models("gap_filler", models, RESULTS)
     if not models:
         print("No gap_filling models in bench_config.yaml")
         return

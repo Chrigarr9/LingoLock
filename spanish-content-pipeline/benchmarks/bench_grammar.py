@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage, run_models_parallel
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, sum_usage, run_models_parallel, filter_new_models
 from pipeline.config import DeckConfig
 from pipeline.grammar_auditor import GrammarAuditReport, audit_grammar
 from pipeline.grammar_gap_filler import GrammarGapFiller
@@ -137,6 +137,7 @@ def run_grammar_benchmark(bench_config_path: Path | None = None, parallel: bool 
     chapters_by_cefr = {cefr: flat_text.split("\n")}
 
     models = bench_config["models"].get("grammar", [])
+    models = filter_new_models("grammar", models, RESULTS)
     if not models:
         print("No grammar models in bench_config.yaml")
         return

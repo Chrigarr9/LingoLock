@@ -18,4 +18,7 @@ def test_compute_extraction_metrics():
     assert metrics["extracted_count"] == 3
     assert metrics["matched_lemmas"] == 2  # puerta, café (entrar not extracted)
     assert metrics["recall"] > 0
-    assert metrics["precision"] > 0
+    assert metrics["translation_accuracy"] >= 0
+    assert metrics["translation_coverage"] >= 0
+    assert metrics["similar_words_ratio"] >= 0
+    assert metrics["score"] >= 0

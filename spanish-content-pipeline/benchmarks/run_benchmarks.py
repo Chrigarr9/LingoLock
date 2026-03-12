@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -46,7 +47,7 @@ TIER_CONFIGS = {
 TIER_TASKS = {
     "cheap": ["story_gen", "simplification", "grammar", "gap_filler", "translation",
               "word_extraction"],
-    "thinking": ["chapter_audit", "audit"],
+    "thinking": ["gap_filler", "chapter_audit", "audit"],
     "premium": list(ALL_TASKS.keys()),
 }
 
@@ -96,11 +97,27 @@ def main():
         print(f"Tier: {args.tier} (config: {config_path.name})")
     print()
 
+    run_start = time.monotonic()
+    task_times = {}
+
     for name in task_names:
+        task_start = time.monotonic()
         ALL_TASKS[name](config_path, parallel=args.parallel, max_workers=args.workers)
+        task_dur = time.monotonic() - task_start
+        task_times[name] = task_dur
+        print(f"  [{name} total: {task_dur:.1f}s]")
         print()
 
-    print("All benchmarks complete. Results in benchmarks/results/")
+    total_dur = time.monotonic() - run_start
+
+    print("=" * 60)
+    print("Benchmark run complete. Results in benchmarks/results/")
+    print(f"Total wall-clock time: {total_dur:.1f}s ({total_dur/60:.1f}min)")
+    print()
+    print("Per-task wall-clock times:")
+    for name, dur in task_times.items():
+        print(f"  {name:20s} {dur:7.1f}s ({dur/60:.1f}min)")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

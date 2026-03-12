@@ -12,11 +12,11 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel, filter_new_models
 from pipeline.config import DeckConfig
 from pipeline.llm import create_client
 from pipeline.models import ChapterScene
-from pipeline.story_auditor import audit_story
+from pipeline.story_auditor import find_issues
 from scripts.run_all import get_api_key_for_provider
 
 BENCH_DIR = Path(__file__).resolve().parent
@@ -63,16 +63,16 @@ def _run_single_model(model_entry: dict, sentences_by_chapter: dict, characters:
     llm = create_client(provider=provider, api_key=api_key, model=model_name, temperature=temperature)
 
     try:
-        (((fixes, unnamed), llm_response), duration) = run_with_timing(
-            lambda: audit_story(
+        (((issues, unnamed), llm_response), duration) = run_with_timing(
+            lambda: find_issues(
                 chapters=sentences_by_chapter,
                 characters=characters,
                 chapter_configs=chapter_configs,
                 llm=llm,
             )
         )
-        found_indices = {f.sentence_index for f in fixes}
-        metrics = compute_audit_metrics(expected["issues"], found_indices, total_fixes=len(fixes))
+        found_indices = {i.sentence_index for i in issues}
+        metrics = compute_audit_metrics(expected["issues"], found_indices, total_fixes=len(issues))
         metrics["unnamed_characters_found"] = len(unnamed)
 
         result = BenchmarkResult(
@@ -126,9 +126,11 @@ def run_audit_benchmark(bench_config_path: Path | None = None, parallel: bool = 
             for sent in shot.sentences:
                 sentences_by_chapter.setdefault(1, []).append(sent.source)
 
-    characters = [{"name": fixture_config.protagonist.name, "role": "protagonist"}]
+    characters = [{"name": fixture_config.protagonist.name, "role": "protagonist",
+                   "visual_tag": fixture_config.protagonist.visual_tag or ""}]
     for sc in fixture_config.secondary_characters:
-        characters.append({"name": sc.name, "role": sc.role or "secondary character", "chapters": sc.chapters})
+        characters.append({"name": sc.name, "role": sc.role or "secondary character",
+                           "chapters": sc.chapters, "visual_tag": sc.visual_tag or ""})
 
     chapter_configs = [{
         "title": ch.title,
@@ -137,6 +139,7 @@ def run_audit_benchmark(bench_config_path: Path | None = None, parallel: bool = 
     } for ch in fixture_config.story.chapters]
 
     models = bench_config["models"].get("story_audit", [])
+    models = filter_new_models("audit", models, RESULTS)
     if not models:
         print("No story_audit models in bench_config.yaml")
         return

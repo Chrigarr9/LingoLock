@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchmarks.bench_audit import compute_audit_metrics
-from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel
+from benchmarks.common import BenchmarkResult, load_bench_config, save_result, run_with_timing, usage_from_llm_response, cost_from_llm_response, run_models_parallel, filter_new_models
 from pipeline.chapter_auditor import audit_chapter
 from pipeline.config import DeckConfig
 from pipeline.llm import create_client
@@ -101,12 +101,15 @@ def run_chapter_audit_benchmark(bench_config_path: Path | None = None, parallel:
         "cefr_level": fixture_config.story.chapters[0].cefr_level or fixture_config.story.cefr_level,
         "context": fixture_config.story.chapters[0].context,
     }
-    characters = [{"name": fixture_config.protagonist.name, "role": "protagonist"}]
+    characters = [{"name": fixture_config.protagonist.name, "role": "protagonist",
+                   "visual_tag": fixture_config.protagonist.visual_tag or ""}]
     for sc in fixture_config.secondary_characters:
         if 1 in sc.chapters:
-            characters.append({"name": sc.name, "role": sc.role or "secondary character"})
+            characters.append({"name": sc.name, "role": sc.role or "secondary character",
+                               "visual_tag": sc.visual_tag or ""})
 
     models = bench_config["models"].get("chapter_audit", [])
+    models = filter_new_models("chapter_audit", models, RESULTS)
     if not models:
         print("No chapter_audit models in bench_config.yaml")
         return

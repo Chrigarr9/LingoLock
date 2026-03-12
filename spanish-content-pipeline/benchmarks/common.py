@@ -38,6 +38,19 @@ def load_bench_config(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def has_result(task: str, model: str, results_dir: Path) -> bool:
+    """Check if a successful (non-error) result already exists for this task/model."""
+    slug = model_slug(model)
+    task_dir = results_dir / task / slug
+    if not task_dir.exists():
+        return False
+    for path in task_dir.glob("run_*.json"):
+        data = json.load(open(path))
+        if not data.get("error"):
+            return True
+    return False
+
+
 def save_result(result: BenchmarkResult, results_dir: Path) -> Path:
     """Save a benchmark result to results/<task>/<model-slug>/run_<timestamp>.json."""
     slug = model_slug(result.model)
@@ -88,6 +101,17 @@ def sum_usage(responses: list) -> dict:
         if u.cost_usd:
             total["cost_usd"] += u.cost_usd
     return total
+
+
+def filter_new_models(task: str, model_entries: list[dict], results_dir: Path) -> list[dict]:
+    """Filter out models that already have successful results. Returns only models needing runs."""
+    new = []
+    for entry in model_entries:
+        if has_result(task, entry["model"], results_dir):
+            print(f"  [SKIP] {entry['model']} — result exists")
+        else:
+            new.append(entry)
+    return new
 
 
 def run_models_parallel(
