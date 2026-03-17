@@ -218,7 +218,7 @@ def test_post_process_replaces_protagonist_and_characters(tmp_path):
     assert "TAXI DRIVER" not in shot.image_prompt
     # Style prefix: comma-separated
     assert shot.image_prompt.startswith(config.image_generation.style + ", ")
-    assert shot.image_prompt.endswith("no text, no writing, no letters")
+    assert shot.image_prompt.endswith(".")
 
     # Sentence source: PROTAGONIST → name, TAXI DRIVER → name (unchanged)
     assert shot.sentences[0].source == "Charlotte camina por la calle."
@@ -274,7 +274,7 @@ def make_chapter_scene() -> ChapterScene:
                 shots=[
                     Shot(
                         focus="suitcase",
-                        image_prompt="style. A bedroom with a large suitcase. no text, no writing, no letters.",
+                        image_prompt="style. A bedroom with a large suitcase. ",
                         sentences=[
                             ShotSentence(source="Charlotte está en su habitación.", sentence_index=0),
                             ShotSentence(source="Ella tiene una maleta grande.", sentence_index=1),
@@ -282,7 +282,7 @@ def make_chapter_scene() -> ChapterScene:
                     ),
                     Shot(
                         focus="travel guide",
-                        image_prompt="style. A nightstand with a travel guide. no text, no writing, no letters.",
+                        image_prompt="style. A nightstand with a travel guide. ",
                         sentences=[
                             ShotSentence(source="Hay una guía de viaje.", sentence_index=2),
                         ],
@@ -380,7 +380,7 @@ def test_replace_character_possessive_only():
         "PROTAGONIST's notebook on the desk.",
         "PROTAGONIST", "Maria", "young woman, teal cardigan",
     )
-    assert result == "Maria (young woman, teal cardigan)'s notebook on the desk."
+    assert result == "Maria's (young woman, teal cardigan) notebook on the desk."
 
 
 def test_replace_character_mixed_possessive_and_non():
@@ -420,7 +420,7 @@ def test_finalize_image_prompt_with_image_tag(tmp_path):
     assert result.startswith(config.image_generation.style + ", ")
     assert "Charlotte (young woman, teal cardigan)" in result
     assert "Taxi Driver (stocky man, gray cap)" in result
-    assert result.endswith("no text, no writing, no letters")
+    assert result.endswith(".")
     assert "PROTAGONIST" not in result
     assert "TAXI DRIVER" not in result
 

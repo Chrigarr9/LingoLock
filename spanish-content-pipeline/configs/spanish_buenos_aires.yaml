@@ -591,8 +591,9 @@ models:
 
 image_generation:
   enabled: true
-  model: "black-forest-labs/FLUX.2-pro"
-  cheap_model: "black-forest-labs/FLUX.1-schnell"
+  provider: "fal"
+  model: "fal-ai/z-image/turbo"
+  cheap_model: "fal-ai/z-image/turbo"
   style: "cartoon, vibrant colors"
   width: 768
   height: 512

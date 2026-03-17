@@ -21,6 +21,10 @@ Stage fill-gaps:
   Requires vocabulary.json (text stage) + frequency_lemmas.json (lemmatize stage).
   Output: output/<deck-id>/gap_sentences/, vocabulary.json (rebuilt).
 
+Stage image-prompts:
+  Pass 8 only: scene review (split oversized shots to max 2 sentences) +
+  prompt generation. Loads stories from disk, does NOT touch text content.
+
 Stage media:
   Reads text output from disk (no LLM calls), then generates images and audio.
   Run only once you are happy with the text.
@@ -29,6 +33,7 @@ Usage:
   uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --chapters 1-2
   uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --stage lemmatize --frequency-file data/frequency/es_50k.txt
   uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --stage fill-gaps --frequency-file data/frequency/es_50k.txt
+  uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --chapters 1 --deck-id es-de-buenos-aires-gaptest --stage image-prompts
   uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --chapters 1-2 --stage media
   uv run python scripts/run_all.py --config configs/spanish_buenos_aires.yaml --stage all
 """
@@ -94,6 +99,10 @@ class CostTracker:
         cost = getattr(getattr(response, "usage", None), "cost_usd", None)
         if cost:
             self._current_cost += cost
+
+    def add_cost(self, amount: float):
+        """Add a raw USD cost amount to the current step."""
+        self._current_cost += amount
 
     def finish(self):
         """Flush the current step and print the summary."""
@@ -853,10 +862,11 @@ def run_media_stage(config, chapter_range, output_base, skip_audio=False):
         chapter_scenes[i] = ChapterScene(**json.loads(story_path.read_text()))
 
         trans_path = out_dir / "translations" / f"chapter_{i+1:02d}.json"
-        if not trans_path.exists():
+        if trans_path.exists():
+            all_pairs[i] = [SentencePair(**p) for p in json.loads(trans_path.read_text())]
+        elif not skip_audio:
             print(f"Error: {trans_path} not found. Run --stage text first.")
             sys.exit(1)
-        all_pairs[i] = [SentencePair(**p) for p in json.loads(trans_path.read_text())]
 
     # Image generation
     if config.image_generation and config.image_generation.enabled:
@@ -878,7 +888,13 @@ def run_media_stage(config, chapter_range, output_base, skip_audio=False):
 
         together_key = os.environ.get("TOGETHER_API_KEY")
         gemini_key = os.environ.get("GEMINI_API_KEY")
-        generator = ImageGenerator(config, together_api_key=together_key, gemini_api_key=gemini_key, output_base=output_base)
+        modelscope_key = os.environ.get("MODEL_SCOPE_API_KEY")
+        fal_key = os.environ.get("FAL_KEY") or os.environ.get("FAL_AI_API_KEY")
+        generator = ImageGenerator(
+            config, together_api_key=together_key, gemini_api_key=gemini_key,
+            modelscope_api_key=modelscope_key, fal_api_key=fal_key,
+            output_base=output_base,
+        )
         manifest = generator.generate_all(image_prompt_result)
 
         expand_manifest_for_shared_shots(manifest, chapter_scenes)
@@ -887,7 +903,10 @@ def run_media_stage(config, chapter_range, output_base, skip_audio=False):
 
         success = sum(1 for e in manifest.images.values() if e.status == "success")
         failed = sum(1 for e in manifest.images.values() if e.status == "failed")
+        img_cost = generator.total_cost
         print(f"  {success} image entries in manifest ({len(all_image_prompts)} shots), {failed} failed")
+        if img_cost > 0:
+            print(f"  Image generation cost: {img_cost * 100:.2f}¢ ({generator.image_count} images)")
 
     # Audio generation
     if not skip_audio and config.audio_generation and config.audio_generation.enabled:
@@ -1006,16 +1025,167 @@ def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
     print("  Note: Run --stage text to insert these into stories and rebuild vocabulary.")
 
 
+def run_translate_stage(config, chapter_range, output_base, frequency_file=None):
+    """Pass 6-7 only: Translate + extract words + build vocabulary from existing stories."""
+    cost = CostTracker()
+    out_dir = output_base / config.deck.id
+
+    # Load stories from disk
+    stories: dict[int, str] = {}
+    for i in chapter_range:
+        story_path = out_dir / "stories" / f"chapter_{i+1:02d}.json"
+        if not story_path.exists():
+            print(f"Error: {story_path} not found. Run --stage text first.")
+            sys.exit(1)
+        from pipeline.models import ChapterScene as _CS
+        cs = _CS(**json.loads(story_path.read_text()))
+        stories[i] = extract_flat_text(cs)
+
+    # Pass 6: Translation
+    cost.begin("Pass 6: Translation")
+    print("=== Pass 6: Sentence Translation ===")
+    llm_translate = create_model_client(config.models.translation)
+    translator = SentenceTranslator(config, llm_translate, output_base=output_base)
+    all_pairs: dict[int, list[SentencePair]] = {}
+    for i in chapter_range:
+        ch = config.story.chapters[i]
+        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
+        all_pairs[i], trans_resp = translator.translate_chapter(i, stories[i])
+        cost.add(trans_resp)
+        print(f"done ({len(all_pairs[i])} sentences)")
+
+    # Pass 7: Word extraction
+    cost.begin("Pass 7: Word Extraction")
+    print("\n=== Pass 7: Word Extraction ===")
+    llm_extract = create_model_client(config.models.word_extraction)
+    extractor = WordExtractor(config, llm_extract, output_base=output_base)
+    all_chapters = []
+    for i in chapter_range:
+        ch = config.story.chapters[i]
+        print(f"  Chapter {i+1}: {ch.title}...", end=" ", flush=True)
+        chapter_words, extract_resp = extractor.extract_chapter(i, all_pairs[i])
+        cost.add(extract_resp)
+        all_chapters.append(chapter_words)
+        print(f"done ({len(chapter_words.words)} words)")
+
+    # Vocabulary DB
+    print("\n=== Building Vocabulary Database ===")
+    frequency_data = {}
+    if frequency_file:
+        freq_path = Path(frequency_file)
+        if freq_path.exists():
+            frequency_data = load_frequency_data(freq_path)
+            print(f"  Loaded {len(frequency_data)} frequency entries")
+
+    chapter_titles = {i + 1: config.story.chapters[i].title for i in chapter_range}
+    deck = build_vocabulary(
+        all_chapters,
+        frequency_data=frequency_data,
+        chapter_titles=chapter_titles,
+        deck_id=config.deck.id,
+        deck_name=config.deck.name,
+    )
+    vocab_path = out_dir / "vocabulary.json"
+    vocab_path.parent.mkdir(parents=True, exist_ok=True)
+    vocab_path.write_text(json.dumps(deck.model_dump(), ensure_ascii=False, indent=2))
+    print(f"  {deck.total_words} unique vocabulary entries saved to {vocab_path}")
+
+    cost.finish()
+
+
+def run_image_prompts_stage(config, chapter_range, output_base):
+    """Pass 8 only: Scene review (split oversized shots) + prompt generation.
+
+    Loads chapter scenes from disk, restructures shots to max 2 sentences each,
+    generates fresh image prompts, and writes updated chapters back to disk.
+    """
+    cost = CostTracker()
+    cost.begin("Pass 8: Image Pipeline")
+    print("=== Pass 8: Image Pipeline (standalone) ===")
+
+    llm_img_review = create_model_client(config.models.image_review)
+    llm_img_prompt = create_model_client(config.models.image_fix)
+
+    # Build character info with image_tags for prompt generation
+    img_characters = [{
+        "name": config.protagonist.name,
+        "role": "protagonist",
+        "image_tag": config.protagonist.image_tag,
+        "visual_tag": config.protagonist.visual_tag,
+    }]
+    for sc in config.secondary_characters:
+        img_characters.append({
+            "name": sc.name,
+            "role": sc.role or "secondary character",
+            "image_tag": sc.image_tag,
+            "visual_tag": sc.visual_tag,
+            "chapters": sc.chapters,
+        })
+
+    out_dir = output_base / config.deck.id
+    for i in chapter_range:
+        ch_num = i + 1
+        story_path = out_dir / "stories" / f"chapter_{ch_num:02d}.json"
+        if not story_path.exists():
+            print(f"  Ch{ch_num}: stories/{story_path.name} not found — skipping")
+            continue
+
+        ch_data = ChapterScene(**json.loads(story_path.read_text()))
+        pre_shots = sum(len(s.shots) for s in ch_data.scenes)
+
+        # Step 1: Scene Review — restructure shots (split oversized)
+        reviewed, review_resp = review_scenes(ch_data, llm=llm_img_review)
+        cost.add(review_resp)
+
+        if reviewed:
+            ch_data = apply_scene_review(ch_data, reviewed)
+            post_shots = sum(len(s.shots) for s in ch_data.scenes)
+            delta = f" ({pre_shots} → {post_shots})" if post_shots != pre_shots else ""
+            print(f"  Ch{ch_num}: {post_shots} shots{delta}")
+        else:
+            post_shots = pre_shots
+            print(f"  Ch{ch_num}: {post_shots} shots (review skipped)")
+
+        # Step 2: Prompt Generation — new prompts for all shots
+        ch_chars = [c for c in img_characters
+                    if c.get("role") == "protagonist"
+                    or ch_num in c.get("chapters", [])]
+        prompts, prompt_resp = generate_prompts(ch_data, ch_chars, llm=llm_img_prompt)
+        cost.add(prompt_resp)
+
+        if prompts:
+            ch_data = apply_prompts(ch_data, prompts)
+            expected = sum(len(s.shots) for s in ch_data.scenes)
+            if len(prompts) < expected:
+                print(f"          {len(prompts)}/{expected} prompts (some missing)")
+            else:
+                print(f"          {len(prompts)} prompts generated")
+
+        # Step 3: Finalize — inject character tags + style/suffix
+        for scene in ch_data.scenes:
+            for shot in scene.shots:
+                if shot.image_prompt:
+                    shot.image_prompt = finalize_image_prompt(shot.image_prompt, config)
+
+        # Save updated chapter
+        story_path.write_text(json.dumps(ch_data.model_dump(), ensure_ascii=False, indent=2))
+        print(f"          saved → {story_path}")
+
+    cost.finish()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run the full content pipeline")
     parser.add_argument("--config", required=True, help="Path to deck config YAML")
     parser.add_argument("--chapters", default=None, help="Chapter range (e.g. '1-3' or '1'). Defaults to all.")
     parser.add_argument("--stage", default="text",
-                        choices=["text", "lemmatize", "fill-gaps", "media", "all"],
+                        choices=["text", "lemmatize", "fill-gaps", "translate", "image-prompts", "media", "all"],
                         help=(
                             "text = story/translations/vocab (default); "
                             "lemmatize = Pass 0: LLM lemmatize frequency file; "
                             "fill-gaps = Pass 3b: gap sentences + rebuild vocab; "
+                            "translate = Pass 6-7: translate + extract words + build vocab only; "
+                            "image-prompts = Pass 8: scene review + prompt generation only; "
                             "media = images/audio; "
                             "all = lemmatize + text + fill-gaps + media"
                         ))
@@ -1058,6 +1228,12 @@ def main():
 
     if args.stage in ("fill-gaps", "all"):
         run_fill_gaps_stage(config, output_base, frequency_file, top_n=args.top_n)
+
+    if args.stage in ("translate",):
+        run_translate_stage(config, chapter_range, output_base, frequency_file)
+
+    if args.stage in ("image-prompts",):
+        run_image_prompts_stage(config, chapter_range, output_base)
 
     if args.stage in ("media", "all"):
         run_media_stage(config, chapter_range, output_base, args.skip_audio)

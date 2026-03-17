@@ -32,16 +32,21 @@ Return a JSON object with a "scenes" array. Each scene has:
 - "shots": array of camera shots within this scene
 
 Each shot has:
-- "focus": what the camera focuses on (a specific object or action, e.g. "red suitcase", \
-"blue jeans", "phone screen")
-- "image_prompt": English description of what's visible in this shot. Describe:
-  - The environment (from the scene description)
+- "focus": what the camera focuses on — MUST be a concrete, visible OBJECT or ACTION from \
+the sentence vocabulary (e.g. "red suitcase", "blue sweater", "phone screen showing message", \
+"walking shoes"). NEVER use character names or generic descriptions like "conversation" or \
+"Maria and Ingrid talking" as focus.
+- "image_prompt": English description of what's visible in this shot. The KEY RULE: \
+the camera points at the VOCABULARY OBJECT, not at people talking. Characters may appear \
+in the frame but the focal point is always the thing, not the face. Describe:
   - The focal object/action — exaggerate size, color, and expression like a children's \
 picture book. E.g. "a HUGE bright-red suitcase overflowing with clothes", "vivid cobalt-blue \
 jeans held up dramatically". Make the key object impossible to miss.
-  - Any characters present (describe by role and appearance, e.g. "a young woman \
-with light-brown hair")
-  - Camera angle: prefer close-up or medium shots. Avoid wide/establishing shots.
+  - The environment visible around the object (from the scene description)
+  - Characters only when they physically interact with the focal object (hands holding, \
+reaching, pointing at). Show hands/body, not talking heads.
+  - Camera angle: prefer close-up on the object or over-the-shoulder. Avoid medium shots \
+of two characters facing each other — these all look identical.
   Do NOT include art style prefixes or "no text" suffixes — these are added later.
   Keep under 200 characters.
 - "sentences": array of 1-3 sentences for this shot (prefer 1-2). Each has:
@@ -72,17 +77,32 @@ NEVER use reported speech ("Ella dice que...", "Él pregunta adónde...", \
 
 ## Visual rules
 1. Every shot MUST visually highlight 1-2 vocabulary words from the focus areas.
-2. Consecutive shots MUST focus on different objects/angles for variety.
-3. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
-4. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
-5. Vary SUBJECT, ANGLE, and COLOR PALETTE across shots to avoid visual repetition.
-6. Characters can be prominent when the scene calls for it.
-5. Phone calls: show only the caller's side (their room, the phone).
-6. No text, labels, signs, or writing of any kind in the image descriptions.
-7. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
-8. Two places mentioned → pick ONE, show it as a single scene.
-9. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
-10. sentence_index must be sequential starting from 0 with no gaps.
+2. The OBJECT is the star, not the characters. When characters talk about a suitcase, \
+show the suitcase. When they discuss shoes, show the shoes. Characters can appear \
+but the camera aims at what they're talking about.
+3. Consecutive shots MUST focus on different objects/angles for variety. \
+NEVER have two adjacent shots with the same composition (e.g. two "medium shot of \
+Maria and Ingrid facing each other").
+4. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
+5. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
+6. Vary CAMERA ANGLE across shots: close-up on object, over-shoulder, bird's-eye, \
+hands-only, object-with-blurred-background. Avoid repetitive front-facing medium shots.
+7. For dialogue scenes: show what they're TALKING ABOUT, not two people talking. \
+If someone says "your red jacket", show the red jacket. If someone asks "who's at \
+the door?", show the door.
+8. Phone screens: if the shot shows a phone screen with a photo or image, describe \
+the content as a cartoon illustration, NOT a photograph. Write "cartoon illustration of \
+tango dancers on the screen" not "a photo of tango dancers". This keeps the whole \
+image in one consistent style.
+9. POV, not meta: when a character SEES or LOOKS AT something, show THAT THING \
+directly — NOT the character's eyes with a reflection. "Maria sees the city" → show \
+the city, not her eye reflecting the city. "She looks at the jacaranda trees" → show \
+the trees, not close-up of eyes. Keep it simple and direct.
+10. Phone calls: show only the caller's side (their room, the phone).
+11. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
+12. Two places mentioned → pick ONE, show it as a single scene.
+13. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
+14. sentence_index must be sequential starting from 0 with no gaps.
 
 ## Character consistency
 The protagonist's exact visual tag is: {protagonist_visual_tag}
@@ -242,7 +262,7 @@ def _replace_character(raw: str, placeholder: str, name: str, tag: str) -> str:
       1. First non-possessive mention → "Name (tag)"
       2. Subsequent non-possessive mentions → "Name"
       3. Possessive "PLACEHOLDER's" → "Name's" (no tag)
-      4. If ONLY possessive mentions exist → first becomes "Name (tag)'s"
+      4. If ONLY possessive mentions exist → first becomes "Name's (tag)"
     """
     possessive = f"{placeholder}'s"
     has_non_possessive = raw.replace(possessive, "").count(placeholder) > 0
@@ -252,7 +272,7 @@ def _replace_character(raw: str, placeholder: str, name: str, tag: str) -> str:
         raw = raw.replace(placeholder, f"{name} ({tag})", 1)
         raw = raw.replace(placeholder, name)
     elif possessive in raw:
-        raw = raw.replace(possessive, f"{name} ({tag})'s", 1)
+        raw = raw.replace(possessive, f"{name}'s ({tag})", 1)
         raw = raw.replace(possessive, f"{name}'s")
 
     return raw
@@ -285,8 +305,7 @@ def finalize_image_prompt(raw: str, config: DeckConfig) -> str:
         raw = raw[:-1]
 
     style = config.image_generation.style if config.image_generation else ""
-    suffix = "no text, no writing, no letters"
-    return f"{style}, {raw}. {suffix}"
+    return f"{style}, {raw}."
 
 
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:

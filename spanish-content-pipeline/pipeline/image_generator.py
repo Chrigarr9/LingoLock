@@ -1,9 +1,10 @@
-"""Pass 5: Generate images via Together.ai (Flux) or Google AI Studio (Gemini)."""
+"""Image generation orchestrator.
 
-import base64
+Delegates to provider-specific clients (Together, Gemini, fal.ai, ModelScope).
+Handles manifest management, caching, deduplication, and resumability.
+"""
+
 import json
-import math
-import time
 from pathlib import Path
 
 import httpx
@@ -11,21 +12,16 @@ import httpx
 from pipeline.config import DeckConfig
 from pipeline.models import ImageManifest, ImageManifestEntry, ImagePrompt, ImagePromptResult
 
-TOGETHER_API_URL = "https://api.together.xyz/v1/images/generations"
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-
 
 def detect_provider(model: str) -> str:
     """Detect image provider from model name."""
     if model.startswith("gemini-"):
         return "google"
+    if model.startswith("fal-ai/"):
+        return "fal"
+    if "/" in model and ("Tongyi" in model or "Z-Image" in model):
+        return "modelscope"
     return "together"
-
-
-def _aspect_ratio(width: int, height: int) -> str:
-    """Convert pixel dimensions to aspect ratio string (e.g. '3:2')."""
-    g = math.gcd(width, height)
-    return f"{width // g}:{height // g}"
 
 
 class ImageGenerator:
@@ -34,6 +30,8 @@ class ImageGenerator:
         config: DeckConfig,
         together_api_key: str | None = None,
         gemini_api_key: str | None = None,
+        modelscope_api_key: str | None = None,
+        fal_api_key: str | None = None,
         output_base: Path | None = None,
         transport: httpx.BaseTransport | None = None,
         max_retries: int = 3,
@@ -41,97 +39,84 @@ class ImageGenerator:
         api_key: str | None = None,
     ):
         self._config = config
-        self._together_api_key = together_api_key or api_key
-        self._gemini_api_key = gemini_api_key
         self._output_base = output_base or Path("output")
-        self._max_retries = max_retries
         self._img_config = config.image_generation
-        self._provider = detect_provider(self._img_config.model)
 
-        client_kwargs = {"timeout": 120.0}
+        # Resolve provider: explicit config > model-name detection
+        explicit = self._img_config.provider
+        if explicit and explicit != "together":
+            self._provider = explicit
+        else:
+            self._provider = detect_provider(self._img_config.model)
+
+        # Build shared HTTP client
+        client_kwargs: dict = {"timeout": 120.0}
         if transport:
             client_kwargs["transport"] = transport
         self._client = httpx.Client(**client_kwargs)
 
+        # Store API keys and create provider client lazily
+        self._api_keys = {
+            "together": together_api_key or api_key,
+            "google": gemini_api_key,
+            "modelscope": modelscope_api_key,
+            "fal": fal_api_key,
+        }
+        self._max_retries = max_retries
+        self._provider_client = None
+
+    def _get_provider_client(self):
+        """Lazily create the provider-specific image client."""
+        if self._provider_client is not None:
+            return self._provider_client
+
+        key = self._api_keys.get(self._provider)
+
+        if self._provider == "together":
+            from pipeline.together_client import TogetherImageClient
+            self._provider_client = TogetherImageClient(
+                key, client=self._client, max_retries=self._max_retries)
+        elif self._provider == "google":
+            from pipeline.gemini_image_client import GeminiImageClient
+            self._provider_client = GeminiImageClient(
+                key, client=self._client, max_retries=self._max_retries)
+        elif self._provider == "fal":
+            from pipeline.fal_client import FalImageClient
+            self._provider_client = FalImageClient(
+                key, client=self._client, max_retries=self._max_retries)
+        elif self._provider == "modelscope":
+            from pipeline.modelscope_client import ModelScopeImageClient
+            self._provider_client = ModelScopeImageClient(
+                key, client=self._client)
+        else:
+            raise ValueError(f"Unknown image provider: {self._provider}")
+
+        return self._provider_client
+
+    @property
+    def total_cost(self) -> float:
+        """Total cost in USD across all generated images."""
+        if self._provider_client is None:
+            return 0.0
+        return self._provider_client.total_cost
+
+    @property
+    def image_count(self) -> int:
+        """Number of images generated in this session."""
+        if self._provider_client is None:
+            return 0
+        return self._provider_client.image_count
+
     def _deck_dir(self) -> Path:
         return self._output_base / self._config.deck.id
 
-    def _call_together(self, model: str, prompt: str) -> tuple[bytes, str]:
-        """Call Together.ai API. Returns (image_bytes, extension)."""
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "width": self._img_config.width,
-            "height": self._img_config.height,
-            "response_format": "b64_json",
-        }
-        headers = {
-            "Authorization": f"Bearer {self._together_api_key}",
-            "Content-Type": "application/json",
-        }
-        response = self._call_with_retry(TOGETHER_API_URL, payload, headers)
-        data = response.json()
-        b64_data = data["data"][0]["b64_json"]
-        return base64.b64decode(b64_data), ".webp"
-
-    def _call_gemini(self, model: str, prompt: str) -> tuple[bytes, str]:
-        """Call Google AI Studio generateContent with image output. Returns (image_bytes, extension)."""
-        url = f"{GEMINI_BASE_URL}/{model}:generateContent"
-        ratio = _aspect_ratio(self._img_config.width, self._img_config.height)
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseModalities": ["IMAGE"],
-                "imageConfig": {"aspectRatio": ratio},
-            },
-        }
-        headers = {
-            "x-goog-api-key": self._gemini_api_key,
-            "Content-Type": "application/json",
-        }
-        response = self._call_with_retry(url, payload, headers)
-        data = response.json()
-        part = data["candidates"][0]["content"]["parts"][0]
-        inline = part.get("inlineData") or part["inline_data"]
-        image_bytes = base64.b64decode(inline["data"])
-        mime = inline.get("mime_type", "image/png")
-        ext = ".png" if "png" in mime else ".webp" if "webp" in mime else ".jpg"
-        return image_bytes, ext
-
-    def _call_with_retry(self, url: str, payload: dict, headers: dict) -> httpx.Response:
-        """HTTP POST with retry on 5xx and 422."""
-        last_error = None
-        for attempt in range(self._max_retries):
-            response = self._client.post(url, json=payload, headers=headers)
-            if response.status_code == 200:
-                return response
-            if response.status_code >= 500 or response.status_code == 422:
-                last_error = response
-                if attempt < self._max_retries - 1:
-                    delay = 2 * (attempt + 1)
-                    print(f"\n      Retry {attempt + 1}/{self._max_retries} after {response.status_code} (waiting {delay}s)...", end="", flush=True)
-                    time.sleep(delay)
-                continue
-            body = response.text[:500]
-            raise httpx.HTTPStatusError(
-                f"{response.status_code} for {response.url}: {body}",
-                request=response.request,
-                response=response,
-            )
-        if last_error:
-            body = last_error.text[:500]
-            raise httpx.HTTPStatusError(
-                f"{last_error.status_code} for {last_error.url} after {self._max_retries} retries: {body}",
-                request=last_error.request,
-                response=last_error,
-            )
-
     def _generate_image(self, prompt: str) -> tuple[bytes, str]:
         """Generate an image using the configured provider. Returns (bytes, extension)."""
-        model = self._img_config.model
-        if self._provider == "google":
-            return self._call_gemini(model, prompt)
-        return self._call_together(model, prompt)
+        client = self._get_provider_client()
+        return client.generate(
+            model=self._img_config.model, prompt=prompt,
+            width=self._img_config.width, height=self._img_config.height,
+        )
 
     def _sentence_key(self, prompt: ImagePrompt) -> str:
         ch = str(prompt.chapter).zfill(2)
