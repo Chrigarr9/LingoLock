@@ -27,6 +27,7 @@ import type { CardState, PersistedStats } from '../types/vocabulary';
 const CARD_PREFIX = 'll.card.';
 const STATS_KEY = 'll.stats';
 const AUDIO_MUTED_KEY = 'll.audio_muted';
+const AUDIO_SPEED_KEY = 'll.audio_speed';
 const LL_PREFIX = 'll.';
 
 // ---------------------------------------------------------------------------
@@ -133,6 +134,25 @@ export function loadAudioMuted(): boolean {
  */
 export function saveAudioMuted(muted: boolean): void {
   localStorage.setItem(AUDIO_MUTED_KEY, String(muted));
+}
+
+/**
+ * Load the user's audio playback speed preference.
+ * Returns 1.0 (normal speed) if never set.
+ * Valid values: 0.75, 1.0, 1.25
+ */
+export function loadAudioSpeed(): number {
+  const raw = localStorage.getItem(AUDIO_SPEED_KEY);
+  if (raw === null) return 1.0;
+  const parsed = parseFloat(raw);
+  return isNaN(parsed) ? 1.0 : parsed;
+}
+
+/**
+ * Persist the user's audio playback speed preference.
+ */
+export function saveAudioSpeed(speed: number): void {
+  localStorage.setItem(AUDIO_SPEED_KEY, String(speed));
 }
 
 // ---------------------------------------------------------------------------

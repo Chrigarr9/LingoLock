@@ -41,7 +41,10 @@ def make_config(tmp_path: Path):
             "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
             "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
-            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
@@ -100,7 +103,7 @@ def test_generate_chapter_produces_chapter_scene(tmp_path):
     )
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    chapter_data = gen.generate_chapter(0)
+    chapter_data, _ = gen.generate_chapter(0)
 
     assert isinstance(chapter_data, ChapterScene)
     assert chapter_data.chapter == 1
@@ -121,7 +124,7 @@ def test_saves_to_stories_raw_directory(tmp_path):
     )
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    gen.generate_chapter(0)
+    _, _ = gen.generate_chapter(0)
 
     # Must be in stories_raw/, NOT stories/
     story_file = tmp_path / "test-deck" / "stories_raw" / "chapter_01.json"
@@ -180,7 +183,7 @@ def test_skips_if_cached(tmp_path):
     (story_dir / "chapter_01.json").write_text(json.dumps(cached))
 
     gen = StoryGenerator(config, mock_llm, output_base=tmp_path)
-    result = gen.generate_chapter(0)
+    result, _ = gen.generate_chapter(0)
 
     assert result.chapter == 1
     assert result.scenes == []
@@ -208,17 +211,19 @@ def test_post_process_replaces_protagonist_and_characters(tmp_path):
     result = _post_process(chapter, config)
     shot = result.scenes[0].shots[0]
 
-    # Image prompt: PROTAGONIST → visual tag, TAXI DRIVER → visual tag
+    # Image prompt: uses image_tag (falls back to visual_tag when image_tag="")
     assert "a slim young woman with light-brown hair" in shot.image_prompt
     assert "a stocky man with a gray flat cap" in shot.image_prompt
     assert "PROTAGONIST" not in shot.image_prompt
     assert "TAXI DRIVER" not in shot.image_prompt
+    # Style prefix: comma-separated
+    assert shot.image_prompt.startswith(config.image_generation.style + ", ")
+    assert shot.image_prompt.endswith(".")
 
-    # Sentence source: PROTAGONIST → name, TAXI DRIVER → name
+    # Sentence source: PROTAGONIST → name, TAXI DRIVER → name (unchanged)
     assert shot.sentences[0].source == "Charlotte camina por la calle."
     assert "Taxi Driver" in shot.sentences[1].source
     assert "TAXI DRIVER" not in shot.sentences[1].source
-    assert "PROTAGONIST" not in shot.sentences[1].source
 
 
 def test_generate_all_passes_summaries(tmp_path):
@@ -269,7 +274,7 @@ def make_chapter_scene() -> ChapterScene:
                 shots=[
                     Shot(
                         focus="suitcase",
-                        image_prompt="style. A bedroom with a large suitcase. no text, no writing, no letters.",
+                        image_prompt="style. A bedroom with a large suitcase. ",
                         sentences=[
                             ShotSentence(source="Charlotte está en su habitación.", sentence_index=0),
                             ShotSentence(source="Ella tiene una maleta grande.", sentence_index=1),
@@ -277,7 +282,7 @@ def make_chapter_scene() -> ChapterScene:
                     ),
                     Shot(
                         focus="travel guide",
-                        image_prompt="style. A nightstand with a travel guide. no text, no writing, no letters.",
+                        image_prompt="style. A nightstand with a travel guide. ",
                         sentences=[
                             ShotSentence(source="Hay una guía de viaje.", sentence_index=2),
                         ],
@@ -356,3 +361,93 @@ def test_summary_saved_to_stories_raw(tmp_path):
     summary_file = tmp_path / "test-deck" / "stories_raw" / "summary_01.txt"
     assert summary_file.exists()
     assert len(summary_file.read_text()) > 0
+
+
+def test_replace_character_first_non_possessive():
+    from pipeline.story_generator import _replace_character
+
+    result = _replace_character(
+        "PROTAGONIST walks to the store. PROTAGONIST buys coffee.",
+        "PROTAGONIST", "Maria", "young woman, teal cardigan",
+    )
+    assert result == "Maria (young woman, teal cardigan) walks to the store. Maria buys coffee."
+
+
+def test_replace_character_possessive_only():
+    from pipeline.story_generator import _replace_character
+
+    result = _replace_character(
+        "PROTAGONIST's notebook on the desk.",
+        "PROTAGONIST", "Maria", "young woman, teal cardigan",
+    )
+    assert result == "Maria's (young woman, teal cardigan) notebook on the desk."
+
+
+def test_replace_character_mixed_possessive_and_non():
+    from pipeline.story_generator import _replace_character
+
+    result = _replace_character(
+        "Close-up of PROTAGONIST and SOFIA sharing mate. PROTAGONIST's hand holds the cup.",
+        "PROTAGONIST", "Maria", "young woman, teal cardigan",
+    )
+    assert result == (
+        "Close-up of Maria (young woman, teal cardigan) and SOFIA sharing mate. "
+        "Maria's hand holds the cup."
+    )
+
+
+def test_replace_character_no_matches():
+    from pipeline.story_generator import _replace_character
+
+    result = _replace_character(
+        "A quiet park scene with trees.",
+        "PROTAGONIST", "Maria", "young woman",
+    )
+    assert result == "A quiet park scene with trees."
+
+
+def test_finalize_image_prompt_with_image_tag(tmp_path):
+    from pipeline.story_generator import finalize_image_prompt
+
+    config = make_config(tmp_path)
+    config.protagonist.image_tag = "young woman, teal cardigan"
+    config.secondary_characters[0].image_tag = "stocky man, gray cap"
+
+    result = finalize_image_prompt(
+        "Close-up of PROTAGONIST and TAXI DRIVER at the curb.",
+        config,
+    )
+    assert result.startswith(config.image_generation.style + ", ")
+    assert "Charlotte (young woman, teal cardigan)" in result
+    assert "Taxi Driver (stocky man, gray cap)" in result
+    assert result.endswith(".")
+    assert "PROTAGONIST" not in result
+    assert "TAXI DRIVER" not in result
+
+
+def test_finalize_falls_back_to_visual_tag(tmp_path):
+    """When image_tag is empty, fall back to visual_tag."""
+    from pipeline.story_generator import finalize_image_prompt
+
+    config = make_config(tmp_path)
+    # image_tag defaults to "" — should fall back to visual_tag
+
+    result = finalize_image_prompt(
+        "PROTAGONIST walks down the street.",
+        config,
+    )
+    assert "a slim young woman with light-brown hair" in result
+
+
+def test_finalize_handles_plain_name(tmp_path):
+    """When LLM writes plain name instead of PROTAGONIST placeholder."""
+    from pipeline.story_generator import finalize_image_prompt
+
+    config = make_config(tmp_path)
+    config.protagonist.image_tag = "young woman, teal cardigan"
+
+    result = finalize_image_prompt(
+        "Charlotte walks down the street.",
+        config,
+    )
+    assert "Charlotte (young woman, teal cardigan)" in result

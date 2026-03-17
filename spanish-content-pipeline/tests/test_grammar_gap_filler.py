@@ -57,7 +57,7 @@ def test_no_missing_targets_returns_empty():
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
     assert result == []
     llm.complete_json.assert_not_called()
 
@@ -81,7 +81,7 @@ def test_generates_sentences_for_missing_targets(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="Rioplatense",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert len(result) == 1
     assert result[0].grammar_target == "pretérito imperfecto"
@@ -109,7 +109,7 @@ def test_assigns_to_correct_cefr_chapter(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].chapter == 3  # chapter 3 is B1
 
@@ -133,7 +133,7 @@ def test_caches_results_to_disk(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    filler.fill_gaps(report)
+    _, _ = filler.fill_gaps(report)
 
     cache_path = tmp_path / "grammar_gap_sentences.json"
     assert cache_path.exists()
@@ -161,7 +161,7 @@ def test_uses_cache_on_second_call(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(_make_audit_report({"A2": ["imperfecto"]}))
+    result, _ = filler.fill_gaps(_make_audit_report({"A2": ["imperfecto"]}))
 
     assert len(result) == 1
     assert result[0].source == "Ella era bonita."
@@ -191,7 +191,7 @@ def test_prompt_includes_existing_chapter_sentences(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    filler.fill_gaps(report)
+    _, _ = filler.fill_gaps(report)
 
     prompt = llm.complete_json.call_args_list[0][0][0]
     assert "Maria abre la maleta" in prompt
@@ -223,7 +223,7 @@ def test_multiple_cefr_levels_batched(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert len(result) == 2
     assert llm.complete_json.call_count == 1
@@ -249,7 +249,7 @@ def test_parses_insert_after(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].insert_after == 7
 
@@ -273,7 +273,7 @@ def test_insert_after_defaults_to_minus_one(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].insert_after == -1
 
@@ -297,7 +297,7 @@ def test_fuzzy_match_cefr_prefix(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].cefr_level == "A2"
     assert result[0].chapter == 2
@@ -322,7 +322,7 @@ def test_fuzzy_match_substring(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].cefr_level == "B1"
     assert result[0].chapter == 3
@@ -347,7 +347,7 @@ def test_fuzzy_match_no_match_defaults_to_chapter_1(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    result = filler.fill_gaps(report)
+    result, _ = filler.fill_gaps(report)
 
     assert result[0].cefr_level == ""
     assert result[0].chapter == 1  # default fallback
@@ -379,7 +379,7 @@ def test_prompt_includes_all_sentences_with_indices(tmp_path):
         config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="",
     )
-    filler.fill_gaps(report)
+    _, _ = filler.fill_gaps(report)
 
     prompt = llm.complete_json.call_args_list[0][0][0]
     # All 12 sentences should appear (no truncation)

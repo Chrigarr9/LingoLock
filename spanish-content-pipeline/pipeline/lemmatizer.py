@@ -4,10 +4,16 @@ Provides language-independent tokenization, lemmatization, and POS tagging.
 Replaces hand-maintained verb form tables and function word lists.
 """
 
+import re
 from dataclasses import dataclass
 
 import spacy
 from spacy.language import Language
+
+
+# Guillemets «» are not in spaCy's training data and cause cascading POS
+# misclassification — nearby tokens get tagged PROPN instead of their real POS.
+_DIALOGUE_MARKERS = re.compile(r"[«»]")
 
 
 # POS tags that are always function words (language-independent)
@@ -54,6 +60,7 @@ def lemmatize_text(text: str, lang: str) -> list[TokenInfo]:
     Sentence boundaries are detected by spaCy's sentence splitter.
     """
     nlp = _get_model(lang)
+    text = _DIALOGUE_MARKERS.sub("", text)
     doc = nlp(text)
     tokens: list[TokenInfo] = []
 

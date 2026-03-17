@@ -1,0 +1,89 @@
+{
+  "chapter": 1,
+  "scenes": [
+    {
+      "setting": "cafe_san_telmo",
+      "description": "A small corner café in San Telmo with wooden tables.",
+      "shots": [
+        {
+          "focus": "café entrance",
+          "image_prompt": "PROTAGONIST enters café",
+          "sentences": [
+            {"source": "Maria abrió la puerta del café.", "sentence_index": 0},
+            {"source": "Si hubiera sabido lo que le esperaba, habría corrido más rápido.", "sentence_index": 1}
+          ]
+        },
+        {
+          "focus": "Sofia waving",
+          "image_prompt": "SOFIA waves",
+          "sentences": [
+            {"source": "Sofia estaba sentada junto a la ventana.", "sentence_index": 2},
+            {"source": "«¡Maria! ¡Qué alegría!», dijo Sofia con su pelo rubio brillante.", "sentence_index": 3}
+          ]
+        },
+        {
+          "focus": "hug",
+          "image_prompt": "friends hug",
+          "sentences": [
+            {"source": "Las amigas se abrazaron.", "sentence_index": 4},
+            {"source": "Maria camina hacia la mesa y se sienta.", "sentence_index": 5}
+          ]
+        }
+      ]
+    },
+    {
+      "setting": "cafe_table",
+      "description": "The friends sit at a table with coffee.",
+      "shots": [
+        {
+          "focus": "coffee",
+          "image_prompt": "coffee cups",
+          "sentences": [
+            {"source": "El camarero trajo dos cortados.", "sentence_index": 6},
+            {"source": "Diego se sentó con ellas y pidió una cerveza.", "sentence_index": 7}
+          ]
+        },
+        {
+          "focus": "map",
+          "image_prompt": "map on table",
+          "sentences": [
+            {"source": "Sofia desplegó un mapa sobre la mesa.", "sentence_index": 8},
+            {"source": "«Aquí está la playa donde vamos a nadar mañana», dijo Sofia.", "sentence_index": 9},
+            {"source": "Maria no obstante consideró que las circunstancias geopolíticas del barrio habían transformado inexorablemente la fisonomía urbana del sector.", "sentence_index": 10}
+          ]
+        },
+        {
+          "focus": "Maria's face",
+          "image_prompt": "Maria smiles",
+          "sentences": [
+            {"source": "Maria se siente muy emocionada por los planes.", "sentence_index": 11},
+            {"source": "Es importante que Maria haya podido viajar a Buenos Aires para que su vida hubiera cambiado.", "sentence_index": 12}
+          ]
+        }
+      ]
+    },
+    {
+      "setting": "beach_scene",
+      "description": "A sunny beach with golden sand.",
+      "shots": [
+        {
+          "focus": "beach",
+          "image_prompt": "beach scene",
+          "sentences": [
+            {"source": "Maria y Sofia corrieron hacia el mar azul.", "sentence_index": 13},
+            {"source": "El vendedor de helados les ofreció dos copas grandes.", "sentence_index": 14}
+          ]
+        },
+        {
+          "focus": "sunset",
+          "image_prompt": "sunset",
+          "sentences": [
+            {"source": "Maria mira la puesta de sol con su chaqueta verde.", "sentence_index": 15},
+            {"source": "Sofia dijo que Maria tenía el pelo negro y corto.", "sentence_index": 16},
+            {"source": "Maria sacó tres maletas enormes del bolso pequeño.", "sentence_index": 17}
+          ]
+        }
+      ]
+    }
+  ]
+}

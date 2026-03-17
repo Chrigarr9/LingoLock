@@ -77,7 +77,7 @@ export default function VocabularyScreen() {
   const dotColor = (status: MasteryStatus): string => {
     switch (status) {
       case 'mastered': return theme.custom.success;
-      case 'learning': return theme.custom.brandOrange;
+      case 'learning': return theme.custom.brandBlue;
       default:         return theme.colors.onSurfaceVariant;
     }
   };
@@ -92,7 +92,7 @@ export default function VocabularyScreen() {
       </Text>
       <Text
         variant="labelSmall"
-        style={[styles.sectionMastery, { color: theme.custom.brandOrange }]}
+        style={[styles.sectionMastery, { color: theme.custom.brandBlue }]}
       >
         {chapterMastery[section.chapterNumber] ?? 0}% MASTERED
       </Text>

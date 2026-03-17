@@ -18,6 +18,7 @@ import {
   loadCardState,
   loadAudioMuted,
   saveAudioMuted,
+  loadAudioSpeed,
   loadNewWordsPerDay,
   recordNewWordsIntroduced,
 } from '../src/services/storage';
@@ -45,8 +46,10 @@ export default function ChallengeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const originalCardCount = useRef(0);
-  const newCardCount = useRef(0);
+  const originalCardCount = useRef(0);   // original session length — used for stats
+  const totalCardCount = useRef(0);      // grows when wrong-answer cards are re-inserted
+  const retriesUsed = useRef(new Set<string>()); // card IDs that have already been re-inserted once
+  const answeredNewCardIds = useRef(new Set<string>()); // card IDs of new cards that were answered
 
   // Default mode to 'continuous' when absent
   const mode = params.mode ?? 'continuous';
@@ -63,8 +66,10 @@ export default function ChallengeScreen() {
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
+  const [audioSpeed] = useState(() => loadAudioSpeed());
   const [isEmpty, setIsEmpty] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
+  const [hasMoreCards, setHasMoreCards] = useState(false);
 
   // --------------------------------------------------------------------------
   // Session initialization
@@ -72,29 +77,21 @@ export default function ChallengeScreen() {
   useEffect(() => {
     let session: SessionCard[];
     if (mode === 'continuous') {
-      // Respect the daily new-word preference, but if the budget is exhausted
-      // and there are no due reviews, still offer new vocabulary rather than
-      // blocking the user entirely. The daily limit is a pacing preference,
-      // not a hard gate.
       session = buildSession(loadNewWordsPerDay(), params.source);
-      if (session.length === 0) {
-        session = buildSession(Infinity, params.source);
-      }
     } else {
-      // fixed mode: use count param
       session = buildSession(parseInt(params.count || '3', 10), params.source);
     }
 
     if (session.length === 0) {
-      // Truly nothing left: all cards mastered and no new vocabulary available
+      // Check if unlimited budget would yield cards (budget exhausted, not truly done)
+      const extra = buildSession(Infinity, params.source);
+      setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
       setIsComplete(true);
     } else {
       setQueue(session);
       originalCardCount.current = session.length;
-
-      // Count new cards (no existing FSRS state at session start)
-      newCardCount.current = session.filter((sc) => loadCardState(sc.card.id) === null).length;
+      totalCardCount.current = session.length;
     }
 
     console.log('[Challenge] Started:', {
@@ -133,7 +130,7 @@ export default function ChallengeScreen() {
   const advanceToNext = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     const nextIndex = currentIndex + 1;
-    if (nextIndex < originalCardCount.current) {
+    if (nextIndex < totalCardCount.current) {
       setCurrentIndex(nextIndex);
       setShowAnswer(false);
       setIsCorrect(null);
@@ -142,8 +139,9 @@ export default function ChallengeScreen() {
       setHintUsed(false);
     } else {
       updateStatsAfterSession(correctCount, originalCardCount.current, params.source ?? 'unknown');
-      // Record new words introduced during this session
-      recordNewWordsIntroduced(newCardCount.current);
+      recordNewWordsIntroduced(answeredNewCardIds.current.size);
+      const extra = buildSession(Infinity, params.source);
+      setHasMoreCards(extra.length > 0);
       setIsComplete(true);
     }
   };
@@ -177,13 +175,11 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade) => {
     updateCardFSRS(sessionCard, grade);
+    if (sessionCard.isFirstEncounter) answeredNewCardIds.current.add(sessionCard.card.id);
     setIsCorrect(true);
     setShowAnswer(true);
     setShowReveal(true);
     setCorrectCount((c) => c + 1);
-    // If card has audio and not muted, ClozeCardDisplay will play audio
-    // and call onAudioFinish when done — that triggers advanceToNext.
-    // Otherwise fall back to timer-based advance.
     const hasAudio = !!sessionCard.card.audio && !isMuted;
     if (!hasAudio) {
       scheduleAdvance();
@@ -192,12 +188,21 @@ export default function ChallengeScreen() {
 
   const handleIncorrect = (sessionCard: SessionCard) => {
     updateCardFSRS(sessionCard, 'again');
+    const cardId = sessionCard.card.id;
+    if (sessionCard.isFirstEncounter) answeredNewCardIds.current.add(cardId);
     setIsCorrect(false);
     setShowAnswer(true);
     setShowReveal(true);
-    // Re-insert wrong card ~4 positions ahead in queue
-    setQueue((q) => handleWrongAnswer(q, currentIndex, sessionCard));
-    // No auto-advance — user must tap "Next"
+    // Only re-insert once per card — prevents the last-4-cards silent-drop bug
+    // and guards against infinite retry loops.
+    if (!retriesUsed.current.has(cardId)) {
+      retriesUsed.current.add(cardId);
+      // Pre-compute the new queue outside the state updater — updaters must be
+      // pure (no side effects), and React may call them twice in Strict Mode.
+      const newQ = handleWrongAnswer(queue, currentIndex, sessionCard);
+      totalCardCount.current = newQ.length;
+      setQueue(newQ);
+    }
   };
 
   const handleTextSubmit = (userAnswer: string) => {
@@ -224,6 +229,26 @@ export default function ChallengeScreen() {
 
   const handleHintRequest = () => {
     setHintUsed(true);
+  };
+
+  const startExtraSession = () => {
+    const extra = buildSession(Infinity, params.source);
+    if (extra.length === 0) return;
+    setQueue(extra);
+    originalCardCount.current = extra.length;
+    totalCardCount.current = extra.length;
+    retriesUsed.current = new Set();
+    answeredNewCardIds.current = new Set();
+    setCurrentIndex(0);
+    setShowAnswer(false);
+    setIsCorrect(null);
+    setAnsweredChoice(null);
+    setShowReveal(false);
+    setHintUsed(false);
+    setIsComplete(false);
+    setIsEmpty(false);
+    setHasMoreCards(false);
+    setCorrectCount(0);
   };
 
   const handleAlreadyKnow = () => {
@@ -271,7 +296,12 @@ export default function ChallengeScreen() {
           iconColor={theme.colors.onSurface}
           onPress={() => {
             if (advanceTimer.current) clearTimeout(advanceTimer.current);
-            // Only fixed forced sessions count as aborts — not voluntary continuous practice
+            // Record new words seen before abort — but NOT if session already completed
+            // (advanceToNext already recorded them; isComplete may still be false in the
+            // current closure if the user taps close before the next render).
+            if (!isComplete && answeredNewCardIds.current.size > 0) {
+              recordNewWordsIntroduced(answeredNewCardIds.current.size);
+            }
             if (mode === 'fixed' && !isComplete) {
               recordAbort(params.source ?? 'unknown');
             }
@@ -312,16 +342,16 @@ export default function ChallengeScreen() {
               variant="labelSmall"
               style={[styles.progressLabel, { color: theme.colors.onSurfaceVariant }]}
             >
-              CHAPTER {getCurrentChapter()} · CARD {currentIndex + 1} OF {originalCardCount.current}
+              CHAPTER {getCurrentChapter()} · CARD {currentIndex + 1} OF {totalCardCount.current}
             </Text>
             <Text
               variant="labelSmall"
-              style={[styles.progressLabel, { color: theme.custom.brandOrange }]}
+              style={[styles.progressLabel, { color: theme.custom.brandBlue }]}
             >
               {correctCount} correct
             </Text>
           </View>
-          <ProgressDots total={originalCardCount.current} current={currentIndex} />
+          <ProgressDots total={totalCardCount.current} current={currentIndex} />
         </View>
       )}
 
@@ -337,6 +367,7 @@ export default function ChallengeScreen() {
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                 />
@@ -368,6 +399,7 @@ export default function ChallengeScreen() {
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   hintText={currentHintText}
                   hintUsed={hintUsed}
@@ -421,7 +453,9 @@ export default function ChallengeScreen() {
                   variant="bodyMedium"
                   style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}
                 >
-                  No cards due and daily word budget reached. Come back tomorrow!
+                  {hasMoreCards
+                    ? `Daily word budget reached. Tap below to keep learning!`
+                    : `No cards due and no new words available. Come back tomorrow!`}
                 </Text>
               </View>
             ) : (
@@ -430,7 +464,7 @@ export default function ChallengeScreen() {
                 {/* Hero accuracy number */}
                 <Text
                   variant="displayLarge"
-                  style={[styles.accuracyHero, { color: theme.custom.brandOrange }]}
+                  style={[styles.accuracyHero, { color: theme.custom.brandBlue }]}
                 >
                   {accuracyPercent}%
                 </Text>
@@ -448,16 +482,40 @@ export default function ChallengeScreen() {
                 </Text>
                 {streakCount > 1 && (
                   <View style={styles.streakRow}>
-                    <Icon source="fire" size={18} color={theme.custom.brandOrange} />
+                    <Icon source="fire" size={18} color={theme.custom.brandBlue} />
                     <Text
                       variant="labelLarge"
-                      style={[styles.streakLine, { color: theme.custom.brandOrange }]}
+                      style={[styles.streakLine, { color: theme.custom.brandBlue }]}
                     >
                       {streakCount} day streak!
                     </Text>
                   </View>
                 )}
               </View>
+            )}
+
+            {!isEmpty && hasMoreCards && (
+              <Pressable
+                onPress={startExtraSession}
+                style={[styles.learnMoreButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                accessibilityLabel="Learn more new words"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.learnMoreText, { color: theme.colors.onSurface }]}>
+                  Learn more new words
+                </Text>
+              </Pressable>
+            )}
+
+            {isEmpty && hasMoreCards && (
+              <Pressable
+                onPress={startExtraSession}
+                style={[styles.learnMoreButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
+                accessibilityLabel="Learn more new words"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.doneButtonText]}>Learn more new words</Text>
+              </Pressable>
             )}
 
             {/* Done button for voluntary/continuous practice */}
@@ -606,6 +664,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   nextButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  learnMoreButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 20,
+  },
+  learnMoreText: {
     fontSize: 16,
     fontWeight: '600',
   },

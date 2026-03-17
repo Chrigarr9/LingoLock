@@ -47,6 +47,12 @@ import {
   loadStats,
   saveAudioMuted,
   loadAudioMuted,
+  saveAudioSpeed,
+  loadAudioSpeed,
+  saveNewWordsPerDay,
+  loadNewWordsPerDay,
+  loadNewWordsIntroducedToday,
+  recordNewWordsIntroduced,
   clearAllData,
 } from './storage.web';
 
@@ -239,6 +245,35 @@ describe('saveAudioMuted / loadAudioMuted', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Audio speed
+// ---------------------------------------------------------------------------
+
+describe('saveAudioSpeed / loadAudioSpeed', () => {
+  it('loadAudioSpeed defaults to 1.0 when not set', () => {
+    expect(loadAudioSpeed()).toBe(1.0);
+  });
+
+  it('saveAudioSpeed(0.75) stores "0.75" at ll.audio_speed', () => {
+    saveAudioSpeed(0.75);
+    expect(localStorageImpl.setItem).toHaveBeenCalledWith('ll.audio_speed', '0.75');
+  });
+
+  it('loadAudioSpeed returns stored value after save', () => {
+    saveAudioSpeed(0.75);
+    expect(loadAudioSpeed()).toBe(0.75);
+
+    saveAudioSpeed(1.25);
+    expect(loadAudioSpeed()).toBe(1.25);
+  });
+
+  it('clearAllData removes the audio_speed key', () => {
+    saveAudioSpeed(0.75);
+    clearAllData();
+    expect(loadAudioSpeed()).toBe(1.0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // clearAllData
 // ---------------------------------------------------------------------------
 
@@ -282,5 +317,75 @@ describe('clearAllData', () => {
     clearAllData();
 
     expect(localStorageMock['other-app-key']).toBe('should-remain');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Daily new-word budget
+// ---------------------------------------------------------------------------
+
+describe('loadNewWordsPerDay / saveNewWordsPerDay', () => {
+  it('returns 20 by default when nothing is stored', () => {
+    expect(loadNewWordsPerDay()).toBe(20);
+  });
+
+  it('returns the value that was saved', () => {
+    saveNewWordsPerDay(10);
+    expect(loadNewWordsPerDay()).toBe(10);
+  });
+
+  it('clamps values below 1 to 1', () => {
+    saveNewWordsPerDay(0);
+    expect(loadNewWordsPerDay()).toBe(1);
+  });
+
+  it('clamps values above 50 to 50', () => {
+    saveNewWordsPerDay(99);
+    expect(loadNewWordsPerDay()).toBe(50);
+  });
+});
+
+describe('loadNewWordsIntroducedToday', () => {
+  it('returns 0 when nothing has been recorded', () => {
+    expect(loadNewWordsIntroducedToday()).toBe(0);
+  });
+
+  it('returns 0 when the stored date is not today', () => {
+    localStorage.setItem('ll.new_words_today_date', '2000-01-01');
+    localStorage.setItem('ll.new_words_today', '15');
+    expect(loadNewWordsIntroducedToday()).toBe(0);
+  });
+
+  it('returns the stored count when the stored date is today', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('ll.new_words_today_date', today);
+    localStorage.setItem('ll.new_words_today', '7');
+    expect(loadNewWordsIntroducedToday()).toBe(7);
+  });
+});
+
+describe('recordNewWordsIntroduced', () => {
+  it('sets today count to the given value when called for the first time', () => {
+    recordNewWordsIntroduced(5);
+    expect(loadNewWordsIntroducedToday()).toBe(5);
+  });
+
+  it('accumulates on subsequent calls (additive)', () => {
+    recordNewWordsIntroduced(5);
+    recordNewWordsIntroduced(3);
+    expect(loadNewWordsIntroducedToday()).toBe(8);
+  });
+
+  it('resets to a fresh count if called with stale date in storage', () => {
+    localStorage.setItem('ll.new_words_today_date', '2000-01-01');
+    localStorage.setItem('ll.new_words_today', '99');
+    recordNewWordsIntroduced(4);
+    expect(loadNewWordsIntroducedToday()).toBe(4);
+  });
+
+  it('recording 0 does not corrupt the count', () => {
+    recordNewWordsIntroduced(3);
+    recordNewWordsIntroduced(0);
+    expect(loadNewWordsIntroducedToday()).toBe(3);
   });
 });

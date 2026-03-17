@@ -21,6 +21,7 @@ class WordAnnotation(BaseModel):
     pos: str           # Part of speech
     context_note: str = ""  # Grammar note (e.g. "3rd person singular present")
     similar_words: list[str] = []  # 6-8 semantically similar words in target language
+    sentence_index: int = 0  # Index of the sentence where this word occurs
 
 
 class ChapterWords(BaseModel):

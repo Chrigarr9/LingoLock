@@ -109,7 +109,7 @@ def test_gap_filler_calls_assignment_then_generation(tmp_path):
         native_language="German",
         dialect="Rioplatense (vos, che)", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck,
         frequency_data=frequency_data,
         top_n=1000,
@@ -145,7 +145,7 @@ def test_gap_filler_uses_cached_assignment(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -169,7 +169,7 @@ def test_gap_filler_skips_cached_chapter_sentences(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -186,7 +186,7 @@ def test_gap_filler_no_gaps(tmp_path):
         llm=llm, output_dir=tmp_path, config_chapters=[],
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=10,
     )
@@ -205,7 +205,7 @@ def test_gap_filler_assignment_prompt_mentions_equal_distribution(tmp_path):
         llm=llm, output_dir=tmp_path, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -231,7 +231,7 @@ def test_gap_filler_generation_prompt_includes_existing_sentences(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -255,7 +255,7 @@ def test_gap_filler_generation_prompt_mentions_max_words_per_sentence(tmp_path):
         target_language="Spanish", native_language="German", dialect="",
         max_new_words_per_sentence=3,
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -288,7 +288,7 @@ def test_gap_filler_parses_insert_after_shot_clamped(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -321,7 +321,7 @@ def test_gap_filler_insert_after_shot_minus_one_clamped_to_last(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -348,7 +348,7 @@ def test_gap_filler_prompt_includes_shot_boundaries(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    filler.fill_gaps(
+    _, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -404,7 +404,7 @@ def test_gap_filler_shot_sentences_capped_at_three(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )
@@ -432,7 +432,7 @@ def test_gap_filler_shot_string_sentence_coerced_to_list(tmp_path):
         llm=llm, output_dir=out_dir, config_chapters=_make_chapter_defs(),
         target_language="Spanish", native_language="German", dialect="", lang_code="es",
     )
-    results = filler.fill_gaps(
+    results, _ = filler.fill_gaps(
         deck=deck, frequency_data=frequency_data,
         top_n=1000,
     )

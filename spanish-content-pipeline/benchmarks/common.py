@@ -1,0 +1,145 @@
+"""Shared utilities for benchmark scripts."""
+
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, Field
+
+
+class BenchmarkResult(BaseModel):
+    """Standard result format for all benchmark runs."""
+    task: str
+    model: str
+    provider: str
+    temperature: float
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"))
+    input_fixture: str
+    duration_seconds: float
+    usage: dict
+    cost_estimate_usd: float | None = None
+    raw_output: str
+    parsed_output: dict | list | None
+    deterministic_metrics: dict
+    error: str | None = None
+
+
+def model_slug(model_name: str) -> str:
+    """Convert model name to filesystem-safe directory name."""
+    return model_name.replace("/", "--")
+
+
+def load_bench_config(path: Path) -> dict:
+    """Load benchmark config YAML."""
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+
+def has_result(task: str, model: str, results_dir: Path) -> bool:
+    """Check if a successful (non-error) result already exists for this task/model."""
+    slug = model_slug(model)
+    task_dir = results_dir / task / slug
+    if not task_dir.exists():
+        return False
+    for path in task_dir.glob("run_*.json"):
+        data = json.load(open(path))
+        if not data.get("error"):
+            return True
+    return False
+
+
+def save_result(result: BenchmarkResult, results_dir: Path) -> Path:
+    """Save a benchmark result to results/<task>/<model-slug>/run_<timestamp>.json."""
+    slug = model_slug(result.model)
+    task_dir = results_dir / result.task / slug
+    task_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"run_{result.timestamp.replace(':', '-')}.json"
+    path = task_dir / filename
+    path.write_text(json.dumps(result.model_dump(), ensure_ascii=False, indent=2))
+    return path
+
+
+def run_with_timing(fn):
+    """Call fn(), return (result, duration_seconds)."""
+    start = time.monotonic()
+    result = fn()
+    duration = time.monotonic() - start
+    return result, duration
+
+
+def usage_from_llm_response(response) -> dict:
+    """Extract usage dict from an LLMResponse for BenchmarkResult storage."""
+    u = response.usage
+    return {
+        "prompt_tokens": u.prompt_tokens,
+        "completion_tokens": u.completion_tokens,
+        "total_tokens": u.total_tokens,
+        "cost_usd": u.cost_usd,
+        "generation_id": u.generation_id,
+    }
+
+
+def cost_from_llm_response(response) -> float | None:
+    """Extract cost_usd from an LLMResponse."""
+    return response.usage.cost_usd
+
+
+def sum_usage(responses: list) -> dict:
+    """Sum usage across multiple LLMResponse objects."""
+    total = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost_usd": 0.0}
+    for r in responses:
+        if r is None:
+            continue
+        u = r.usage
+        total["prompt_tokens"] += u.prompt_tokens
+        total["completion_tokens"] += u.completion_tokens
+        total["total_tokens"] += u.total_tokens
+        if u.cost_usd:
+            total["cost_usd"] += u.cost_usd
+    return total
+
+
+def filter_new_models(task: str, model_entries: list[dict], results_dir: Path) -> list[dict]:
+    """Filter out models that already have successful results. Returns only models needing runs."""
+    new = []
+    for entry in model_entries:
+        if has_result(task, entry["model"], results_dir):
+            print(f"  [SKIP] {entry['model']} — result exists")
+        else:
+            new.append(entry)
+    return new
+
+
+def run_models_parallel(
+    model_entries: list[dict],
+    run_fn,
+    max_workers: int = 4,
+) -> list:
+    """Run a benchmark function across models in parallel using ThreadPoolExecutor.
+
+    Args:
+        model_entries: List of model config dicts (each has "model", "provider", "temperature").
+        run_fn: Callable(model_entry) -> any result. Called once per model.
+        max_workers: Max concurrent threads.
+
+    Returns:
+        List of results from run_fn, in completion order.
+    """
+    results = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {
+            pool.submit(run_fn, entry): entry
+            for entry in model_entries
+        }
+        for future in as_completed(futures):
+            entry = futures[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"    ERROR [{entry['model']}]: {e}")
+    return results

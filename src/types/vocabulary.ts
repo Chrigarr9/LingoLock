@@ -91,6 +91,20 @@ export interface ValidationResult {
 // Phase 2: Spaced Repetition & Progress types
 // =============================================================================
 
+/** Alternative sentence for a cloze card — same word, different context.
+ *  Includes chapter + sentenceIndex so the app can progressively unlock
+ *  variants as the user advances through the story. */
+export interface SentenceVariant {
+  /** Spanish sentence with _____ replacing the target word */
+  sentence: string;
+  /** Full German translation of the sentence */
+  sentenceTranslation: string;
+  /** Chapter where this sentence appears (1-indexed) */
+  chapter: number;
+  /** Sentence index within the chapter */
+  sentenceIndex: number;
+}
+
 /**
  * Phase 2: Productive cloze card — user sees Spanish sentence with blank + German hint,
  * must produce the Spanish word.
@@ -122,6 +136,10 @@ export interface ClozeCard {
   image?: string;
   /** Optional audio URI — populated by Phase 3 Anki import, undefined for pipeline content */
   audio?: string;
+  /** All sentences where this word appears across the story — progressively unlocked
+   *  as the user advances. Only show variants whose chapter/sentenceIndex the user
+   *  has already reached. Pick randomly among unlocked variants for review variety. */
+  sentenceVariants?: SentenceVariant[];
 }
 
 /** Chapter data with its cards */

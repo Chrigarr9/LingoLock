@@ -44,7 +44,10 @@ SAMPLE_CONFIG = {
         "grammar": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
         "gap_filling": {"provider": "openrouter", "model": "deepseek/deepseek-v3.2", "temperature": 0.7},
         "chapter_audit": {"provider": "openrouter", "model": "qwen/qwen3-235b-a22b-thinking-2507", "temperature": 0.3},
-        "story_audit": {"provider": "openrouter", "model": "qwen/qwen3-235b-a22b-thinking-2507", "temperature": 0.3},
+        "story_review": {"provider": "openrouter", "model": "anthropic/claude-sonnet-4-6", "temperature": 0.3},
+        "story_fix": {"provider": "openrouter", "model": "google/gemini-3.1-flash-lite-preview", "temperature": 0.3},
+        "image_review": {"provider": "openrouter", "model": "anthropic/claude-sonnet-4-6", "temperature": 0.3},
+        "image_fix": {"provider": "openrouter", "model": "google/gemini-3.1-flash-lite-preview", "temperature": 0.3},
         "translation": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
         "word_extraction": {"provider": "openrouter", "model": "qwen/qwen3-30b-a3b", "temperature": 0.3},
     },
@@ -143,3 +146,37 @@ def test_config_image_generation_defaults_none():
         config = load_config(Path(f.name))
 
     assert config.image_generation is None
+
+
+def test_config_loads_story_review_and_fix_models():
+    """ModelsConfig must accept story_review and story_fix instead of story_audit."""
+    config = load_config(Path("configs/spanish_buenos_aires.yaml"))
+    assert hasattr(config.models, "story_review")
+    assert hasattr(config.models, "story_fix")
+    assert config.models.story_review.model == "anthropic/claude-sonnet-4-6"
+    assert "flash" in config.models.story_fix.model.lower()
+
+
+def test_config_loads_image_review_and_fix_models():
+    """ModelsConfig must accept image_review and image_fix."""
+    config = load_config(Path("configs/spanish_buenos_aires.yaml"))
+    assert hasattr(config.models, "image_review")
+    assert hasattr(config.models, "image_fix")
+
+
+def test_config_loads_audit_max_iterations():
+    """StoryConfig must have audit_max_iterations with default 1."""
+    config = load_config(Path("configs/spanish_buenos_aires.yaml"))
+    assert config.story.audit_max_iterations >= 1
+
+
+def test_audit_max_iterations_defaults_to_1():
+    """When audit_max_iterations is not in YAML, it defaults to 1."""
+    from pipeline.config import StoryConfig
+
+    m = StoryConfig(
+        cefr_level="A1",
+        sentences_per_chapter=[25, 35],
+        chapters=[],
+    )
+    assert m.audit_max_iterations == 1

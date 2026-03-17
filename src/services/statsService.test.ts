@@ -17,6 +17,8 @@ jest.mock('./storage', () => ({
   saveStats: jest.fn(),
   loadAllCardStates: jest.fn(),
   loadCardState: jest.fn(),
+  loadNewWordsPerDay: jest.fn().mockReturnValue(0),
+  loadNewWordsIntroducedToday: jest.fn().mockReturnValue(0),
 }));
 
 jest.mock('./fsrs', () => ({

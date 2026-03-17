@@ -36,7 +36,7 @@ def test_audit_chapter_no_issues():
     cs = _make_chapter_scene(["María camina.", "Ella sonríe."])
     llm = _make_mock_llm({"actions": []})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -54,7 +54,7 @@ def test_audit_chapter_rewrite():
          "reason": "No father character in this chapter"},
     ]})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -73,7 +73,7 @@ def test_audit_chapter_remove_shot():
          "reason": "Philosophical non-sequitur"},
     ]})
 
-    actions = audit_chapter(
+    actions, _ = audit_chapter(
         chapter_scene=cs,
         chapter_config={"title": "Test", "cefr_level": "A1", "context": "test"},
         characters=[{"name": "Maria", "role": "protagonist"}],
@@ -131,12 +131,12 @@ def test_apply_no_actions_returns_same():
 def test_audit_chapter_none_llm():
     """Returns empty list when llm is None."""
     cs = _make_chapter_scene(["Test."])
-    actions = audit_chapter(cs, {}, [], llm=None)
+    actions, _ = audit_chapter(cs, {}, [], llm=None)
     assert actions == []
 
 
-def test_prompt_includes_gap_words():
-    """Prompt mentions gap words that must survive."""
+def test_prompt_includes_vocab_preservation_rule():
+    """Prompt includes vocabulary preservation guidance (replaced gap-word-specific lists)."""
     prompts = []
     llm = MagicMock()
 
@@ -155,8 +155,9 @@ def test_prompt_includes_gap_words():
         llm=llm,
         gap_words=["caminar", "casa"],
     )
-    assert "caminar" in prompts[0]
-    assert "must survive" in prompts[0]
+    assert "VOCABULARY PRESERVATION" in prompts[0]
+    assert "focus word" in prompts[0]
+    assert "caminar, casa" in prompts[0]
 
 
 def test_prompt_includes_chapter_content():
@@ -201,3 +202,52 @@ def test_apply_combined_rewrite_and_remove():
         s.sentence_index for scene in result.scenes for shot in scene.shots for s in shot.sentences
     ]
     assert indices == [0, 1, 2]
+
+
+def test_apply_move_shot():
+    """move_shot relocates a shot to a new position."""
+    cs = _make_chapter_scene(["A.", "B.", "C.", "D."])
+    # Move shot 3 ("D.") to after shot 0 ("A.")
+    actions = [
+        ChapterAuditAction(action="move_shot", shot_index=3, move_after=0, reason="test"),
+    ]
+
+    result = apply_chapter_actions(cs, actions)
+    all_sentences = [
+        s.source for scene in result.scenes for shot in scene.shots for s in shot.sentences
+    ]
+    assert all_sentences == ["A.", "D.", "B.", "C."]
+    indices = [
+        s.sentence_index for scene in result.scenes for shot in scene.shots for s in shot.sentences
+    ]
+    assert indices == [0, 1, 2, 3]
+
+
+def test_apply_move_shot_to_beginning():
+    """move_shot with move_after=-1 moves shot to the beginning."""
+    cs = _make_chapter_scene(["A.", "B.", "C."])
+    actions = [
+        ChapterAuditAction(action="move_shot", shot_index=2, move_after=-1, reason="test"),
+    ]
+
+    result = apply_chapter_actions(cs, actions)
+    all_sentences = [
+        s.source for scene in result.scenes for shot in scene.shots for s in shot.sentences
+    ]
+    assert all_sentences == ["C.", "A.", "B."]
+
+
+def test_apply_move_and_rewrite_combined():
+    """move_shot and rewrite can be applied together."""
+    cs = _make_chapter_scene(["A.", "B.", "C.", "D."])
+    actions = [
+        ChapterAuditAction(action="rewrite", sentence_index=1,
+                           original="B.", fixed="B fixed.", reason="test"),
+        ChapterAuditAction(action="move_shot", shot_index=3, move_after=0, reason="test"),
+    ]
+
+    result = apply_chapter_actions(cs, actions)
+    all_sentences = [
+        s.source for scene in result.scenes for shot in scene.shots for s in shot.sentences
+    ]
+    assert all_sentences == ["A.", "D.", "B fixed.", "C."]

@@ -35,14 +35,15 @@
       "name": "LingoLock",
       "shortName": "LingoLock",
       "description": "Vocabulary learning with spaced repetition",
-      "themeColor": "#FFA056",
-      "backgroundColor": "#fffcf2",
+      "themeColor": "#5B8EC4",
+      "backgroundColor": "#EEF3F9",
       "display": "standalone",
       "orientation": "portrait"
     },
     "plugins": [
       "expo-router",
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

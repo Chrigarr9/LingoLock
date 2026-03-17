@@ -34,7 +34,10 @@ def make_config(tmp_path: Path):
             "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
             "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
-            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
@@ -58,14 +61,14 @@ def make_prompts():
                 chapter=1, sentence_index=0,
                 source="Charlotte está en su habitación.",
                 image_type="scene_only", characters=[],
-                prompt="warm storybook illustration. A young woman packing in a bedroom. no text, no writing, no letters.",
+                prompt="warm storybook illustration. A young woman packing in a bedroom..",
                 setting="bedroom",
             ),
             ImagePrompt(
                 chapter=1, sentence_index=1,
                 source="La maleta es grande.",
                 image_type="scene_only", characters=[],
-                prompt="warm storybook illustration. A large open suitcase on a bed. no text, no writing, no letters.",
+                prompt="warm storybook illustration. A large open suitcase on a bed..",
                 setting="bedroom",
             ),
         ],
@@ -205,7 +208,10 @@ def make_gemini_config(tmp_path):
             "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
             "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
-            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
@@ -251,3 +257,116 @@ def test_provider_routing_by_model_name(tmp_path):
     assert detect_provider("FLUX.2-dev") == "together"
     assert detect_provider("gemini-2.5-flash-image") == "google"
     assert detect_provider("gemini-3.1-flash-image-preview") == "google"
+    assert detect_provider("fal-ai/z-image/turbo") == "fal"
+    assert detect_provider("fal-ai/flux/schnell") == "fal"
+    assert detect_provider("Tongyi-MAI/Z-Image-Turbo") == "modelscope"
+
+
+# --- fal.ai provider tests ---
+
+
+def fake_fal_response(request: httpx.Request) -> httpx.Response:
+    """Mock fal.ai REST response with image URL."""
+    url = str(request.url)
+    if "fal.run" in url:
+        # Image generation endpoint — return image URL pointing back to mock
+        return httpx.Response(200, json={
+            "images": [{"url": "https://fal.media/files/test-image.png",
+                        "width": 768, "height": 512, "content_type": "image/png"}],
+            "seed": 42,
+        })
+    if "fal.media" in url:
+        # Image download
+        return httpx.Response(200, content=b"fake-fal-image-bytes",
+                              headers={"content-type": "image/png"})
+    return httpx.Response(404)
+
+
+def make_fal_config(tmp_path):
+    """Config using fal.ai Z-Image-Turbo."""
+    config_data = {
+        "deck": {"name": "Test", "id": "test-deck"},
+        "languages": {
+            "target": "Spanish", "target_code": "es",
+            "native": "German", "native_code": "de", "dialect": "neutral",
+        },
+        "protagonist": {
+            "name": "Charlotte", "gender": "female",
+            "origin_country": "Germany",
+        },
+        "destination": {"country": "Argentina", "city": "Buenos Aires"},
+        "story": {
+            "cefr_level": "A1-A2", "sentences_per_chapter": [8, 12],
+            "chapters": [{"title": "Test", "context": "Test", "vocab_focus": ["test"]}],
+        },
+        "models": {
+            "story_generation": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "cefr_simplification": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
+            "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+        },
+        "image_generation": {
+            "enabled": True,
+            "provider": "fal",
+            "model": "fal-ai/z-image/turbo",
+            "cheap_model": "fal-ai/z-image/turbo",
+            "style": "cartoon, vibrant colors",
+            "width": 768, "height": 512,
+        },
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.dump(config_data))
+    return load_config(config_path)
+
+
+def test_fal_provider_generates_image(tmp_path):
+    config = make_fal_config(tmp_path)
+    transport = httpx.MockTransport(fake_fal_response)
+
+    gen = ImageGenerator(
+        config,
+        fal_api_key="test-fal-key",
+        output_base=tmp_path,
+        transport=transport,
+    )
+
+    prompt = ImagePrompt(
+        chapter=1, sentence_index=0,
+        source="Test.", image_type="scene_only",
+        prompt="A bedroom scene", setting="bedroom",
+    )
+    entry = gen.generate_sentence_image(prompt, "cartoon", None)
+    assert entry.status == "success"
+    assert entry.file is not None
+    assert (tmp_path / config.deck.id / entry.file).exists()
+
+
+def test_fal_provider_generate_all(tmp_path):
+    config = make_fal_config(tmp_path)
+    transport = httpx.MockTransport(fake_fal_response)
+
+    gen = ImageGenerator(
+        config,
+        fal_api_key="test-fal-key",
+        output_base=tmp_path,
+        transport=transport,
+    )
+    prompts = ImagePromptResult(
+        style="cartoon",
+        sentences=[
+            ImagePrompt(chapter=1, sentence_index=0, source="Test 1.",
+                        image_type="scene_only", prompt="Scene A", setting="room"),
+            ImagePrompt(chapter=1, sentence_index=1, source="Test 2.",
+                        image_type="scene_only", prompt="Scene B", setting="room"),
+        ],
+    )
+    manifest = gen.generate_all(prompts)
+    assert len(manifest.images) == 2
+    assert all(e.status == "success" for e in manifest.images.values())

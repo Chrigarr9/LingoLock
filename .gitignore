@@ -90,6 +90,13 @@ local.properties
 *.png
 !assets/**/*.png
 
+# Generated content — rebuilt by running the pipeline + npm run build:content
+# NOTE: bundle.ts and assets ARE tracked — Vercel needs them at build time
+assets/images/cards/*
+!assets/images/cards/.gitkeep
+assets/audio/cards/*
+!assets/audio/cards/.gitkeep
+
 # Playwright
 playwright-report/
 test-results/

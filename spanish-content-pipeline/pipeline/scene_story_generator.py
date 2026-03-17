@@ -259,7 +259,6 @@ Ensure sentence_index values are sequential starting from 0."""
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:
     """Replace character placeholders in image prompts and sentence source text."""
     style = config.image_generation.style if config.image_generation else ""
-    suffix = "no text, no writing, no letters."
     p = config.protagonist
     visual_tag = p.visual_tag
 
@@ -278,7 +277,7 @@ def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScen
                     raw = raw.replace(sc.name, f"{sc.name} ({sc.visual_tag})", 1)
             if raw.endswith("."):
                 raw = raw[:-1]
-            shot.image_prompt = f"{style}. {raw}. {suffix}"
+            shot.image_prompt = f"{style}. {raw}."
 
             # --- Sentence source: replace with plain name for learners ---
             known_upper = {p.name.upper(), "PROTAGONIST"} | {

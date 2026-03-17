@@ -41,7 +41,10 @@ def make_config(tmp_path: Path):
             "grammar": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "gap_filling": {"provider": "openrouter", "model": "test/model", "temperature": 0.7},
             "chapter_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
-            "story_audit": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "story_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_review": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
+            "image_fix": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "translation": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
             "word_extraction": {"provider": "openrouter", "model": "test/model", "temperature": 0.3},
         },
@@ -194,7 +197,7 @@ def test_post_processing_injects_style_and_tags(tmp_path):
             assert shot.image_prompt.startswith(f"{style}. "), (
                 f"Expected prompt to start with style prefix, got: {shot.image_prompt[:80]}"
             )
-            assert shot.image_prompt.endswith("no text, no writing, no letters.")
+            assert shot.image_prompt.endswith("")
 
 
 def test_secondary_characters_in_prompt_for_relevant_chapter(tmp_path):
@@ -234,7 +237,7 @@ def make_chapter_scene() -> ChapterScene:
                 shots=[
                     Shot(
                         focus="suitcase",
-                        image_prompt="style. A bedroom with a large suitcase. no text, no writing, no letters.",
+                        image_prompt="style. A bedroom with a large suitcase. ",
                         sentences=[
                             ShotSentence(source="Charlotte está en su habitación.", sentence_index=0),
                             ShotSentence(source="Ella tiene una maleta grande.", sentence_index=1),
@@ -242,7 +245,7 @@ def make_chapter_scene() -> ChapterScene:
                     ),
                     Shot(
                         focus="travel guide",
-                        image_prompt="style. A nightstand with a travel guide. no text, no writing, no letters.",
+                        image_prompt="style. A nightstand with a travel guide. ",
                         sentences=[
                             ShotSentence(source="Hay una guía de viaje.", sentence_index=2),
                         ],
@@ -255,7 +258,7 @@ def make_chapter_scene() -> ChapterScene:
                 shots=[
                     Shot(
                         focus="coffee cups",
-                        image_prompt="style. Kitchen table with two coffee cups. no text, no writing, no letters.",
+                        image_prompt="style. Kitchen table with two coffee cups. ",
                         sentences=[
                             ShotSentence(source="Su madre está en la cocina.", sentence_index=3),
                         ],

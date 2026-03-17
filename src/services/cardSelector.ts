@@ -12,7 +12,7 @@
  */
 
 import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
-import { loadCardState, loadNewWordsIntroducedToday } from './storage';
+import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
 import { CHAPTERS, getChapterCards } from '../content/bundle';
 import type { SessionCard, ClozeCard } from '../types/vocabulary';
 
@@ -42,17 +42,81 @@ function buildChoices(card: ClozeCard): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Chapter sentence progress
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive the highest sentence index seen per chapter from existing card states.
+ *
+ * Card IDs are encoded as "{lemma}-ch{N}-s{M}". A CardState exists only after
+ * a card has been answered at least once, so the max sentenceIndex across all
+ * seen cards in a chapter tells us how far into that chapter the user has
+ * progressed.
+ *
+ * Returns a Map<chapterNumber, maxSentenceIndex>.
+ */
+function getMaxSeenSentenceByChapter(): Map<number, number> {
+  const states = loadAllCardStates();
+  const maxByChapter = new Map<number, number>();
+  for (const state of states) {
+    const match = state.cardId.match(/-ch(\d+)-s(\d+)/);
+    if (!match) continue;
+    const ch = parseInt(match[1], 10);
+    const si = parseInt(match[2], 10);
+    maxByChapter.set(ch, Math.max(maxByChapter.get(ch) ?? -1, si));
+  }
+  return maxByChapter;
+}
+
+// ---------------------------------------------------------------------------
+// Sentence variant picker
+// ---------------------------------------------------------------------------
+
+/**
+ * Pick a random unlocked sentence variant for review variety.
+ *
+ * Unlock rules:
+ *  - variant.chapter < currentChapter  → always unlocked (chapter completed)
+ *  - variant.chapter === currentChapter → unlocked if sentenceIndex ≤ max seen in that chapter
+ *  - variant.chapter > currentChapter  → always locked (not yet reached)
+ *
+ * Returns the card unchanged if fewer than 2 variants are unlocked.
+ */
+function pickVariant(
+  card: ClozeCard,
+  currentChapter: number,
+  seenByChapter: Map<number, number>,
+): ClozeCard {
+  if (!card.sentenceVariants || card.sentenceVariants.length < 2) return card;
+  const unlocked = card.sentenceVariants.filter((v) => {
+    if (v.chapter < currentChapter) return true;
+    if (v.chapter === currentChapter) {
+      return v.sentenceIndex <= (seenByChapter.get(currentChapter) ?? -1);
+    }
+    return false;
+  });
+  if (unlocked.length < 2) return card;
+  const pick = unlocked[Math.floor(Math.random() * unlocked.length)];
+  return { ...card, sentence: pick.sentence, sentenceTranslation: pick.sentenceTranslation };
+}
+
+// ---------------------------------------------------------------------------
 // Session card factory
 // ---------------------------------------------------------------------------
 
-function toSessionCard(card: ClozeCard): SessionCard {
+function toSessionCard(
+  card: ClozeCard,
+  currentChapter: number,
+  seenByChapter: Map<number, number>,
+): SessionCard {
   const cardState = loadCardState(card.id); // null = new card
   const answerType = getAnswerType(cardState);
   const isFirstEncounter = cardState === null;
+  const activeCard = pickVariant(card, currentChapter, seenByChapter);
 
   if (answerType === 'text') {
     return {
-      card,
+      card: activeCard,
       answerType,
       isFirstEncounter,
       hintLevel: getHintLevel(cardState!),
@@ -60,9 +124,9 @@ function toSessionCard(card: ClozeCard): SessionCard {
   }
 
   return {
-    card,
+    card: activeCard,
     answerType,
-    choices: buildChoices(card),
+    choices: buildChoices(activeCard),
     isFirstEncounter,
   };
 }
@@ -75,11 +139,12 @@ function toSessionCard(card: ClozeCard): SessionCard {
  * Returns the chapter number the user is currently working on.
  *
  * Scan CHAPTERS in order. The "current chapter" is the first chapter whose
- * mastery is below 80%. If all chapters are >= 80%, return the last chapter
- * (review mode — you've mastered everything!).
+ * learned cards are below 80%. If all chapters are >= 80%, return the last chapter
+ * (review mode — you've learned everything!).
  *
- * Mastery = (mastered cards / total chapter cards) * 100, where a card is
- * mastered if isCardMastered(loadCardState(card.id)) is true.
+ * Learned = (learned cards / total chapter cards) * 100, where a card is
+ * learned if isCardLearned(loadCardState(card.id)) is true (i.e. card has
+ * entered the Review state after completing its initial learning steps).
  */
 export function getCurrentChapter(): number {
   for (const chapter of CHAPTERS) {
@@ -127,6 +192,7 @@ export function getCurrentChapter(): number {
  */
 export function buildSession(dailyNewWordBudget: number, _sourceApp?: string): SessionCard[] {
   const currentChapterNumber = getCurrentChapter();
+  const seenByChapter = getMaxSeenSentenceByChapter();
 
   // --- Collect ALL due review cards -------------------------------------
   // No fixed limit — continuous sessions review everything that is due.
@@ -165,7 +231,7 @@ export function buildSession(dailyNewWordBudget: number, _sourceApp?: string): S
   // Combine: shuffled due reviews first, then new words
   const selected = [...shuffle(dueCards), ...selectedNew];
 
-  return selected.map((card) => toSessionCard(card));
+  return selected.map((card) => toSessionCard(card, currentChapterNumber, seenByChapter));
 }
 
 // ---------------------------------------------------------------------------

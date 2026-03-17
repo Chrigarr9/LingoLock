@@ -24,7 +24,7 @@ def test_audit_grammar_returns_report():
         }
     )
 
-    report = audit_grammar(
+    report, _ = audit_grammar(
         chapters_by_cefr=chapters_by_cefr,
         grammar_targets=grammar_targets,
         llm=mock_llm,
@@ -38,7 +38,7 @@ def test_audit_grammar_skips_if_no_targets():
     """If grammar_targets is empty, returns empty report without LLM calls."""
     mock_llm = MagicMock()
 
-    report = audit_grammar(
+    report, _ = audit_grammar(
         chapters_by_cefr={},
         grammar_targets={},
         llm=mock_llm,

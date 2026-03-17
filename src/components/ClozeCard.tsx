@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Image, Pressable, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useAppTheme } from '../theme';
 import { cardImages, cardAudios } from '../content/bundle';
 import type { SessionCard } from '../types/vocabulary';
@@ -12,6 +12,8 @@ interface ClozeCardDisplayProps {
   isCorrect?: boolean;
   /** Whether audio is muted (user preference from header toggle) */
   isMuted: boolean;
+  /** Playback speed multiplier (0.75, 1.0, 1.25) — defaults to 1.0 */
+  playbackSpeed?: number;
   /** Called when sentence audio finishes playing. Challenge screen uses this for advance timing. */
   onAudioFinish?: () => void;
   /** Pre-generated hint text (e.g., "P _ _ _ _ _ _ A") */
@@ -36,6 +38,7 @@ export function ClozeCardDisplay({
   showAnswer,
   isCorrect,
   isMuted,
+  playbackSpeed = 1.0,
   onAudioFinish,
   hintText,
   hintUsed,
@@ -44,7 +47,7 @@ export function ClozeCardDisplay({
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { card, answerType } = sessionCard;
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
   // Ref to always call the latest onAudioFinish callback without re-triggering the effect
   const onAudioFinishRef = useRef(onAudioFinish);
   onAudioFinishRef.current = onAudioFinish;
@@ -63,24 +66,27 @@ export function ClozeCardDisplay({
 
     let cancelled = false;
 
-    const playAudio = async () => {
+    const playAudio = () => {
       try {
         const audioSource = cardAudios[card.audio!] ?? { uri: card.audio! };
-        const { sound } = await Audio.Sound.createAsync(
-          audioSource,
-          { shouldPlay: true },
-        );
+        const player = createAudioPlayer(audioSource);
         if (cancelled) {
-          await sound.unloadAsync();
+          player.remove();
           return;
         }
-        soundRef.current = sound;
+        soundRef.current = player;
 
-        sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-          if (status.isLoaded && status.didJustFinish) {
+        if (playbackSpeed !== 1.0) {
+          player.setPlaybackRate(playbackSpeed);
+        }
+
+        player.addListener('playbackStatusUpdate', (status) => {
+          if (status.didJustFinish) {
             onAudioFinishRef.current?.();
           }
         });
+
+        player.play();
       } catch (_err) {
         // Audio failed to load — treat as if no audio (call onAudioFinish
         // so challenge screen falls back to timer-based advance)
@@ -93,7 +99,7 @@ export function ClozeCardDisplay({
     return () => {
       cancelled = true;
       if (soundRef.current) {
-        soundRef.current.unloadAsync();
+        soundRef.current.remove();
         soundRef.current = null;
       }
     };
@@ -103,7 +109,7 @@ export function ClozeCardDisplay({
   useEffect(() => {
     return () => {
       if (soundRef.current) {
-        soundRef.current.unloadAsync();
+        soundRef.current.remove();
         soundRef.current = null;
       }
     };
@@ -180,10 +186,10 @@ export function ClozeCardDisplay({
         <>
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
           <View style={styles.hintRow}>
-            <Icon source="lightbulb-outline" size={18} color={theme.custom.brandOrange} />
+            <Icon source="lightbulb-outline" size={18} color={theme.custom.brandBlue} />
             <Text
               variant="bodyLarge"
-              style={[styles.germanHint, { color: theme.custom.brandOrange }]}
+              style={[styles.germanHint, { color: theme.custom.brandBlue }]}
             >
               {card.germanHint}
             </Text>

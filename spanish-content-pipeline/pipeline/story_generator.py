@@ -1,11 +1,13 @@
 """Pass 0 (unconstrained): Generate natural Spanish story chapters without CEFR constraints."""
 
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
 
 from pipeline.config import DeckConfig
-from pipeline.llm import LLMClient
+from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterScene, ImageManifest, ImagePrompt, Scene, Shot, ShotSentence
 
 
@@ -30,19 +32,24 @@ Return a JSON object with a "scenes" array. Each scene has:
 - "shots": array of camera shots within this scene
 
 Each shot has:
-- "focus": what the camera focuses on (a specific object or action, e.g. "red suitcase", \
-"blue jeans", "phone screen")
-- "image_prompt": English description of what's visible in this shot. Describe:
-  - The environment (from the scene description)
+- "focus": what the camera focuses on — MUST be a concrete, visible OBJECT or ACTION from \
+the sentence vocabulary (e.g. "red suitcase", "blue sweater", "phone screen showing message", \
+"walking shoes"). NEVER use character names or generic descriptions like "conversation" or \
+"Maria and Ingrid talking" as focus.
+- "image_prompt": English description of what's visible in this shot. The KEY RULE: \
+the camera points at the VOCABULARY OBJECT, not at people talking. Characters may appear \
+in the frame but the focal point is always the thing, not the face. Describe:
   - The focal object/action — exaggerate size, color, and expression like a children's \
 picture book. E.g. "a HUGE bright-red suitcase overflowing with clothes", "vivid cobalt-blue \
 jeans held up dramatically". Make the key object impossible to miss.
-  - Any characters present (describe by role and appearance, e.g. "a young woman \
-with light-brown hair")
-  - Camera angle: prefer close-up or medium shots. Avoid wide/establishing shots.
+  - The environment visible around the object (from the scene description)
+  - Characters only when they physically interact with the focal object (hands holding, \
+reaching, pointing at). Show hands/body, not talking heads.
+  - Camera angle: prefer close-up on the object or over-the-shoulder. Avoid medium shots \
+of two characters facing each other — these all look identical.
   Do NOT include art style prefixes or "no text" suffixes — these are added later.
   Keep under 200 characters.
-- "sentences": array of 1-2 sentences for this shot. Each has:
+- "sentences": array of 1-3 sentences for this shot (prefer 1-2). Each has:
   - "source": EXACTLY ONE sentence in the target language — one subject-verb pair, \
 one terminating punctuation mark. Never combine two sentences into one source field.
   - "sentence_index": sequential 0-based index across ALL scenes in the chapter
@@ -70,17 +77,32 @@ NEVER use reported speech ("Ella dice que...", "Él pregunta adónde...", \
 
 ## Visual rules
 1. Every shot MUST visually highlight 1-2 vocabulary words from the focus areas.
-2. Consecutive shots MUST focus on different objects/angles for variety.
-3. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
-4. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
-5. Vary SUBJECT, ANGLE, and COLOR PALETTE across shots to avoid visual repetition.
-6. Characters can be prominent when the scene calls for it.
-5. Phone calls: show only the caller's side (their room, the phone).
-6. No text, labels, signs, or writing of any kind in the image descriptions.
-7. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
-8. Two places mentioned → pick ONE, show it as a single scene.
-9. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
-10. sentence_index must be sequential starting from 0 with no gaps.
+2. The OBJECT is the star, not the characters. When characters talk about a suitcase, \
+show the suitcase. When they discuss shoes, show the shoes. Characters can appear \
+but the camera aims at what they're talking about.
+3. Consecutive shots MUST focus on different objects/angles for variety. \
+NEVER have two adjacent shots with the same composition (e.g. two "medium shot of \
+Maria and Ingrid facing each other").
+4. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
+5. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
+6. Vary CAMERA ANGLE across shots: close-up on object, over-shoulder, bird's-eye, \
+hands-only, object-with-blurred-background. Avoid repetitive front-facing medium shots.
+7. For dialogue scenes: show what they're TALKING ABOUT, not two people talking. \
+If someone says "your red jacket", show the red jacket. If someone asks "who's at \
+the door?", show the door.
+8. Phone screens: if the shot shows a phone screen with a photo or image, describe \
+the content as a cartoon illustration, NOT a photograph. Write "cartoon illustration of \
+tango dancers on the screen" not "a photo of tango dancers". This keeps the whole \
+image in one consistent style.
+9. POV, not meta: when a character SEES or LOOKS AT something, show THAT THING \
+directly — NOT the character's eyes with a reflection. "Maria sees the city" → show \
+the city, not her eye reflecting the city. "She looks at the jacaranda trees" → show \
+the trees, not close-up of eyes. Keep it simple and direct.
+10. Phone calls: show only the caller's side (their room, the phone).
+11. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
+12. Two places mentioned → pick ONE, show it as a single scene.
+13. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
+14. sentence_index must be sequential starting from 0 with no gaps.
 
 ## Character consistency
 The protagonist's exact visual tag is: {protagonist_visual_tag}
@@ -207,6 +229,17 @@ def _build_chapter_prompt(
             f"Make her name, origin, and reason for traveling clear in the first few sentences."
         )
 
+    # Vocabulary focus — thematic guidance, not a strict checklist
+    vocab_section = ""
+    if chapter.vocab_focus:
+        vocab_lines = "\n".join(f"  - {vf}" for vf in chapter.vocab_focus)
+        vocab_section = (
+            f"\n\nVOCABULARY THEMES (weave these naturally into the story):\n"
+            f"{vocab_lines}\n"
+            f"Use words from these categories where they fit the narrative. "
+            f"Prefer specific words (camisa, suéter) over generic ones (ropa) when natural."
+        )
+
     return f"""Write Chapter {chapter_index + 1}: "{chapter.title}"
 
 Language: {config.languages.target} ({config.languages.dialect} dialect)
@@ -215,36 +248,74 @@ Length: {min_sentences}-{max_sentences} sentences total
 Protagonist: {p.name} — {p.visual_tag}
 Destination: {d.city}, {d.country}
 
-Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{story_so_far}
+Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{vocab_section}{story_so_far}
 
-IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot can have 2-3 sentences. Aim for {min_sentences}-{max_sentences} sentences.
+IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot should have 1-2 sentences (maximum 3). Each shot illustrates ONE visual moment — keep it focused. Aim for {min_sentences}-{max_sentences} sentences.
 Return the chapter as a JSON object with a "scenes" array following the format above.
 Ensure sentence_index values are sequential starting from 0."""
 
 
+def _replace_character(raw: str, placeholder: str, name: str, tag: str) -> str:
+    """Replace character placeholder with name + tag (first mention) or plain name.
+
+    Rules:
+      1. First non-possessive mention → "Name (tag)"
+      2. Subsequent non-possessive mentions → "Name"
+      3. Possessive "PLACEHOLDER's" → "Name's" (no tag)
+      4. If ONLY possessive mentions exist → first becomes "Name's (tag)"
+    """
+    possessive = f"{placeholder}'s"
+    has_non_possessive = raw.replace(possessive, "").count(placeholder) > 0
+
+    if has_non_possessive:
+        raw = raw.replace(possessive, f"{name}'s")
+        raw = raw.replace(placeholder, f"{name} ({tag})", 1)
+        raw = raw.replace(placeholder, name)
+    elif possessive in raw:
+        raw = raw.replace(possessive, f"{name}'s ({tag})", 1)
+        raw = raw.replace(possessive, f"{name}'s")
+
+    return raw
+
+
+def finalize_image_prompt(raw: str, config: DeckConfig) -> str:
+    """Apply character tag replacement + style/suffix injection to a raw image prompt.
+
+    Exported for use by both _post_process (Pass 0) and image_auditor (Pass 8).
+    """
+    p = config.protagonist
+    p_tag = p.image_tag or p.visual_tag
+
+    if "PROTAGONIST" in raw:
+        raw = _replace_character(raw, "PROTAGONIST", p.name, p_tag)
+    elif p.name.upper() in raw:
+        raw = _replace_character(raw, p.name.upper(), p.name, p_tag)
+    elif p.name in raw and p_tag not in raw:
+        raw = _replace_character(raw, p.name, p.name, p_tag)
+
+    for sc in config.secondary_characters:
+        sc_tag = sc.image_tag or sc.visual_tag
+        name_upper = sc.name.upper()
+        if name_upper in raw:
+            raw = _replace_character(raw, name_upper, sc.name, sc_tag)
+        elif sc.name in raw and sc_tag not in raw:
+            raw = _replace_character(raw, sc.name, sc.name, sc_tag)
+
+    if raw.endswith("."):
+        raw = raw[:-1]
+
+    style = config.image_generation.style if config.image_generation else ""
+    return f"{style}, {raw}."
+
+
 def _post_process(chapter_data: ChapterScene, config: DeckConfig) -> ChapterScene:
     """Replace character placeholders in image prompts and sentence source text."""
-    style = config.image_generation.style if config.image_generation else ""
-    suffix = "no text, no writing, no letters."
     p = config.protagonist
-    visual_tag = p.visual_tag
 
     for scene in chapter_data.scenes:
         for shot in scene.shots:
-            # --- Image prompt: replace with visual_tag for image model ---
-            raw = shot.image_prompt.strip()
-            raw = raw.replace("PROTAGONIST", visual_tag)
-            if p.name in raw and visual_tag not in raw:
-                raw = raw.replace(p.name, f"{p.name} ({visual_tag})", 1)
-            for sc in config.secondary_characters:
-                name_upper = sc.name.upper()
-                if name_upper in raw:
-                    raw = raw.replace(name_upper, sc.visual_tag)
-                elif sc.name in raw and sc.visual_tag not in raw:
-                    raw = raw.replace(sc.name, f"{sc.name} ({sc.visual_tag})", 1)
-            if raw.endswith("."):
-                raw = raw[:-1]
-            shot.image_prompt = f"{style}. {raw}. {suffix}"
+            # --- Image prompt: replace with image_tag + style/suffix ---
+            shot.image_prompt = finalize_image_prompt(shot.image_prompt.strip(), config)
 
             # --- Sentence source: replace with plain name for learners ---
             known_upper = {p.name.upper(), "PROTAGONIST"} | {
@@ -340,13 +411,13 @@ class StoryGenerator:
     def _chapter_path(self, chapter_index: int) -> Path:
         return self._story_dir() / f"chapter_{chapter_index + 1:02d}.json"
 
-    def generate_chapter(self, chapter_index: int, previous_summaries: list[str] | None = None) -> ChapterScene:
+    def generate_chapter(self, chapter_index: int, previous_summaries: list[str] | None = None) -> tuple[ChapterScene, LLMResponse | None]:
         path = self._chapter_path(chapter_index)
 
         # Skip if already generated (cached)
         if path.exists():
             data = json.loads(path.read_text())
-            return ChapterScene(**data)
+            return ChapterScene(**data), None
 
         prompt = _build_chapter_prompt(self._config, chapter_index, previous_summaries=previous_summaries)
         system = _build_system_prompt(self._config)
@@ -379,7 +450,7 @@ class StoryGenerator:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(chapter_data.model_dump(), ensure_ascii=False, indent=2))
 
-        return chapter_data
+        return chapter_data, result
 
     def generate_all(self, chapter_range: range | None = None) -> list[ChapterScene]:
         if chapter_range is None:
@@ -392,7 +463,7 @@ class StoryGenerator:
             # Load cached summary if it exists (for already-generated chapters)
             summary_path = self._story_dir() / f"summary_{i + 1:02d}.txt"
 
-            chapter = self.generate_chapter(i, previous_summaries=summaries if summaries else None)
+            chapter, _ = self.generate_chapter(i, previous_summaries=summaries if summaries else None)
             chapters.append(chapter)
 
             # Generate and cache summary

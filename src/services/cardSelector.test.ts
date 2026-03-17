@@ -12,7 +12,7 @@
 
 jest.mock('./storage', () => ({
   loadCardState: jest.fn(),
-  loadAllCardStates: jest.fn(),
+  loadAllCardStates: jest.fn().mockReturnValue([]),
   saveCardState: jest.fn(),
   loadNewWordsIntroducedToday: jest.fn().mockReturnValue(0),
 }));
@@ -43,12 +43,25 @@ jest.mock('../content/bundle', () => {
     distractors,
   });
 
+  // Card with sentence variants for testing progressive unlock
+  const wordVCard = {
+    ...makeCard('wordV-ch01-s05', 'wordV', 1, ['d1', 'd2', 'd3']),
+    sentence: 'Original _____ sentence',
+    sentenceTranslation: 'Original translation',
+    sentenceVariants: [
+      { sentence: 'Original _____ sentence', sentenceTranslation: 'Original translation', chapter: 1, sentenceIndex: 5 },
+      { sentence: 'Variant1 _____ context', sentenceTranslation: 'Variant1 translation', chapter: 1, sentenceIndex: 2 },
+      { sentence: 'Variant2 _____ context', sentenceTranslation: 'Variant2 translation', chapter: 2, sentenceIndex: 0 },
+    ],
+  };
+
   const ch1Cards = [
     makeCard('word1-ch01-s00', 'word1', 1, ['d1', 'd2', 'd3']),
     makeCard('word2-ch01-s01', 'word2', 1, ['d1', 'd2', 'd3']),
     makeCard('word3-ch01-s02', 'word3', 1, ['d1', 'd2', 'd3']),
     makeCard('word4-ch01-s03', 'word4', 1, ['d1', 'd2', 'd3']),
     makeCard('word5-ch01-s04', 'word5', 1, ['d1', 'd2', 'd3']),
+    wordVCard,
   ];
 
   const ch2Cards = [
@@ -82,6 +95,7 @@ import { loadCardState, loadAllCardStates } from './storage';
 import { isDue, getAnswerType, getHintLevel, isCardLearned, isCardMastered } from './fsrs';
 
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
+const mockLoadAllCardStates = loadAllCardStates as jest.MockedFunction<typeof loadAllCardStates>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
 const mockGetAnswerType = getAnswerType as jest.MockedFunction<typeof getAnswerType>;
 const mockGetHintLevel = getHintLevel as jest.MockedFunction<typeof getHintLevel>;
@@ -107,6 +121,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Default: no card states in storage (all cards are new)
   mockLoadCardState.mockReturnValue(null);
+  // Default: no seen cards (needed by getMaxSeenSentenceByChapter in buildSession)
+  mockLoadAllCardStates.mockReturnValue([]);
   // Default: getAnswerType for null returns 'mc4' (no more mc2)
   mockGetAnswerType.mockReturnValue('mc4');
   // Default: getHintLevel returns 'full'
@@ -162,14 +178,15 @@ describe('buildSession', () => {
   });
 
   test('all due reviews + new words up to daily budget', () => {
-    // word1-word5 are due, ch2 cards (word6-word8) are new
-    // buildSession(5) = ALL due (5) + up to 5 new (3 available) = 8 total
+    // word1-word5 + wordV are due, ch2 cards (word6-word8) are new
+    // buildSession(5) = ALL due (6) + up to 5 new (3 available) = 9 total
     const dueIds = [
       'word1-ch01-s00',
       'word2-ch01-s01',
       'word3-ch01-s02',
       'word4-ch01-s03',
       'word5-ch01-s04',
+      'wordV-ch01-s05',
     ];
 
     mockLoadCardState.mockImplementation((id) => {
@@ -181,13 +198,13 @@ describe('buildSession', () => {
 
     const session = buildSession(5);
 
-    // All 5 due + 3 new from ch2 = 8
-    expect(session).toHaveLength(8);
+    // All 6 due + 3 new from ch2 = 9
+    expect(session).toHaveLength(9);
     const dueInSession = session.filter(sc => dueIds.includes(sc.card.id));
     const newInSession = session.filter(sc => !dueIds.includes(sc.card.id));
-    expect(dueInSession).toHaveLength(5);
+    expect(dueInSession).toHaveLength(6);
     expect(newInSession).toHaveLength(3);
-    // New cards come from chapter 2 (ch1 is all due)
+    // New cards come from chapter 2 (all ch1 cards are due)
     for (const sc of newInSession) {
       expect(sc.card.chapter).toBe(2);
     }
@@ -223,7 +240,7 @@ describe('buildSession', () => {
     //   use new words from next unlocked chapter"
     // So ch2 fills in when ch1 new words are exhausted regardless of unlock status.
     // Let's set: 3 new words in ch1, 2 reviewed (not due) in ch1; ch2 has 3 new.
-    const reviewedInCh1 = ['word4-ch01-s03', 'word5-ch01-s04'];
+    const reviewedInCh1 = ['word4-ch01-s03', 'word5-ch01-s04', 'wordV-ch01-s05'];
     const newInCh1 = ['word1-ch01-s00', 'word2-ch01-s01', 'word3-ch01-s02'];
     const newInCh2 = ['word6-ch02-s00', 'word7-ch02-s01', 'word8-ch02-s02'];
 
@@ -345,6 +362,147 @@ describe('handleWrongAnswer', () => {
 // getCurrentChapter tests
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Sentence variant rotation tests
+// ---------------------------------------------------------------------------
+
+describe('sentence variant rotation', () => {
+  // wordV-ch01-s05 has variants: Primary (ch1,s05), Variant1 (ch1,s02), Variant2 (ch2,s00)
+
+  function setupWordVDue() {
+    const state = makeCardState('wordV-ch01-s05');
+    mockLoadCardState.mockImplementation((id) =>
+      id === 'wordV-ch01-s05' ? state : null,
+    );
+    mockIsDue.mockImplementation((s) => s.cardId === 'wordV-ch01-s05');
+  }
+
+  test('card without sentenceVariants always uses primary sentence', () => {
+    // word1 has no sentenceVariants — sentence should always be '_____' (mock default)
+    mockLoadCardState.mockReturnValue(null);
+    const session = buildSession(1);
+    expect(session[0].card.sentence).toBe('_____');
+  });
+
+  test('no seen sentences in current chapter → fewer than 2 unlocked → primary sentence used', () => {
+    // loadAllCardStates returns [] → seenByChapter empty → maxSeen[1] = -1
+    // Variant1 (s02): 2 <= -1 false. Primary (s05): 5 <= -1 false.
+    // 0 unlocked in current chapter → falls back to original card
+    mockLoadAllCardStates.mockReturnValue([]);
+    setupWordVDue();
+
+    const session = buildSession(0);
+    const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+    expect(sc).toBeDefined();
+    expect(sc!.card.sentence).toBe('Original _____ sentence');
+  });
+
+  test('only one variant unlocked in current chapter → primary sentence used', () => {
+    // word3-ch01-s02 seen → seenByChapter[1] = 2
+    // Variant1 (s02): 2 <= 2 ✅. Primary (s05): 5 <= 2 ✗.
+    // Only 1 unlocked → fewer than 2 → no rotation
+    mockLoadAllCardStates.mockReturnValue([makeCardState('word3-ch01-s02')]);
+    setupWordVDue();
+
+    const session = buildSession(0);
+    const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+    expect(sc!.card.sentence).toBe('Original _____ sentence');
+  });
+
+  test('two variants unlocked in current chapter → randomly picks between them', () => {
+    // word3-ch01-s02 AND wordV-ch01-s05 both seen → seenByChapter[1] = 5
+    // Variant1 (s02): 2 <= 5 ✅. Primary (s05): 5 <= 5 ✅.
+    // 2 unlocked → rotation should alternate across many calls
+    mockLoadAllCardStates.mockReturnValue([
+      makeCardState('word3-ch01-s02'),
+      makeCardState('wordV-ch01-s05'),
+    ]);
+    setupWordVDue();
+
+    const sentences = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const session = buildSession(0);
+      const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+      if (sc) sentences.add(sc.card.sentence);
+    }
+
+    expect(sentences.size).toBeGreaterThan(1);
+    expect(sentences.has('Original _____ sentence')).toBe(true);
+    expect(sentences.has('Variant1 _____ context')).toBe(true);
+  });
+
+  test('future-chapter variant (ch2) is never shown while ch1 is current', () => {
+    // Even with ch1 and ch2 sentences seen, Variant2 (ch2, s00) should be locked
+    // because ch2 > currentChapter (1)
+    mockLoadAllCardStates.mockReturnValue([
+      makeCardState('wordV-ch01-s05'),
+      makeCardState('word6-ch02-s00'),
+    ]);
+    setupWordVDue();
+
+    const sentences = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const session = buildSession(0);
+      const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+      if (sc) sentences.add(sc.card.sentence);
+    }
+
+    expect(sentences.has('Variant2 _____ context')).toBe(false);
+  });
+
+  test('all ch1 variants unlocked when ch2 is current chapter', () => {
+    // ch1 >= 80% learned → getCurrentChapter returns 2
+    // For pickVariant: ch1 < currentChapter(2) → both ch1 variants always unlocked
+    const ch1Ids = [
+      'word1-ch01-s00', 'word2-ch01-s01', 'word3-ch01-s02',
+      'word4-ch01-s03', 'word5-ch01-s04',
+    ];
+    const learnedStates = ch1Ids.map((id) => makeCardState(id));
+    const wordVState = makeCardState('wordV-ch01-s05');
+
+    mockLoadAllCardStates.mockReturnValue([...learnedStates, wordVState]);
+    mockLoadCardState.mockImplementation((id) => {
+      if (ch1Ids.includes(id)) return learnedStates.find((s) => s.cardId === id)!;
+      if (id === 'wordV-ch01-s05') return wordVState;
+      return null;
+    });
+    mockIsCardLearned.mockImplementation((s) => ch1Ids.includes(s.cardId));
+    mockIsDue.mockImplementation((s) => s.cardId === 'wordV-ch01-s05');
+
+    const sentences = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const session = buildSession(0);
+      const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+      if (sc) sentences.add(sc.card.sentence);
+    }
+
+    // Both ch1 variants (Primary s05 and Variant1 s02) should appear
+    expect(sentences.size).toBeGreaterThan(1);
+    expect(sentences.has('Original _____ sentence')).toBe(true);
+    expect(sentences.has('Variant1 _____ context')).toBe(true);
+  });
+
+  test('getMaxSeenSentenceByChapter uses highest sentenceIndex per chapter', () => {
+    // word1(s00) and word3(s02) both seen in ch1 → max = 2
+    // Only Variant1 (s02 <= 2) unlocked; Primary (s05 > 2) still locked
+    mockLoadAllCardStates.mockReturnValue([
+      makeCardState('word1-ch01-s00'),
+      makeCardState('word3-ch01-s02'),
+    ]);
+    setupWordVDue();
+
+    const session = buildSession(0);
+    const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
+
+    // 1 unlocked (< 2 required) → returns original card unchanged
+    expect(sc!.card.sentence).toBe('Original _____ sentence');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCurrentChapter tests
+// ---------------------------------------------------------------------------
+
 describe('getCurrentChapter', () => {
   test('returns 1 when no cards reviewed', () => {
     mockLoadCardState.mockReturnValue(null);
@@ -365,7 +523,7 @@ describe('getCurrentChapter', () => {
       'word5-ch01-s04',
     ];
 
-    const learnedIds = ch1Cards.slice(0, 4); // 4 learned = 80%
+    const learnedIds = ch1Cards.slice(0, 5); // 5/6 = 83% >= 80%
 
     mockLoadCardState.mockImplementation((id) => {
       if (ch1Cards.includes(id)) return makeCardState(id);
