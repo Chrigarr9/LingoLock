@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      viewport-fit=cover: extends the viewport behind the notch/Dynamic Island.
+      SafeAreaView (react-native-safe-area-context) uses env(safe-area-inset-*)
+      automatically once this is set, keeping content below the notch.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- PWA: standalone full-screen mode on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!--
+      black-translucent: makes the iOS status bar transparent so the app
+      background colour shows behind the notch instead of a white bar.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LingoLock" />
+
+    <!--
+      iOS homescreen icon.
+      Safari ignores the Web App Manifest icons array — only this link tag works.
+    -->
+    <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+    <!-- Android Chrome / desktop PWA theme colour -->
+    <meta name="theme-color" content="#EEF3F9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0F1929" media="(prefers-color-scheme: dark)" />
+
+    <title>%WEB_TITLE%</title>
+
+    <style id="expo-reset">
+      /*
+        Set html/body background to match the app background so the area
+        behind the notch (outside the React root) shows the correct colour
+        instead of white.  Mirrors the theme background colours in src/theme.
+      */
+      html,
+      body {
+        height: 100%;
+        background-color: #EEF3F9;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background-color: #0F1929;
+        }
+      }
+      /* react-native-web: disable body scroll (ScrollView handles it) */
+      body {
+        overflow: hidden;
+      }
+      /* react-native-web: root element must be full-height flex */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>

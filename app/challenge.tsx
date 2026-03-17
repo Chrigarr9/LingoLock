@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -355,8 +355,17 @@ export default function ChallengeScreen() {
         </View>
       )}
 
-      {/* Content */}
-      <View style={styles.content}>
+      {/* Content — scrollable so tall cards + MC4 grid + keyboard don't overflow */}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         {!isComplete && currentCard && (
           <>
             {isMC ? (
@@ -439,7 +448,7 @@ export default function ChallengeScreen() {
 
         {/* Completion screen */}
         {isComplete && (
-          <View style={styles.completionArea}>
+          <View style={[styles.completionArea, { width: '100%' }]}>
             {isEmpty ? (
               /* Empty session — no cards available */
               <View style={[styles.completionCard, glassStyle]}>
@@ -539,7 +548,8 @@ export default function ChallengeScreen() {
             )}
           </View>
         )}
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -582,18 +592,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontSize: 10,
   },
-  content: {
+  keyboardAvoid: {
     flex: 1,
+  },
+  contentScroll: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
+    paddingBottom: 16,
   },
   mcArea: {
-    flex: 1,
     paddingTop: 16,
     gap: 0,
   },
   textArea: {
-    flex: 1,
     paddingTop: 16,
     gap: 0,
   },

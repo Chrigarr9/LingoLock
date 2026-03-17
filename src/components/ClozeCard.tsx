@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
   cardImageWrapper: {
     width: '100%',
     aspectRatio: CARD_IMAGE_RATIO,
+    maxHeight: 180,
     overflow: 'hidden',
   },
   cardImage: {

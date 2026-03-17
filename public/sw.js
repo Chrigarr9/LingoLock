@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lingolock-v1';
+const CACHE_NAME = 'lingolock-v2';
 
 // Install: pre-cache app shell
 self.addEventListener('install', (event) => {
