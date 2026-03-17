@@ -188,10 +188,10 @@ export default function HomeScreen() {
               params: { source: 'Practice', type: 'app_open', mode: 'continuous' },
             })
           }
-          style={[styles.ctaButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
+          style={[styles.ctaButton, { backgroundColor: theme.colors.primary }]}
         >
-          <Text style={styles.ctaText}>{ctaLabel}</Text>
-          <Text style={styles.ctaArrow}>{'\u25B6'}</Text>
+          <Text style={[styles.ctaText, { color: theme.colors.onPrimary }]}>{ctaLabel}</Text>
+          <Text style={[styles.ctaArrow, { color: theme.colors.onPrimary }]}>{'\u25B6'}</Text>
         </Pressable>
 
         {/* Bottom section */}
@@ -392,12 +392,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   ctaText: {
-    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
   },
   ctaArrow: {
-    color: '#FFFFFF',
     fontSize: 14,
   },
   bottomSection: {

@@ -114,7 +114,7 @@ export default function WordDetailScreen() {
               <View
                 style={[
                   styles.badge,
-                  { backgroundColor: theme.colors.primaryContainer, borderColor: 'rgba(255,160,86,0.20)' },
+                  { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.outlineVariant },
                 ]}
               >
                 <Text
@@ -129,7 +129,7 @@ export default function WordDetailScreen() {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: theme.colors.primaryContainer, borderColor: 'rgba(255,160,86,0.20)' },
+                    { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.outlineVariant },
                   ]}
                 >
                   <Text

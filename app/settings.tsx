@@ -115,7 +115,7 @@ export default function SettingsScreen() {
                       variant="labelMedium"
                       style={[
                         styles.speedButtonText,
-                        { color: isActive ? '#FFFFFF' : theme.colors.onSurfaceVariant },
+                        { color: isActive ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
                       ]}
                     >
                       {opt.label}

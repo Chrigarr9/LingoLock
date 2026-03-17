@@ -510,11 +510,11 @@ export default function ChallengeScreen() {
             {isEmpty && hasMoreCards && (
               <Pressable
                 onPress={startExtraSession}
-                style={[styles.learnMoreButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
+                style={[styles.learnMoreButton, { backgroundColor: theme.colors.surfaceVariant }]}
                 accessibilityLabel="Learn more new words"
                 accessibilityRole="button"
               >
-                <Text style={[styles.doneButtonText]}>Learn more new words</Text>
+                <Text style={[styles.learnMoreText, { color: theme.colors.onSurface }]}>Learn more new words</Text>
               </Pressable>
             )}
 
@@ -522,11 +522,11 @@ export default function ChallengeScreen() {
             {(mode === 'continuous' || isEmpty) && (
               <Pressable
                 onPress={() => router.back()}
-                style={[styles.doneButton, { backgroundColor: 'rgba(255,160,86,0.90)' }]}
+                style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
                 accessibilityLabel="Done"
                 accessibilityRole="button"
               >
-                <Text style={styles.doneButtonText}>Done</Text>
+                <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>Done</Text>
               </Pressable>
             )}
 
@@ -652,7 +652,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   doneButtonText: {
-    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
   },
