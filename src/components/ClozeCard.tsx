@@ -77,7 +77,7 @@ export function ClozeCardDisplay({
         soundRef.current = player;
 
         if (playbackSpeed !== 1.0) {
-          player.rate = playbackSpeed;
+          player.setPlaybackRate(playbackSpeed);
         }
 
         player.addListener('playbackStatusUpdate', (status) => {

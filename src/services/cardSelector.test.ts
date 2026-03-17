@@ -457,7 +457,7 @@ describe('sentence variant rotation', () => {
       'word1-ch01-s00', 'word2-ch01-s01', 'word3-ch01-s02',
       'word4-ch01-s03', 'word5-ch01-s04',
     ];
-    const learnedStates = ch1Ids.map(makeCardState);
+    const learnedStates = ch1Ids.map((id) => makeCardState(id));
     const wordVState = makeCardState('wordV-ch01-s05');
 
     mockLoadAllCardStates.mockReturnValue([...learnedStates, wordVState]);
