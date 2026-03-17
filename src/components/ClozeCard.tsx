@@ -12,6 +12,8 @@ interface ClozeCardDisplayProps {
   isCorrect?: boolean;
   /** Whether audio is muted (user preference from header toggle) */
   isMuted: boolean;
+  /** Playback speed multiplier (0.75, 1.0, 1.25) — defaults to 1.0 */
+  playbackSpeed?: number;
   /** Called when sentence audio finishes playing. Challenge screen uses this for advance timing. */
   onAudioFinish?: () => void;
   /** Pre-generated hint text (e.g., "P _ _ _ _ _ _ A") */
@@ -36,6 +38,7 @@ export function ClozeCardDisplay({
   showAnswer,
   isCorrect,
   isMuted,
+  playbackSpeed = 1.0,
   onAudioFinish,
   hintText,
   hintUsed,
@@ -75,6 +78,10 @@ export function ClozeCardDisplay({
           return;
         }
         soundRef.current = sound;
+
+        if (playbackSpeed !== 1.0) {
+          await sound.setRateAsync(playbackSpeed, true);
+        }
 
         sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
           if (status.isLoaded && status.didJustFinish) {

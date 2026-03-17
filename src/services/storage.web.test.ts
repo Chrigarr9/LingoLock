@@ -47,6 +47,8 @@ import {
   loadStats,
   saveAudioMuted,
   loadAudioMuted,
+  saveAudioSpeed,
+  loadAudioSpeed,
   clearAllData,
 } from './storage.web';
 
@@ -235,6 +237,35 @@ describe('saveAudioMuted / loadAudioMuted', () => {
 
   it('loadAudioMuted defaults to false when not set', () => {
     expect(loadAudioMuted()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Audio speed
+// ---------------------------------------------------------------------------
+
+describe('saveAudioSpeed / loadAudioSpeed', () => {
+  it('loadAudioSpeed defaults to 1.0 when not set', () => {
+    expect(loadAudioSpeed()).toBe(1.0);
+  });
+
+  it('saveAudioSpeed(0.75) stores "0.75" at ll.audio_speed', () => {
+    saveAudioSpeed(0.75);
+    expect(localStorageImpl.setItem).toHaveBeenCalledWith('ll.audio_speed', '0.75');
+  });
+
+  it('loadAudioSpeed returns stored value after save', () => {
+    saveAudioSpeed(0.75);
+    expect(loadAudioSpeed()).toBe(0.75);
+
+    saveAudioSpeed(1.25);
+    expect(loadAudioSpeed()).toBe(1.25);
+  });
+
+  it('clearAllData removes the audio_speed key', () => {
+    saveAudioSpeed(0.75);
+    clearAllData();
+    expect(loadAudioSpeed()).toBe(1.0);
   });
 });
 

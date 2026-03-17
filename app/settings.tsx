@@ -1,24 +1,38 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../src/theme';
 import {
   loadAudioMuted,
   saveAudioMuted,
+  loadAudioSpeed,
+  saveAudioSpeed,
   loadNewWordsPerDay,
   saveNewWordsPerDay,
 } from '../src/services/storage';
+
+const SPEED_OPTIONS: { label: string; value: number }[] = [
+  { label: '0.75×', value: 0.75 },
+  { label: '1×', value: 1.0 },
+  { label: '1.25×', value: 1.25 },
+];
 
 export default function SettingsScreen() {
   const theme = useAppTheme();
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
+  const [audioSpeed, setAudioSpeed] = useState(() => loadAudioSpeed());
   const [newWordsPerDay, setNewWordsPerDay] = useState(() => loadNewWordsPerDay());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
     saveAudioMuted(value);
+  }
+
+  function handleSpeedSelect(speed: number) {
+    setAudioSpeed(speed);
+    saveAudioSpeed(speed);
   }
 
   function handleDecrement() {
@@ -59,6 +73,57 @@ export default function SettingsScreen() {
               onValueChange={handleMuteToggle}
               color={theme.custom.brandOrange}
             />
+          </View>
+
+          {/* Separator */}
+          <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+
+          {/* Audio Playback Speed */}
+          <View style={styles.settingColumn}>
+            <View style={[styles.settingRow, { marginBottom: 8 }]}>
+              <View style={styles.settingLabelGroup}>
+                <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                  Playback Speed
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  Speed of sentence audio during review
+                </Text>
+              </View>
+            </View>
+            <View style={styles.speedRow}>
+              {SPEED_OPTIONS.map((opt) => {
+                const isActive = audioSpeed === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => handleSpeedSelect(opt.value)}
+                    style={[
+                      styles.speedButton,
+                      {
+                        backgroundColor: isActive ? theme.custom.brandOrange : 'transparent',
+                        borderColor: isActive ? theme.custom.brandOrange : theme.custom.glassBorder,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${opt.label} playback speed`}
+                    accessibilityState={{ selected: isActive }}
+                  >
+                    <Text
+                      variant="labelMedium"
+                      style={[
+                        styles.speedButtonText,
+                        { color: isActive ? '#FFFFFF' : theme.colors.onSurfaceVariant },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
 
           {/* Separator */}
@@ -158,5 +223,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 32,
     textAlign: 'center',
+  },
+  speedRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 4,
+  },
+  speedButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  speedButtonText: {
+    fontWeight: '600',
   },
 });

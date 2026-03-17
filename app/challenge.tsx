@@ -18,6 +18,7 @@ import {
   loadCardState,
   loadAudioMuted,
   saveAudioMuted,
+  loadAudioSpeed,
   loadNewWordsPerDay,
   recordNewWordsIntroduced,
 } from '../src/services/storage';
@@ -63,6 +64,7 @@ export default function ChallengeScreen() {
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
+  const [audioSpeed] = useState(() => loadAudioSpeed());
   const [isEmpty, setIsEmpty] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
 
@@ -337,6 +339,7 @@ export default function ChallengeScreen() {
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                 />
@@ -368,6 +371,7 @@ export default function ChallengeScreen() {
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
                   isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   hintText={currentHintText}
                   hintUsed={hintUsed}

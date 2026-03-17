@@ -108,6 +108,7 @@ export function loadStats(): PersistedStats {
 // ---------------------------------------------------------------------------
 
 const AUDIO_MUTED_KEY = 'audio_muted';
+const AUDIO_SPEED_KEY = 'audio_speed';
 
 /**
  * Load the user's audio mute preference.
@@ -122,6 +123,22 @@ export function loadAudioMuted(): boolean {
  */
 export function saveAudioMuted(muted: boolean): void {
   statsStorage.set(AUDIO_MUTED_KEY, muted);
+}
+
+/**
+ * Load the user's audio playback speed preference.
+ * Returns 1.0 (normal speed) if never set.
+ * Valid values: 0.75, 1.0, 1.25
+ */
+export function loadAudioSpeed(): number {
+  return statsStorage.getNumber(AUDIO_SPEED_KEY) ?? 1.0;
+}
+
+/**
+ * Persist the user's audio playback speed preference.
+ */
+export function saveAudioSpeed(speed: number): void {
+  statsStorage.set(AUDIO_SPEED_KEY, speed);
 }
 
 // ---------------------------------------------------------------------------
