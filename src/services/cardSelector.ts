@@ -139,11 +139,12 @@ function toSessionCard(
  * Returns the chapter number the user is currently working on.
  *
  * Scan CHAPTERS in order. The "current chapter" is the first chapter whose
- * mastery is below 80%. If all chapters are >= 80%, return the last chapter
- * (review mode — you've mastered everything!).
+ * learned cards are below 80%. If all chapters are >= 80%, return the last chapter
+ * (review mode — you've learned everything!).
  *
- * Mastery = (mastered cards / total chapter cards) * 100, where a card is
- * mastered if isCardMastered(loadCardState(card.id)) is true.
+ * Learned = (learned cards / total chapter cards) * 100, where a card is
+ * learned if isCardLearned(loadCardState(card.id)) is true (i.e. card has
+ * entered the Review state after completing its initial learning steps).
  */
 export function getCurrentChapter(): number {
   for (const chapter of CHAPTERS) {
