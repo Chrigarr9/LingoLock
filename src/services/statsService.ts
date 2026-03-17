@@ -12,7 +12,7 @@
  * All comparisons are pure string comparisons after slicing to date portion.
  */
 
-import { loadStats, saveStats, loadAllCardStates, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
+import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
 import { isCardMastered, isDue } from './fsrs';
 import { getChapterCards, CHAPTERS } from '../content/bundle';
 import { getCurrentChapter } from './cardSelector';
@@ -159,9 +159,19 @@ export function getChapterMastery(chapterNumber: number): number {
  * session would actually produce.
  */
 export function getCardsDueCount(): number {
-  // Due review cards (have stored state + FSRS says due)
-  const states = loadAllCardStates();
-  const dueReviews = states.filter((state) => isDue(state)).length;
+  // Due review cards — iterate CHAPTERS to exactly mirror buildSession's data source.
+  // Using loadAllCardStates() would count orphaned states (old card IDs no longer in
+  // the bundle), causing the home screen to show a non-zero count when buildSession
+  // would actually return an empty session.
+  let dueReviews = 0;
+  for (const chapter of CHAPTERS) {
+    for (const card of chapter.cards) {
+      const state = loadCardState(card.id);
+      if (state !== null && isDue(state)) {
+        dueReviews++;
+      }
+    }
+  }
 
   // New cards available (no stored state yet), from current chapter onward
   const currentChapterNumber = getCurrentChapter();

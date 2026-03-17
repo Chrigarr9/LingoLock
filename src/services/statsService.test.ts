@@ -2,7 +2,7 @@
  * Tests for statsService
  * Streak tracking, success rate, chapter mastery, per-app stats, cards-due count
  *
- * Mocks: storage.ts (loadStats, saveStats, loadAllCardStates, loadCardState)
+ * Mocks: storage.ts (loadStats, saveStats, loadCardState)
  *        fsrs.ts (isCardMastered, isDue)
  *        cardSelector.ts (getCurrentChapter)
  *        content bundle (getChapterCards)
@@ -60,12 +60,11 @@ import {
   canAbortSafely,
   getAbortsToday,
 } from './statsService';
-import { loadStats, saveStats, loadAllCardStates, loadCardState } from './storage';
+import { loadStats, saveStats, loadCardState } from './storage';
 import { isCardMastered, isDue } from './fsrs';
 
 const mockLoadStats = loadStats as jest.MockedFunction<typeof loadStats>;
 const mockSaveStats = saveStats as jest.MockedFunction<typeof saveStats>;
-const mockLoadAllCardStates = loadAllCardStates as jest.MockedFunction<typeof loadAllCardStates>;
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
@@ -123,7 +122,6 @@ function daysAgo(n: number): string {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLoadStats.mockReturnValue(makeDefaultStats());
-  mockLoadAllCardStates.mockReturnValue([]);
   mockLoadCardState.mockReturnValue(null);
   mockIsCardMastered.mockReturnValue(false);
   mockIsDue.mockReturnValue(false);
@@ -326,28 +324,44 @@ describe('getChapterMastery', () => {
 // ---------------------------------------------------------------------------
 
 describe('getCardsDueCount', () => {
-  test('returns count of cards where isDue is true', () => {
-    mockLoadAllCardStates.mockReturnValue([
-      makeCardState('w1'),
-      makeCardState('w2'),
-      makeCardState('w3'),
-    ]);
+  // CHAPTERS mock has cards: w1, w2, w3, w4, w5 (chapter 1)
+  // Budget mock defaults: loadNewWordsPerDay=0, loadNewWordsIntroducedToday=0 → no new cards
+
+  test('returns count of CHAPTERS cards where isDue is true', () => {
+    // w1, w2, w3 have states; w1 and w3 are due
+    mockLoadCardState.mockImplementation((id) => {
+      if (['w1', 'w2', 'w3'].includes(id)) return makeCardState(id);
+      return null;
+    });
     mockIsDue.mockImplementation((state) => ['w1', 'w3'].includes(state.cardId));
 
     expect(getCardsDueCount()).toBe(2);
   });
 
   test('returns 0 when no cards are due', () => {
-    mockLoadAllCardStates.mockReturnValue([makeCardState('w1')]);
+    mockLoadCardState.mockImplementation((id) => (id === 'w1' ? makeCardState('w1') : null));
     mockIsDue.mockReturnValue(false);
 
     expect(getCardsDueCount()).toBe(0);
   });
 
   test('returns 0 when no card states exist', () => {
-    mockLoadAllCardStates.mockReturnValue([]);
+    mockLoadCardState.mockReturnValue(null);
 
     expect(getCardsDueCount()).toBe(0);
+  });
+
+  test('does not count orphaned states not in CHAPTERS', () => {
+    // loadCardState only ever returns states for cards in CHAPTERS bundle;
+    // orphaned IDs from old builds are simply absent → loadCardState returns null
+    mockLoadCardState.mockImplementation((id) => {
+      // Only w1 is due; old-orphan is NOT in CHAPTERS so loadCardState never called with it
+      if (id === 'w1') return makeCardState('w1');
+      return null;
+    });
+    mockIsDue.mockImplementation((state) => state.cardId === 'w1');
+
+    expect(getCardsDueCount()).toBe(1);
   });
 });
 
