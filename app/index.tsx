@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, ScrollView } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, ScrollView, Image } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -66,8 +66,8 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={[styles.logoContainer, { backgroundColor: theme.colors.primaryContainer }]}>
-              <Icon source="earth" size={20} color={theme.custom.brandOrange} />
+            <View style={styles.logoContainer}>
+              <Image source={require('../assets/logo.png')} style={styles.logoImage} />
             </View>
             <Text
               variant="titleLarge"
@@ -92,7 +92,7 @@ export default function HomeScreen() {
               styles.badge,
               {
                 backgroundColor: theme.colors.primaryContainer,
-                borderColor: 'rgba(255,160,86,0.20)',
+                borderColor: theme.colors.outlineVariant,
               },
             ]}
           >
@@ -132,7 +132,7 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View
-              style={[styles.fireCircle, { backgroundColor: theme.custom.brandOrange }]}
+              style={[styles.fireCircle, { backgroundColor: theme.custom.brandBlue }]}
             >
               <Icon source="fire" size={22} color="#FFFFFF" />
             </View>
@@ -153,7 +153,7 @@ export default function HomeScreen() {
               {chapterProgress}%
             </Text>
             <View style={[styles.miniBar, { backgroundColor: theme.colors.surfaceVariant }]}>
-              <View style={[styles.miniBarFill, { backgroundColor: theme.custom.brandOrange, width: `${chapterProgress}%` }]} />
+              <View style={[styles.miniBarFill, { backgroundColor: theme.custom.brandBlue, width: `${chapterProgress}%` }]} />
             </View>
           </View>
 
@@ -204,7 +204,7 @@ export default function HomeScreen() {
               accessibilityLabel="Vocabulary"
               accessibilityRole="button"
             >
-              <Icon source="book-open-variant" size={24} color={theme.custom.brandOrange} />
+              <Icon source="book-open-variant" size={24} color={theme.custom.brandBlue} />
               <Text
                 variant="labelSmall"
                 style={[styles.actionLabel, { color: theme.colors.onSurface }]}
@@ -218,7 +218,7 @@ export default function HomeScreen() {
               accessibilityLabel="Stats"
               accessibilityRole="button"
             >
-              <Icon source="chart-bar" size={24} color={theme.custom.brandOrange} />
+              <Icon source="chart-bar" size={24} color={theme.custom.brandBlue} />
               <Text
                 variant="labelSmall"
                 style={[styles.actionLabel, { color: theme.colors.onSurface }]}
@@ -232,7 +232,7 @@ export default function HomeScreen() {
           {promptInstall && (
             <Pressable
               onPress={promptInstall}
-              style={[styles.installBanner, { backgroundColor: theme.custom.brandOrange }]}
+              style={[styles.installBanner, { backgroundColor: theme.custom.brandBlue }]}
               accessibilityLabel="Install app"
               accessibilityRole="button"
             >
@@ -247,7 +247,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/tutorial')}
               style={[styles.tutorialLink, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
             >
-              <Icon source="book-open-variant" size={18} color={theme.custom.brandOrange} />
+              <Icon source="book-open-variant" size={18} color={theme.custom.brandBlue} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
                 Setup Tutorial
               </Text>
@@ -286,8 +286,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
   },
   appTitle: {
     fontWeight: '700',

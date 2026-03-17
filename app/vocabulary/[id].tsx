@@ -58,7 +58,7 @@ export default function WordDetailScreen() {
     mastery === 'Mastered'
       ? theme.custom.success
       : mastery === 'Learning'
-      ? theme.custom.brandOrange
+      ? theme.custom.brandBlue
       : theme.colors.onSurfaceVariant;
 
   // Resolve image source — bundled (number) or URI (string)
@@ -150,7 +150,7 @@ export default function WordDetailScreen() {
           <View style={styles.section}>
             <Text
               variant="labelSmall"
-              style={[styles.sectionLabel, { color: theme.custom.brandOrange }]}
+              style={[styles.sectionLabel, { color: theme.custom.brandBlue }]}
             >
               SENTENCE
             </Text>
@@ -158,7 +158,7 @@ export default function WordDetailScreen() {
               {hasSplit ? (
                 <>
                   {parts[0]}
-                  <Text style={{ color: theme.custom.brandOrange, fontWeight: '700' }}>
+                  <Text style={{ color: theme.custom.brandBlue, fontWeight: '700' }}>
                     {card.wordInContext}
                   </Text>
                   {parts[1]}
@@ -204,7 +204,7 @@ export default function WordDetailScreen() {
           <View style={styles.section}>
             <Text
               variant="labelSmall"
-              style={[styles.sectionLabel, { color: theme.custom.brandOrange }]}
+              style={[styles.sectionLabel, { color: theme.custom.brandBlue }]}
             >
               PROGRESS
             </Text>

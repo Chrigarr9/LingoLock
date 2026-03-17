@@ -71,7 +71,7 @@ export default function SettingsScreen() {
             <Switch
               value={isMuted}
               onValueChange={handleMuteToggle}
-              color={theme.custom.brandOrange}
+              color={theme.custom.brandBlue}
             />
           </View>
 
@@ -103,8 +103,8 @@ export default function SettingsScreen() {
                     style={[
                       styles.speedButton,
                       {
-                        backgroundColor: isActive ? theme.custom.brandOrange : 'transparent',
-                        borderColor: isActive ? theme.custom.brandOrange : theme.custom.glassBorder,
+                        backgroundColor: isActive ? theme.custom.brandBlue : 'transparent',
+                        borderColor: isActive ? theme.custom.brandBlue : theme.custom.glassBorder,
                       },
                     ]}
                     accessibilityRole="button"
@@ -147,7 +147,7 @@ export default function SettingsScreen() {
                 <IconButton
                   icon="minus"
                   size={20}
-                  iconColor={theme.custom.brandOrange}
+                  iconColor={theme.custom.brandBlue}
                   onPress={handleDecrement}
                   disabled={newWordsPerDay <= 1}
                   style={styles.stepperButton}
@@ -161,7 +161,7 @@ export default function SettingsScreen() {
                 <IconButton
                   icon="plus"
                   size={20}
-                  iconColor={theme.custom.brandOrange}
+                  iconColor={theme.custom.brandBlue}
                   onPress={handleIncrement}
                   disabled={newWordsPerDay >= 50}
                   style={styles.stepperButton}

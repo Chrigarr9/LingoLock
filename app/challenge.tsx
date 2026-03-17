@@ -318,7 +318,7 @@ export default function ChallengeScreen() {
             </Text>
             <Text
               variant="labelSmall"
-              style={[styles.progressLabel, { color: theme.custom.brandOrange }]}
+              style={[styles.progressLabel, { color: theme.custom.brandBlue }]}
             >
               {correctCount} correct
             </Text>
@@ -434,7 +434,7 @@ export default function ChallengeScreen() {
                 {/* Hero accuracy number */}
                 <Text
                   variant="displayLarge"
-                  style={[styles.accuracyHero, { color: theme.custom.brandOrange }]}
+                  style={[styles.accuracyHero, { color: theme.custom.brandBlue }]}
                 >
                   {accuracyPercent}%
                 </Text>
@@ -452,10 +452,10 @@ export default function ChallengeScreen() {
                 </Text>
                 {streakCount > 1 && (
                   <View style={styles.streakRow}>
-                    <Icon source="fire" size={18} color={theme.custom.brandOrange} />
+                    <Icon source="fire" size={18} color={theme.custom.brandBlue} />
                     <Text
                       variant="labelLarge"
-                      style={[styles.streakLine, { color: theme.custom.brandOrange }]}
+                      style={[styles.streakLine, { color: theme.custom.brandBlue }]}
                     >
                       {streakCount} day streak!
                     </Text>

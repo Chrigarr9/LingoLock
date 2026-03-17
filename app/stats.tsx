@@ -99,7 +99,7 @@ export default function StatsScreen() {
             <View style={styles.summaryItem}>
               <Text
                 variant="headlineLarge"
-                style={[styles.summaryHero, { color: theme.custom.brandOrange }]}
+                style={[styles.summaryHero, { color: theme.custom.brandBlue }]}
               >
                 {successRate}%
               </Text>
@@ -192,7 +192,7 @@ export default function StatsScreen() {
               </Text>
               <Text
                 variant="labelMedium"
-                style={[styles.masteryPercent, { color: theme.custom.brandOrange }]}
+                style={[styles.masteryPercent, { color: theme.custom.brandBlue }]}
               >
                 {ch.mastery}%
               </Text>
@@ -201,7 +201,7 @@ export default function StatsScreen() {
             {/* Progress bar */}
             <ProgressBar
               progress={ch.mastery / 100}
-              color={theme.custom.brandOrange}
+              color={theme.custom.brandBlue}
               style={styles.progressBar}
             />
 
