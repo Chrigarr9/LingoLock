@@ -60,6 +60,7 @@ import {
   canAbortSafely,
   getAbortsToday,
 } from './statsService';
+import { CHAPTERS } from '../content/bundle';
 import { loadStats, saveStats, loadCardState } from './storage';
 import { isCardMastered, isDue } from './fsrs';
 
@@ -301,21 +302,21 @@ describe('getChapterMastery', () => {
     mockLoadCardState.mockImplementation((id) => makeCardState(id));
     mockIsCardMastered.mockImplementation((state) => cardIds.slice(0, 4).includes(state.cardId));
 
-    expect(getChapterMastery(1)).toBe(80);
+    expect(getChapterMastery(CHAPTERS, 1)).toBe(80);
   });
 
   test('0 cards mastered returns 0', () => {
     mockLoadCardState.mockReturnValue(null);
     mockIsCardMastered.mockReturnValue(false);
 
-    expect(getChapterMastery(1)).toBe(0);
+    expect(getChapterMastery(CHAPTERS, 1)).toBe(0);
   });
 
   test('all 5 cards mastered returns 100', () => {
     mockLoadCardState.mockImplementation((id) => makeCardState(id));
     mockIsCardMastered.mockReturnValue(true);
 
-    expect(getChapterMastery(1)).toBe(100);
+    expect(getChapterMastery(CHAPTERS, 1)).toBe(100);
   });
 });
 
@@ -335,20 +336,20 @@ describe('getCardsDueCount', () => {
     });
     mockIsDue.mockImplementation((state) => ['w1', 'w3'].includes(state.cardId));
 
-    expect(getCardsDueCount()).toBe(2);
+    expect(getCardsDueCount(CHAPTERS)).toBe(2);
   });
 
   test('returns 0 when no cards are due', () => {
     mockLoadCardState.mockImplementation((id) => (id === 'w1' ? makeCardState('w1') : null));
     mockIsDue.mockReturnValue(false);
 
-    expect(getCardsDueCount()).toBe(0);
+    expect(getCardsDueCount(CHAPTERS)).toBe(0);
   });
 
   test('returns 0 when no card states exist', () => {
     mockLoadCardState.mockReturnValue(null);
 
-    expect(getCardsDueCount()).toBe(0);
+    expect(getCardsDueCount(CHAPTERS)).toBe(0);
   });
 
   test('does not count orphaned states not in CHAPTERS', () => {
@@ -361,7 +362,7 @@ describe('getCardsDueCount', () => {
     });
     mockIsDue.mockImplementation((state) => state.cardId === 'w1');
 
-    expect(getCardsDueCount()).toBe(1);
+    expect(getCardsDueCount(CHAPTERS)).toBe(1);
   });
 });
 
@@ -372,7 +373,7 @@ describe('getCardsDueCount', () => {
 describe('getCurrentChapterNumber', () => {
   test('delegates to cardSelector.getCurrentChapter', () => {
     // Mock returns 1 by default (set up in jest.mock at top)
-    expect(getCurrentChapterNumber()).toBe(1);
+    expect(getCurrentChapterNumber(CHAPTERS)).toBe(1);
   });
 });
 

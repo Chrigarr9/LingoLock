@@ -14,7 +14,7 @@
 
 import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
 import { isCardMastered, isDue } from './fsrs';
-import { getChapterCards, CHAPTERS } from '../content/bundle';
+import type { ChapterData } from '../types/vocabulary';
 import { getCurrentChapter } from './cardSelector';
 
 // ---------------------------------------------------------------------------
@@ -136,8 +136,8 @@ export function getSuccessRate(): number {
  * This is intentionally strict — cards must survive multiple review cycles
  * before counting as mastered.
  */
-export function getChapterMastery(chapterNumber: number): number {
-  const cards = getChapterCards(chapterNumber);
+export function getChapterMastery(chapters: ChapterData[], chapterNumber: number): number {
+  const cards = chapters.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
   if (cards.length === 0) return 0;
 
   const masteredCount = cards.reduce((sum, card) => {
@@ -158,13 +158,13 @@ export function getChapterMastery(chapterNumber: number): number {
  * Mirrors buildSession's logic so the home screen count matches what a
  * session would actually produce.
  */
-export function getCardsDueCount(): number {
-  // Due review cards — iterate CHAPTERS to exactly mirror buildSession's data source.
+export function getCardsDueCount(chapters: ChapterData[]): number {
+  // Due review cards — iterate chapters to exactly mirror buildSession's data source.
   // Using loadAllCardStates() would count orphaned states (old card IDs no longer in
   // the bundle), causing the home screen to show a non-zero count when buildSession
   // would actually return an empty session.
   let dueReviews = 0;
-  for (const chapter of CHAPTERS) {
+  for (const chapter of chapters) {
     for (const card of chapter.cards) {
       const state = loadCardState(card.id);
       if (state !== null && isDue(state)) {
@@ -174,13 +174,13 @@ export function getCardsDueCount(): number {
   }
 
   // New cards available (no stored state yet), from current chapter onward
-  const currentChapterNumber = getCurrentChapter();
-  const currentChapterIndex = CHAPTERS.findIndex(
+  const currentChapterNumber = getCurrentChapter(chapters);
+  const currentChapterIndex = chapters.findIndex(
     (ch) => ch.chapterNumber === currentChapterNumber,
   );
   let newCardsAvailable = 0;
-  for (let i = Math.max(0, currentChapterIndex); i < CHAPTERS.length; i++) {
-    for (const card of CHAPTERS[i].cards) {
+  for (let i = Math.max(0, currentChapterIndex); i < chapters.length; i++) {
+    for (const card of chapters[i].cards) {
       if (loadCardState(card.id) === null) {
         newCardsAvailable++;
       }
@@ -270,6 +270,6 @@ export function getAbortsToday(): number {
  * Returns the current chapter number the user is working on.
  * Delegates to cardSelector.getCurrentChapter() for single source of truth.
  */
-export function getCurrentChapterNumber(): number {
-  return getCurrentChapter();
+export function getCurrentChapterNumber(chapters: ChapterData[]): number {
+  return getCurrentChapter(chapters);
 }

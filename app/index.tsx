@@ -6,7 +6,7 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
-import { getTotalCards } from '../src/content/bundle';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { usePWAInstall } from '../src/hooks/usePWAInstall';
 
 function getSpanishGreeting(): string {
@@ -19,6 +19,7 @@ function getSpanishGreeting(): string {
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
+  const { chapters } = useActiveBundle();
 
   const [streak, setStreak] = useState(0);
   const [chapterProgress, setChapterProgress] = useState(0);
@@ -31,13 +32,13 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       setStreak(getStreak());
-      const chapter = getCurrentChapterNumber();
+      const chapter = getCurrentChapterNumber(chapters);
       setCurrentChapter(chapter);
-      setChapterProgress(getChapterMastery(chapter));
-      setCardsDue(getCardsDueCount());
+      setChapterProgress(getChapterMastery(chapters, chapter));
+      setCardsDue(getCardsDueCount(chapters));
       // Refresh greeting in case time-of-day has changed
       setGreeting(getSpanishGreeting());
-    }, [])
+    }, [chapters])
   );
 
   const glassStyle = getGlassStyle(theme);

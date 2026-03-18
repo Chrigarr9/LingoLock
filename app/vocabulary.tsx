@@ -4,8 +4,8 @@ import { Text, Searchbar } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, labelOverlineStyle } from '../src/theme';
-import { CHAPTERS } from '../src/content/bundle';
 import { getChapterMastery } from '../src/services/statsService';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { deriveMastery, getMasteryColor } from '../src/utils/mastery';
 import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
 import type { ClozeCard, MasteryStatus } from '../src/types/vocabulary';
@@ -20,6 +20,7 @@ interface SectionData {
 export default function VocabularyScreen() {
   const router = useRouter();
   const theme = useAppTheme();
+  const { chapters } = useActiveBundle();
   const params = useLocalSearchParams<{ chapter?: string }>();
 
   const [search, setSearch] = useState('');
@@ -30,28 +31,28 @@ export default function VocabularyScreen() {
   // Compute mastery status for every card (memoized)
   const masteryMap = useMemo<Record<string, MasteryStatus>>(() => {
     const map: Record<string, MasteryStatus> = {};
-    for (const ch of CHAPTERS) {
+    for (const ch of chapters) {
       for (const card of ch.cards) {
         map[card.id] = deriveMastery(card.id);
       }
     }
     return map;
-  }, [focusKey]);
+  }, [focusKey, chapters]);
 
   // Chapter mastery percentages (memoized alongside masteryMap)
   const chapterMastery = useMemo<Record<number, number>>(() => {
     const m: Record<number, number> = {};
-    for (const ch of CHAPTERS) {
-      m[ch.chapterNumber] = getChapterMastery(ch.chapterNumber);
+    for (const ch of chapters) {
+      m[ch.chapterNumber] = getChapterMastery(chapters, ch.chapterNumber);
     }
     return m;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusKey]);
+  }, [focusKey, chapters]);
 
   // Build filtered, search-narrowed sections (no focusKey dep — data is static)
   const sections = useMemo<SectionData[]>(() => {
     const lc = search.toLowerCase();
-    return CHAPTERS
+    return chapters
       .filter(ch => filterChapter === null || ch.chapterNumber === filterChapter)
       .map(ch => ({
         title: `Chapter ${ch.chapterNumber}`,
@@ -64,7 +65,7 @@ export default function VocabularyScreen() {
         ),
       }))
       .filter(s => s.data.length > 0);
-  }, [search, filterChapter]);
+  }, [search, filterChapter, chapters]);
 
   const renderSectionHeader = ({ section }: { section: SectionData }) => (
     <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>

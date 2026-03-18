@@ -13,8 +13,11 @@
 
 import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
 import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
-import { CHAPTERS, getChapterCards } from '../content/bundle';
-import type { SessionCard, ClozeCard } from '../types/vocabulary';
+import type { SessionCard, ClozeCard, ChapterData } from '../types/vocabulary';
+
+function getChapterCards(chapters: ChapterData[], chapterNumber: number): ClozeCard[] {
+  return chapters.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
+}
 
 // ---------------------------------------------------------------------------
 // Fisher-Yates shuffle (in-place, returns same array)
@@ -166,8 +169,8 @@ function toSessionCard(
  * learned if isCardLearned(loadCardState(card.id)) is true (i.e. card has
  * entered the Review state after completing its initial learning steps).
  */
-export function getCurrentChapter(): number {
-  for (const chapter of CHAPTERS) {
+export function getCurrentChapter(chapters: ChapterData[]): number {
+  for (const chapter of chapters) {
     const cards = chapter.cards;
     const totalCards = cards.length;
     if (totalCards === 0) continue;
@@ -185,7 +188,7 @@ export function getCurrentChapter(): number {
   }
 
   // All chapters mastered — return last chapter (review mode)
-  return CHAPTERS[CHAPTERS.length - 1].chapterNumber;
+  return chapters[chapters.length - 1].chapterNumber;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,9 +199,9 @@ export function getCurrentChapter(): number {
  * Returns card IDs of all cards that are currently due for review.
  * Used by the challenge screen to detect newly-due cards mid-session.
  */
-export function getDueCardIds(): Set<string> {
+export function getDueCardIds(chapters: ChapterData[]): Set<string> {
   const ids = new Set<string>();
-  for (const chapter of CHAPTERS) {
+  for (const chapter of chapters) {
     for (const card of chapter.cards) {
       const state = loadCardState(card.id);
       if (state !== null && isDue(state)) {
@@ -213,11 +216,11 @@ export function getDueCardIds(): Set<string> {
  * Returns SessionCards for cards that are due but not already in the queue.
  * Used to hot-append newly-due cards during an active session.
  */
-export function getDueCards(excludeIds: Set<string>): SessionCard[] {
-  const currentChapterNumber = getCurrentChapter();
+export function getDueCards(chapters: ChapterData[], excludeIds: Set<string>): SessionCard[] {
+  const currentChapterNumber = getCurrentChapter(chapters);
   const seenByChapter = getMaxSeenSentenceByChapter();
   const result: SessionCard[] = [];
-  for (const chapter of CHAPTERS) {
+  for (const chapter of chapters) {
     for (const card of chapter.cards) {
       if (excludeIds.has(card.id)) continue;
       const state = loadCardState(card.id);
@@ -251,14 +254,14 @@ export function getDueCards(excludeIds: Set<string>): SessionCard[] {
  * If dailyNewWordBudget is 0, returns reviews only (no new words).
  * If total available cards < session size, returns as many as available.
  */
-export function buildSession(dailyNewWordBudget: number, _sourceApp?: string): SessionCard[] {
-  const currentChapterNumber = getCurrentChapter();
+export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number, _sourceApp?: string): SessionCard[] {
+  const currentChapterNumber = getCurrentChapter(chapters);
   const seenByChapter = getMaxSeenSentenceByChapter();
 
   // --- Collect ALL due review cards -------------------------------------
   // No fixed limit — continuous sessions review everything that is due.
   const dueCards: ClozeCard[] = [];
-  for (const chapter of CHAPTERS) {
+  for (const chapter of chapters) {
     for (const card of chapter.cards) {
       const state = loadCardState(card.id);
       if (state !== null && isDue(state)) {
@@ -270,13 +273,13 @@ export function buildSession(dailyNewWordBudget: number, _sourceApp?: string): S
   // --- Collect new words (no CardState) -----------------------------------
   // Source: current chapter first, then subsequent chapters in order.
   const newCards: ClozeCard[] = [];
-  const currentChapterIndex = CHAPTERS.findIndex(
+  const currentChapterIndex = chapters.findIndex(
     (ch) => ch.chapterNumber === currentChapterNumber,
   );
 
   // Gather new cards from current chapter and subsequent chapters
-  for (let i = currentChapterIndex; i < CHAPTERS.length; i++) {
-    for (const card of CHAPTERS[i].cards) {
+  for (let i = currentChapterIndex; i < chapters.length; i++) {
+    for (const card of chapters[i].cards) {
       const state = loadCardState(card.id);
       if (state === null) {
         newCards.push(card);
