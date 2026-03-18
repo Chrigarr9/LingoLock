@@ -116,7 +116,7 @@ export default function SettingsScreen() {
           spellCharacters: [], searchPlaceholder: '',
           cardCount: meta.cardCount, importedAt: meta.importedAt,
         },
-        chapters: [], simpleCards: cards, cardImages: {}, cardAudios: {},
+        chapters: [{ chapterNumber: 1, cards: cards as any }], simpleCards: cards, cardImages: {}, cardAudios: {},
       };
       registerImportedBundle(meta.id, bundle);
       switchBundle(meta.id);

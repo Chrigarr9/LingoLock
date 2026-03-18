@@ -11,7 +11,7 @@ import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
-import { buildSession, buildImportedSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
+import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
 import type { SimpleCard } from '../src/types/simpleCard';
 import type { ClozeCard } from '../src/types/vocabulary';
 import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
@@ -45,7 +45,7 @@ export default function ChallengeScreen() {
   }>();
   const router = useRouter();
   const theme = useAppTheme();
-  const { config, chapters, simpleCards } = useActiveBundle();
+  const { config, chapters } = useActiveBundle();
 
   function getMotivationalMessage(accuracy: number): string {
     if (accuracy === 100) return config.motivational.perfect || 'Perfect!';
@@ -95,9 +95,7 @@ export default function ChallengeScreen() {
     });
 
     let session: SessionCard[];
-    if (config.type === 'imported') {
-      session = buildImportedSession(simpleCards, loadNewWordsPerDay(), config.id);
-    } else if (mode === 'continuous') {
+    if (mode === 'continuous') {
       session = buildSession(chapters, loadNewWordsPerDay(), params.source);
     } else {
       session = buildSession(chapters, parseInt(params.count || '3', 10), params.source);

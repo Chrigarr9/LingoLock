@@ -97,7 +97,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
           cardCount: meta.cardCount,
           importedAt: meta.importedAt,
         },
-        chapters: [],
+        chapters: [{ chapterNumber: 1, cards: cards as any }],
         simpleCards: cards,
         cardImages: {},
         cardAudios: {},

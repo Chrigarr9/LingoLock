@@ -46,7 +46,8 @@ export function ActiveBundleProvider({ children }: { children: React.ReactNode }
               cardCount: meta.cardCount,
               importedAt: meta.importedAt,
             },
-            chapters: [],
+            // Wrap imported cards in a single chapter so buildSession/getCardsDueCount work unchanged
+            chapters: [{ chapterNumber: 1, cards: cards as any }],
             simpleCards: cards,
             cardImages: {},
             cardAudios: {},
