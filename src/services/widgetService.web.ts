@@ -10,11 +10,16 @@ export interface WidgetCardData {
   sentence: string;
   germanHint: string;
   correctAnswer: string;
-  answerType: 'mc4' | 'text';
+  answerType: 'mc4' | 'text' | 'selfRated';
   choices?: string[];
   imageUri?: string;
   cardsLeft: number;
   streakCount: number;
+  spellInput?: string;
+  spellChoices?: string[];
+  frontText?: string;
+  backText?: string;
+  isRevealed?: boolean;
 }
 
 /**
@@ -39,6 +44,34 @@ export function processWidgetAnswer(
   _selectedChoice: string,
 ): { isCorrect: boolean; correctAnswer: string } {
   return { isCorrect: false, correctAnswer: '' };
+}
+
+/**
+ * Web stub: no-op spell action.
+ */
+export function processSpellAction(
+  _cardId: string,
+  _action: 'char' | 'back' | 'submit',
+  _char?: string,
+): { submitted: boolean; isCorrect?: boolean; correctAnswer?: string } {
+  return { submitted: true, isCorrect: false, correctAnswer: '' };
+}
+
+/**
+ * Web stub: returns null (no reveal on web).
+ */
+export function processWidgetReveal(_cardId: string): WidgetCardData | null {
+  return null;
+}
+
+/**
+ * Web stub: returns not rated.
+ */
+export function processWidgetRate(
+  _cardId: string,
+  _rating: '1' | '3',
+): { rated: boolean } {
+  return { rated: false };
 }
 
 /**

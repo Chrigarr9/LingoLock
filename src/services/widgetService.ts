@@ -18,12 +18,13 @@
 
 import { isDue, getAnswerType, scheduleReview, createNewCardState } from './fsrs';
 import { loadCardState, saveCardState, loadAllCardStates, statsStorage } from './storage';
-import { getBundle, getCardById as findCardById } from '../content/bundles';
+import { getBundle, getCardById as findCardById, isImportedBundle, getBundle as getBundleById } from '../content/bundles';
 import { loadEnabledBundles } from './storage';
 import { getStreak } from './statsService';
 import { updateStatsAfterSession } from './statsService';
 import { validateAnswer } from '../utils/answerValidation';
 import type { ClozeCard } from '../types/vocabulary';
+import type { SimpleCard } from '../types/simpleCard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,7 +35,7 @@ export interface WidgetCardData {
   sentence: string;       // Cloze sentence with _____ gap
   germanHint: string;     // German hint word
   correctAnswer: string;  // wordInContext
-  answerType: 'mc4' | 'text';  // Determines widget interaction mode
+  answerType: 'mc4' | 'text' | 'selfRated';  // Determines widget interaction mode
   choices?: string[];     // MC choices for mc2/mc4 cards
   imageUri?: string;      // Optional card image
   cardsLeft: number;      // Total cards remaining in session
@@ -42,6 +43,10 @@ export interface WidgetCardData {
   // Spell mode fields (populated for text cards on widget)
   spellInput?: string;    // Characters typed so far
   spellChoices?: string[];  // Character buttons to display
+  // Self-rated mode fields (populated for imported deck cards)
+  frontText?: string;     // Front text for self-rated cards
+  backText?: string;      // Back text (shown after reveal)
+  isRevealed?: boolean;   // Whether the card has been flipped
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +162,31 @@ export function getWidgetCardData(): WidgetCardData | null {
     }
   }
 
+  // Also scan imported decks for due self-rated cards
+  for (const bundleId of enabledIds) {
+    if (!isImportedBundle(bundleId)) continue;
+    let imported;
+    try { imported = getBundleById(bundleId); } catch { continue; }
+    for (const card of imported.simpleCards) {
+      const namespacedId = `${bundleId}:${card.id}`;
+      const state = loadCardState(namespacedId);
+      if (state !== null && isDue(state)) {
+        return {
+          cardId: namespacedId,
+          sentence: '',
+          germanHint: '',
+          correctAnswer: '',
+          answerType: 'selfRated' as const,
+          cardsLeft: 1,
+          streakCount: getStreak(),
+          frontText: card.front,
+          backText: card.back,
+          isRevealed: false,
+        };
+      }
+    }
+  }
+
   if (dueCards.length === 0) {
     return null; // No cards due — widget shows empty state
   }
@@ -255,8 +285,8 @@ export function processWidgetAnswer(
   const result = findCardById(cardId);
   const card = result?.card ?? null;
 
-  if (!card) {
-    // Card not found — shouldn't happen, but return safe default
+  if (!card || !('wordInContext' in card)) {
+    // Card not found or not a ClozeCard — return safe default
     return { isCorrect: false, correctAnswer: '' };
   }
 
@@ -331,7 +361,7 @@ export function processSpellAction(
   const result = findCardById(cardId);
   const card = result?.card ?? null;
 
-  if (!card) {
+  if (!card || !('wordInContext' in card)) {
     return { submitted: true, isCorrect: false, correctAnswer: '' };
   }
 
@@ -359,6 +389,64 @@ export function processSpellAction(
     isCorrect,
     correctAnswer: card.wordInContext,
   };
+}
+
+// ---------------------------------------------------------------------------
+// processWidgetReveal — flip a self-rated card to show the back
+// ---------------------------------------------------------------------------
+
+/**
+ * Reveal the back side of a self-rated card.
+ *
+ * Called when user taps the card on the widget to flip it.
+ * Returns updated WidgetCardData with isRevealed=true and backText populated.
+ *
+ * @param cardId - Namespaced ID of the self-rated card
+ * @returns Updated card data with back revealed, or null if card not found
+ */
+export function processWidgetReveal(cardId: string): WidgetCardData | null {
+  const result = findCardById(cardId);
+  if (!result) return null;
+  const { card } = result;
+  if (!('front' in card)) return null; // Not a SimpleCard
+  const simpleCard = card as SimpleCard;
+  return {
+    cardId,
+    sentence: '',
+    germanHint: '',
+    correctAnswer: '',
+    answerType: 'selfRated',
+    cardsLeft: 0,
+    streakCount: getStreak(),
+    frontText: simpleCard.front,
+    backText: simpleCard.back,
+    isRevealed: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// processWidgetRate — rate a self-rated card after reveal
+// ---------------------------------------------------------------------------
+
+/**
+ * Process a self-rating from the widget after the card back has been revealed.
+ *
+ * @param cardId - Namespaced ID of the self-rated card
+ * @param rating - '1' for Again (forgot), '3' for Good (remembered)
+ * @returns { rated: boolean } indicating whether the rating was processed
+ */
+export function processWidgetRate(
+  cardId: string,
+  rating: '1' | '3',
+): { rated: boolean } {
+  const loadedState = loadCardState(cardId);
+  const cardState = loadedState ?? createNewCardState(cardId);
+  const grade = rating === '1' ? 'again' : 'good';
+  const updatedState = scheduleReview(cardState, grade as any);
+  saveCardState(cardId, updatedState);
+  updateStatsAfterSession(rating === '3' ? 1 : 0, 1, 'widget');
+  updateWidgetData();
+  return { rated: true };
 }
 
 // ---------------------------------------------------------------------------
