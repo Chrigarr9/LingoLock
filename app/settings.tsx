@@ -404,10 +404,10 @@ export default function SettingsScreen() {
                       {isActive ? 'Active' : isImported ? `${bundle.cardCount ?? 0} cards` : `${dueCount} cards due`}
                     </Text>
                   </View>
-                  <RNSwitch
+                  <Switch
                     value={isEnabled}
                     onValueChange={() => toggleEnabled(bundle.id)}
-                    trackColor={{ true: theme.custom.brandBlue }}
+                    color={theme.custom.brandBlue}
                   />
                 </Pressable>
               </React.Fragment>
