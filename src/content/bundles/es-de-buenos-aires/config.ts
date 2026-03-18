@@ -2,6 +2,7 @@ import type { BundleConfig } from '../../../types/bundle';
 
 export const config: BundleConfig = {
   id: 'es-de-buenos-aires',
+  type: 'builtin',
   nativeLanguage: 'Deutsch',
   targetLanguage: 'Español',
   displayLabel: 'Deutsch → Español',

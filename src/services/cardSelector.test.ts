@@ -6,6 +6,11 @@
  * The content bundle is imported directly (pure data, no native deps).
  */
 
+import type { ClozeCard } from '../types/vocabulary';
+
+/** Helper to cast SessionCard.card to ClozeCard in tests (all test cards are cloze) */
+const asCloze = (card: any): ClozeCard => card as ClozeCard;
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -149,7 +154,7 @@ describe('buildSession', () => {
     expect(session).toHaveLength(5);
     // All from chapter 1 (first 5 are chapter 1 cards)
     for (const sc of session) {
-      expect(sc.card.chapter).toBe(1);
+      expect(asCloze(sc.card).chapter).toBe(1);
     }
     // All should be mc4 (new cards)
     for (const sc of session) {
@@ -207,7 +212,7 @@ describe('buildSession', () => {
     expect(newInSession).toHaveLength(3);
     // New cards come from chapter 2 (all ch1 cards are due)
     for (const sc of newInSession) {
-      expect(sc.card.chapter).toBe(2);
+      expect(asCloze(sc.card).chapter).toBe(2);
     }
   });
 
@@ -259,8 +264,8 @@ describe('buildSession', () => {
     const session = buildSession(CHAPTERS, 5);
 
     expect(session).toHaveLength(5);
-    const ch1InSession = session.filter(sc => sc.card.chapter === 1);
-    const ch2InSession = session.filter(sc => sc.card.chapter === 2);
+    const ch1InSession = session.filter(sc => asCloze(sc.card).chapter === 1);
+    const ch2InSession = session.filter(sc => asCloze(sc.card).chapter === 2);
     expect(ch1InSession).toHaveLength(3);
     expect(ch2InSession).toHaveLength(2);
   });
@@ -275,7 +280,7 @@ describe('buildSession', () => {
     const sc = session[0];
     expect(sc.answerType).toBe('mc4');
     expect(sc.choices).toHaveLength(4);
-    expect(sc.choices).toContain(sc.card.wordInContext);
+    expect(sc.choices).toContain(asCloze(sc.card).wordInContext);
   });
 
   test('Text card has no choices', () => {
@@ -382,7 +387,7 @@ describe('sentence variant rotation', () => {
     // word1 has no sentenceVariants — sentence should always be '_____' (mock default)
     mockLoadCardState.mockReturnValue(null);
     const session = buildSession(CHAPTERS, 1);
-    expect(session[0].card.sentence).toBe('_____');
+    expect(asCloze(session[0].card).sentence).toBe('_____');
   });
 
   test('no seen sentences in current chapter → fewer than 2 unlocked → primary sentence used', () => {
@@ -395,7 +400,7 @@ describe('sentence variant rotation', () => {
     const session = buildSession(CHAPTERS, 0);
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
     expect(sc).toBeDefined();
-    expect(sc!.card.sentence).toBe('Original _____ sentence');
+    expect(asCloze(sc!.card).sentence).toBe('Original _____ sentence');
   });
 
   test('only one variant unlocked in current chapter → primary sentence used', () => {
@@ -407,7 +412,7 @@ describe('sentence variant rotation', () => {
 
     const session = buildSession(CHAPTERS, 0);
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
-    expect(sc!.card.sentence).toBe('Original _____ sentence');
+    expect(asCloze(sc!.card).sentence).toBe('Original _____ sentence');
   });
 
   test('two variants unlocked in current chapter → randomly picks between them', () => {
@@ -424,7 +429,7 @@ describe('sentence variant rotation', () => {
     for (let i = 0; i < 50; i++) {
       const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
-      if (sc) sentences.add(sc.card.sentence);
+      if (sc) sentences.add(asCloze(sc.card).sentence);
     }
 
     expect(sentences.size).toBeGreaterThan(1);
@@ -445,7 +450,7 @@ describe('sentence variant rotation', () => {
     for (let i = 0; i < 50; i++) {
       const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
-      if (sc) sentences.add(sc.card.sentence);
+      if (sc) sentences.add(asCloze(sc.card).sentence);
     }
 
     expect(sentences.has('Variant2 _____ context')).toBe(false);
@@ -474,7 +479,7 @@ describe('sentence variant rotation', () => {
     for (let i = 0; i < 50; i++) {
       const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
-      if (sc) sentences.add(sc.card.sentence);
+      if (sc) sentences.add(asCloze(sc.card).sentence);
     }
 
     // Both ch1 variants (Primary s05 and Variant1 s02) should appear
@@ -496,7 +501,7 @@ describe('sentence variant rotation', () => {
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
 
     // 1 unlocked (< 2 required) → returns original card unchanged
-    expect(sc!.card.sentence).toBe('Original _____ sentence');
+    expect(asCloze(sc!.card).sentence).toBe('Original _____ sentence');
   });
 });
 

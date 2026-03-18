@@ -50,7 +50,9 @@ export function ClozeCardDisplay({
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
-  const { card, answerType } = sessionCard;
+  // ClozeCardDisplay is only rendered for mc4/text cards, never selfRated
+  const card = sessionCard.card as import('../types/vocabulary').ClozeCard;
+  const { answerType } = sessionCard;
   const soundRef = useRef<AudioPlayer | null>(null);
   // Ref to always call the latest onAudioFinish callback without re-triggering the effect
   const onAudioFinishRef = useRef(onAudioFinish);

@@ -111,7 +111,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
             const prefix = `${bundle.id}:`;
             for (const key of allKeys) {
               if (key.startsWith(prefix)) {
-                cardStorage.delete(key);
+                cardStorage.remove(key);
               }
             }
 

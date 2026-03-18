@@ -24,7 +24,7 @@ interface VocabularyWidgetProps {
   cardId?: string;
   sentence?: string;
   germanHint?: string;
-  answerType?: 'mc2' | 'mc4' | 'text';
+  answerType?: 'mc2' | 'mc4' | 'text' | 'selfRated';
   choices?: string[];
   cardsLeft?: number;
   streakCount?: number;
@@ -412,9 +412,8 @@ const styles = {
     fontSize: 14,
     color: '#FFF',
   },
-};
 
-// Self-rated mode styles
+  // Self-rated mode styles
   selfRatedFrontSmall: {
     fontSize: 14,
     color: '#666',
@@ -466,10 +465,11 @@ const styles = {
     fontSize: 14,
     fontWeight: '600' as const,
   },
+};
 
 // Placeholder View/Text/Button components
 // (expo-widgets may provide these or require SwiftUI-compatible JSX)
-function View({ children, style }: { children: React.ReactNode; style?: any }) {
+function View({ children, style }: { children?: React.ReactNode; style?: any }) {
   return <div style={style}>{children}</div>;
 }
 

@@ -13,6 +13,7 @@ import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
 import { buildSession, buildImportedSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
 import type { SimpleCard } from '../src/types/simpleCard';
+import type { ClozeCard } from '../src/types/vocabulary';
 import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
 import type { ReviewGrade } from '../src/services/fsrs';
 import {
@@ -271,7 +272,8 @@ export default function ChallengeScreen() {
 
   const handleTextSubmit = (userAnswer: string) => {
     if (!currentCard) return;
-    const correct = validateAnswer(userAnswer, currentCard.card.wordInContext);
+    const clozeCard = currentCard.card as ClozeCard;
+    const correct = validateAnswer(userAnswer, clozeCard.wordInContext);
     if (correct) {
       // Hint used → Hard (shorter interval), otherwise Good
       handleCorrect(currentCard, hintUsed ? 'hard' : 'good');
@@ -283,7 +285,8 @@ export default function ChallengeScreen() {
   const handleMCSelect = (choice: string) => {
     if (!currentCard) return;
     setAnsweredChoice(choice);
-    const correct = choice === currentCard.card.wordInContext;
+    const clozeCard = currentCard.card as ClozeCard;
+    const correct = choice === clozeCard.wordInContext;
     if (correct) {
       handleCorrect(currentCard, 'good');
     } else {
@@ -352,7 +355,7 @@ export default function ChallengeScreen() {
 
   // Generate hint text for current card (text mode only)
   const currentHintText = currentCard?.answerType === 'text' && currentCard.hintLevel
-    ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
+    ? generateHintText((currentCard.card as ClozeCard).wordInContext, currentCard.hintLevel)
     : undefined;
 
   const glassStyle = getGlassStyle(theme);
@@ -464,7 +467,7 @@ export default function ChallengeScreen() {
                   <View style={styles.mcGrid}>
                     <MultipleChoiceGrid
                       choices={currentCard.choices ?? []}
-                      correctAnswer={currentCard.card.wordInContext}
+                      correctAnswer={(currentCard.card as ClozeCard).wordInContext}
                       answeredChoice={answeredChoice}
                       onSelect={handleMCSelect}
                     />

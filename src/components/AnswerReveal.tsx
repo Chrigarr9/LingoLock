@@ -17,7 +17,8 @@ interface AnswerRevealProps {
  */
 export function AnswerReveal({ sessionCard, visible }: AnswerRevealProps) {
   const theme = useAppTheme();
-  const { card } = sessionCard;
+  // AnswerReveal is only rendered for cloze cards, never selfRated
+  const card = sessionCard.card as import('../types/vocabulary').ClozeCard;
 
   if (!visible) return null;
 

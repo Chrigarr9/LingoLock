@@ -8,7 +8,7 @@
  * exported separately for unit testing. The main importApkg() pipeline
  * requires real filesystem and SQLite access.
  */
-import * as FileSystem from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import { unzip } from 'react-native-zip-archive';
 import { openDatabaseAsync } from 'expo-sqlite';
 
@@ -153,23 +153,27 @@ export async function importApkg(
   sourceUri: string,
   onProgress?: ProgressCallback,
 ): Promise<ImportedDeckMeta> {
-  const cacheDir = `${FileSystem.cacheDirectory}apkg-import-${Date.now()}`;
-  const apkgPath = `${cacheDir}/deck.apkg`;
-  const unzipDir = `${cacheDir}/unzipped`;
+  const cacheDirName = `apkg-import-${Date.now()}`;
+  const cacheDir = new Directory(Paths.cache, cacheDirName);
 
   try {
     // -----------------------------------------------------------------------
     // 1. Copy .apkg to cache
     // -----------------------------------------------------------------------
     onProgress?.('Copying file…', 0);
-    await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
-    await FileSystem.copyAsync({ from: sourceUri, to: apkgPath });
+    cacheDir.create();
+    const apkgFile = new File(cacheDir, 'deck.apkg');
+    // Copy source file to our cache directory
+    const sourceFile = new File(sourceUri);
+    sourceFile.copy(apkgFile);
 
     // -----------------------------------------------------------------------
     // 2. Unzip
     // -----------------------------------------------------------------------
     onProgress?.('Extracting archive…', 10);
-    await unzip(apkgPath, unzipDir);
+    const unzipDir = new Directory(cacheDir, 'unzipped');
+    unzipDir.create();
+    await unzip(apkgFile.uri, unzipDir.uri);
 
     // -----------------------------------------------------------------------
     // 3. Open SQLite DB
@@ -178,19 +182,11 @@ export async function importApkg(
 
     // Anki uses collection.anki2 (schema 1) or collection.anki21 (schema 2).
     // NOTE: expo-sqlite's openDatabaseAsync in SDK 55 is designed for
-    // app-scoped databases. Opening an arbitrary file path may require the
-    // full absolute path and could behave differently across platforms.
-    // We try the path directly; if this fails a future fix may need to copy
-    // the DB into the app's SQLite directory first.
-    let dbPath: string;
-    const anki21 = `${unzipDir}/collection.anki21`;
-    const anki2 = `${unzipDir}/collection.anki2`;
-    const anki21Info = await FileSystem.getInfoAsync(anki21);
-    if (anki21Info.exists) {
-      dbPath = anki21;
-    } else {
-      dbPath = anki2;
-    }
+    // app-scoped databases. Opening an arbitrary file path may require
+    // special handling. We try the full path directly.
+    const anki21 = new File(unzipDir, 'collection.anki21');
+    const anki2 = new File(unzipDir, 'collection.anki2');
+    const dbPath = anki21.exists ? anki21.uri : anki2.uri;
 
     const db = await openDatabaseAsync(dbPath);
 
@@ -208,7 +204,6 @@ export async function importApkg(
           string,
           { name: string }
         >;
-        // Pick the first non-default deck, or fall back to any deck name
         const entries = Object.values(decksObj);
         const nonDefault = entries.find((d) => d.name !== 'Default');
         deckName = nonDefault?.name ?? entries[0]?.name ?? deckName;
@@ -239,17 +234,15 @@ export async function importApkg(
     // 7. Copy media files
     // -----------------------------------------------------------------------
     onProgress?.('Copying media…', 60);
-    const deckDir = getImportedDeckDir(deckId);
-    const mediaDir = `${deckDir}/media`;
-    await FileSystem.makeDirectoryAsync(mediaDir, { intermediates: true });
+    const deckMediaDir = new Directory(Paths.document, 'imported-decks', deckId, 'media');
+    deckMediaDir.create();
 
     // Anki stores a JSON mapping file: { "0": "audio.mp3", "1": "image.jpg", … }
     let mediaMap: Record<string, string> = {};
-    const mediaJsonPath = `${unzipDir}/media`;
-    const mediaJsonInfo = await FileSystem.getInfoAsync(mediaJsonPath);
-    if (mediaJsonInfo.exists) {
+    const mediaJsonFile = new File(unzipDir, 'media');
+    if (mediaJsonFile.exists) {
       try {
-        const raw = await FileSystem.readAsStringAsync(mediaJsonPath);
+        const raw = await mediaJsonFile.text();
         mediaMap = JSON.parse(raw) as Record<string, string>;
       } catch {
         // media file may be corrupt or missing — proceed without media
@@ -259,23 +252,22 @@ export async function importApkg(
     // Copy each numbered media file → named file in deck media dir
     const mediaNameSet = new Set(Object.values(mediaMap));
     for (const [numericName, realName] of Object.entries(mediaMap)) {
-      const src = `${unzipDir}/${numericName}`;
-      const dst = `${mediaDir}/${realName}`;
-      const srcInfo = await FileSystem.getInfoAsync(src);
-      if (srcInfo.exists) {
-        await FileSystem.copyAsync({ from: src, to: dst });
+      const src = new File(unzipDir, numericName);
+      if (src.exists) {
+        const dst = new File(deckMediaDir, realName);
+        src.copy(dst);
       }
     }
 
     // Update card audio/image refs to file:// URIs
     for (const card of cards) {
       if (card.audio && mediaNameSet.has(card.audio)) {
-        card.audio = `${mediaDir}/${card.audio}`;
+        card.audio = new File(deckMediaDir, card.audio).uri;
       } else {
         delete card.audio;
       }
       if (card.image && mediaNameSet.has(card.image)) {
-        card.image = `${mediaDir}/${card.image}`;
+        card.image = new File(deckMediaDir, card.image).uri;
       } else {
         delete card.image;
       }
@@ -285,21 +277,16 @@ export async function importApkg(
     // 8. Save deck.json and register
     // -----------------------------------------------------------------------
     onProgress?.('Saving deck…', 90);
-    const deckJsonPath = `${deckDir}/deck.json`;
-    await FileSystem.writeAsStringAsync(deckJsonPath, JSON.stringify(cards));
-
-    // Estimate size: cards JSON + media files
-    const deckJsonInfo = await FileSystem.getInfoAsync(deckJsonPath);
-    const sizeBytes = (deckJsonInfo.exists && 'size' in deckJsonInfo)
-      ? (deckJsonInfo.size ?? 0)
-      : 0;
+    const deckJsonFile = new File(Paths.document, 'imported-decks', deckId, 'deck.json');
+    deckJsonFile.create();
+    await deckJsonFile.write(JSON.stringify(cards));
 
     const meta: ImportedDeckMeta = {
       id: deckId,
       name: deckName,
       cardCount: cards.length,
       importedAt: new Date().toISOString(),
-      sizeBytes,
+      sizeBytes: deckJsonFile.size ?? 0,
     };
 
     saveImportedDeck(meta);
@@ -308,17 +295,13 @@ export async function importApkg(
     // 9. Clean up temp files
     // -----------------------------------------------------------------------
     onProgress?.('Cleaning up…', 95);
-    await FileSystem.deleteAsync(cacheDir, { idempotent: true });
+    cacheDir.delete();
 
     onProgress?.('Done', 100);
     return meta;
   } catch (error) {
     // Best-effort cleanup on failure
-    try {
-      await FileSystem.deleteAsync(cacheDir, { idempotent: true });
-    } catch {
-      // ignore cleanup errors
-    }
+    try { cacheDir.delete(); } catch { /* ignore */ }
     throw error;
   }
 }

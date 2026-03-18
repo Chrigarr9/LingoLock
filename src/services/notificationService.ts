@@ -163,8 +163,8 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   const result = getCardById(data.cardId);
   const card = result?.card ?? null;
 
-  if (!card) {
-    console.error('[Notifications] Card not found:', data.cardId);
+  if (!card || !('wordInContext' in card)) {
+    console.error('[Notifications] Card not found or not a cloze card:', data.cardId);
     return;
   }
 
