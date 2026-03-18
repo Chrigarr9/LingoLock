@@ -82,6 +82,14 @@ function getMaxSeenSentenceByChapter(): Map<number, number> {
  *
  * Returns the card unchanged if fewer than 2 variants are unlocked.
  */
+/**
+ * Build an audio/image key from a chapter number and sentence index.
+ * e.g. chapter=1, sentenceIndex=5 → "ch01_s05"
+ */
+function mediaKey(chapter: number, sentenceIndex: number): string {
+  return `ch${String(chapter).padStart(2, '0')}_s${String(sentenceIndex).padStart(2, '0')}`;
+}
+
 function pickVariant(
   card: ClozeCard,
   currentChapter: number,
@@ -97,7 +105,16 @@ function pickVariant(
   });
   if (unlocked.length < 2) return card;
   const pick = unlocked[Math.floor(Math.random() * unlocked.length)];
-  return { ...card, sentence: pick.sentence, sentenceTranslation: pick.sentenceTranslation };
+  // Update audio/image to match the variant's sentence so the right
+  // media plays — prevents audio/image mismatch when a variant is shown.
+  const key = mediaKey(pick.chapter, pick.sentenceIndex);
+  return {
+    ...card,
+    sentence: pick.sentence,
+    sentenceTranslation: pick.sentenceTranslation,
+    audio: card.audio ? key : undefined,
+    image: card.image ? key : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -166,6 +183,47 @@ export function getCurrentChapter(): number {
 
   // All chapters mastered — return last chapter (review mode)
   return CHAPTERS[CHAPTERS.length - 1].chapterNumber;
+}
+
+// ---------------------------------------------------------------------------
+// getDueCards — lightweight check for cards that are currently due
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns card IDs of all cards that are currently due for review.
+ * Used by the challenge screen to detect newly-due cards mid-session.
+ */
+export function getDueCardIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const chapter of CHAPTERS) {
+    for (const card of chapter.cards) {
+      const state = loadCardState(card.id);
+      if (state !== null && isDue(state)) {
+        ids.add(card.id);
+      }
+    }
+  }
+  return ids;
+}
+
+/**
+ * Returns SessionCards for cards that are due but not already in the queue.
+ * Used to hot-append newly-due cards during an active session.
+ */
+export function getDueCards(excludeIds: Set<string>): SessionCard[] {
+  const currentChapterNumber = getCurrentChapter();
+  const seenByChapter = getMaxSeenSentenceByChapter();
+  const result: SessionCard[] = [];
+  for (const chapter of CHAPTERS) {
+    for (const card of chapter.cards) {
+      if (excludeIds.has(card.id)) continue;
+      const state = loadCardState(card.id);
+      if (state !== null && isDue(state)) {
+        result.push(toSessionCard(card, currentChapterNumber, seenByChapter));
+      }
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

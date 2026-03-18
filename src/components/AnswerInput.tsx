@@ -7,12 +7,15 @@ interface AnswerInputProps {
   onSubmit: (answer: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Hide the Check button (e.g. when keyboard is open — Enter key submits) */
+  hideButton?: boolean;
 }
 
 export function AnswerInput({
   onSubmit,
   disabled = false,
   placeholder = 'Type your answer...',
+  hideButton = false,
 }: AnswerInputProps) {
   const [answer, setAnswer] = useState('');
   const theme = useAppTheme();
@@ -42,16 +45,18 @@ export function AnswerInput({
         activeOutlineColor={theme.colors.primary}
         placeholderTextColor={theme.colors.onSurfaceVariant}
       />
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        disabled={disabled || !answer.trim()}
-        style={styles.button}
-        contentStyle={styles.buttonContent}
-        labelStyle={styles.buttonLabel}
-      >
-        Check
-      </Button>
+      {!hideButton && (
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          disabled={disabled || !answer.trim()}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+          labelStyle={styles.buttonLabel}
+        >
+          Check
+        </Button>
+      )}
     </View>
   );
 }

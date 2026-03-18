@@ -10,7 +10,7 @@ import { AnswerInput } from '../src/components/AnswerInput';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
-import { buildSession, handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
+import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
 import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
 import type { ReviewGrade } from '../src/services/fsrs';
 import {
@@ -24,6 +24,7 @@ import {
 } from '../src/services/storage';
 import { updateStatsAfterSession, recordAbort, getStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
+import { useKeyboardVisible } from '../src/hooks/useKeyboardVisible';
 import type { SessionCard } from '../src/types/vocabulary';
 
 /** How long to show the answer reveal before auto-advancing on correct answer */
@@ -70,6 +71,7 @@ export default function ChallengeScreen() {
   const [isEmpty, setIsEmpty] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
   const [hasMoreCards, setHasMoreCards] = useState(false);
+  const keyboardVisible = useKeyboardVisible();
 
   // --------------------------------------------------------------------------
   // Session initialization
@@ -129,6 +131,19 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   const advanceToNext = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
+
+    // On every card advance, check for cards that became due mid-session
+    // (e.g. 10-min FSRS intervals). Appends them so the progress counter
+    // updates immediately and the user doesn't need to return to the home screen.
+    const queueIds = new Set(queue.map((sc) => sc.card.id));
+    const newlyDue = getDueCards(queueIds);
+    if (newlyDue.length > 0) {
+      const updated = [...queue, ...newlyDue];
+      totalCardCount.current = updated.length;
+      setQueue(updated);
+      console.log(`[Challenge] Appended ${newlyDue.length} newly-due card(s)`);
+    }
+
     const nextIndex = currentIndex + 1;
     if (nextIndex < totalCardCount.current) {
       setCurrentIndex(nextIndex);
@@ -287,6 +302,7 @@ export default function ChallengeScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
+      edges={['top']}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -413,6 +429,7 @@ export default function ChallengeScreen() {
                   hintText={currentHintText}
                   hintUsed={hintUsed}
                   onHintRequest={handleHintRequest}
+                  hideImage={keyboardVisible}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -424,7 +441,7 @@ export default function ChallengeScreen() {
 
                 {!showAnswer && (
                   <View style={styles.inputArea}>
-                    <AnswerInput onSubmit={handleTextSubmit} />
+                    <AnswerInput onSubmit={handleTextSubmit} hideButton={keyboardVisible} />
                   </View>
                 )}
               </View>
@@ -602,7 +619,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 32,
   },
   mcArea: {
     paddingTop: 16,
@@ -621,8 +638,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   completionArea: {
+    flex: 1,
     gap: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   completionCard: {
     alignItems: 'center',

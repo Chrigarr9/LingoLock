@@ -98,12 +98,12 @@ const styles = StyleSheet.create({
   choice: {
     width: '47%',
     flexGrow: 1,
-    minHeight: 100,
+    minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 2,
-    paddingVertical: 20,
+    paddingVertical: 14,
     paddingHorizontal: 16,
   },
   choiceText: {

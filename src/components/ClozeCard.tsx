@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image, Pressable, type ImageSourcePropType } from 'react-native';
+import { View, StyleSheet, Platform, Image, Pressable, useWindowDimensions, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useAppTheme } from '../theme';
@@ -24,6 +24,8 @@ interface ClozeCardDisplayProps {
   onHintRequest?: () => void;
   /** Called when user taps "Already know this?" */
   onAlreadyKnow?: () => void;
+  /** When true, the hero image is hidden (e.g. keyboard is open) */
+  hideImage?: boolean;
 }
 
 /**
@@ -44,6 +46,7 @@ export function ClozeCardDisplay({
   hintUsed,
   onHintRequest,
   onAlreadyKnow,
+  hideImage = false,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { card, answerType } = sessionCard;
@@ -52,10 +55,16 @@ export function ClozeCardDisplay({
   const onAudioFinishRef = useRef(onAudioFinish);
   onAudioFinishRef.current = onAudioFinish;
 
+  const { height: windowHeight } = useWindowDimensions();
+  // On short screens, shrink the image so the MC grid / input stays visible.
+  // ~440px is the approximate non-image overhead (header ~50 + progress ~30
+  // + card text/hint ~100 + MC grid ~190 + padding/gaps ~70).
+  // Below 60px the image is too small to be useful — hide it entirely.
+  const imageMaxHeight = Math.max(0, Math.min(200, windowHeight - 440));
+  const shouldShowImage = imageMaxHeight >= 60;
+
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
-
-  const answerTypeLabel = answerType === 'mc4' ? 'Choose 1 of 4' : 'Type answer';
 
   const sentenceParts = card.sentence.split('_____');
 
@@ -128,7 +137,10 @@ export function ClozeCardDisplay({
   useEffect(() => {
     setImageError(false);
   }, [card.id]);
-  const showImage = !!imageSource && !imageError;
+  const showImage = !!imageSource && !imageError && !hideImage && shouldShowImage;
+
+  // Can the German hint be tapped to reveal a spelling hint? (text mode only)
+  const hintIsTappable = answerType === 'text' && !hintUsed && !!onHintRequest;
 
   // Text content rendered below the image (or as sole card content)
   const textContent = (
@@ -157,7 +169,14 @@ export function ClozeCardDisplay({
             style={[styles.sentenceText, { color: theme.colors.onSurface }]}
           >
             {sentenceParts[0]}
-            <Text style={styles.blankSpan}>{'_____'}</Text>
+            {/* Blank or spelling hint replacing the blank */}
+            {answerType === 'text' && hintUsed && hintText ? (
+              <Text style={[styles.hintInBlank, { color: theme.colors.onSurfaceVariant }]}>
+                {hintText}
+              </Text>
+            ) : (
+              <Text style={styles.blankSpan}>{'_____'}</Text>
+            )}
             {sentenceParts[1] ?? ''}
           </Text>
         )}
@@ -165,78 +184,51 @@ export function ClozeCardDisplay({
 
       {/* After-answer feedback */}
       {showAnswer && (
-        <>
-          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-          <Text
-            variant="bodyMedium"
-            style={[
-              styles.feedbackText,
-              { color: isCorrect === false ? incorrectColor : correctColor },
-            ]}
-          >
-            {isCorrect === false
-              ? `\u2717 ${card.wordInContext}`
-              : `\u2713 ${card.wordInContext}`}
-          </Text>
-        </>
+        <Text
+          variant="bodyMedium"
+          style={[
+            styles.feedbackText,
+            { color: isCorrect === false ? incorrectColor : correctColor },
+          ]}
+        >
+          {isCorrect === false
+            ? `\u2717 ${card.wordInContext}`
+            : `\u2713 ${card.wordInContext}`}
+        </Text>
       )}
 
-      {/* Before-answer info */}
+      {/* German hint — tappable in text mode to reveal spelling hint */}
       {!showAnswer && (
-        <>
-          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-          <View style={styles.hintRow}>
-            <Icon source="lightbulb-outline" size={18} color={theme.custom.brandBlue} />
+        <View style={styles.hintArea}>
+          <Pressable
+            onPress={hintIsTappable ? onHintRequest : undefined}
+            style={styles.hintRow}
+            accessibilityRole={hintIsTappable ? 'button' : undefined}
+            accessibilityLabel={hintIsTappable ? 'Show spelling hint' : undefined}
+          >
+            <Icon
+              source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
+              size={22}
+              color={theme.custom.brandBlue}
+            />
             <Text
               variant="bodyLarge"
               style={[styles.germanHint, { color: theme.custom.brandBlue }]}
             >
               {card.germanHint}
             </Text>
-          </View>
-
-          {/* Spelling hint (text mode only) — shown after user taps hint button */}
-          {answerType === 'text' && hintUsed && hintText && (
-            <Text
-              variant="bodyMedium"
-              style={[styles.spellingHint, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {hintText}
-            </Text>
-          )}
-
-          {/* Hint button + answer type label row */}
-          <View style={styles.hintActionRow}>
-            {answerType === 'text' && !hintUsed && onHintRequest && (
-              <IconButton
-                icon="lightbulb-on-outline"
-                size={20}
-                iconColor={theme.colors.onSurfaceVariant}
-                onPress={onHintRequest}
-                accessibilityLabel="Show spelling hint"
-                style={styles.hintButton}
-              />
-            )}
-            <Text
-              variant="labelSmall"
-              style={[styles.answerTypeLabel, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {answerTypeLabel}
-            </Text>
-          </View>
-
-          {/* "Already know this?" — first encounter only */}
+          </Pressable>
           {sessionCard.isFirstEncounter && onAlreadyKnow && (
             <Pressable onPress={onAlreadyKnow} accessibilityRole="button">
               <Text
                 variant="labelSmall"
                 style={[styles.alreadyKnowLink, { color: theme.colors.onSurfaceVariant }]}
               >
-                Already know this?
+                I know this
               </Text>
             </Pressable>
           )}
-        </>
+        </View>
       )}
     </>
   );
@@ -258,7 +250,7 @@ export function ClozeCardDisplay({
     >
       {/* Hero image — flush at top, full card width, ratio-enforcing wrapper */}
       {showImage && (
-        <View style={styles.cardImageWrapper}>
+        <View style={[styles.cardImageWrapper, { maxHeight: imageMaxHeight }]}>
           <Image
             source={imageSource!}
             style={styles.cardImage}
@@ -286,20 +278,18 @@ const CARD_IMAGE_RATIO = 3 / 2;
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 220,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
     borderWidth: 1,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     gap: 4,
     overflow: 'hidden',
   },
   cardImageWrapper: {
     width: '100%',
     aspectRatio: CARD_IMAGE_RATIO,
-    maxHeight: 180,
     overflow: 'hidden',
   },
   cardImage: {
@@ -309,8 +299,8 @@ const styles = StyleSheet.create({
   cardTextContent: {
     width: '100%',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     gap: 4,
   },
   sentenceRow: {
@@ -327,52 +317,39 @@ const styles = StyleSheet.create({
     color: 'transparent',
     borderBottomWidth: 2,
   },
-  separator: {
-    width: 40,
-    height: 2,
-    borderRadius: 1,
-    marginVertical: 12,
+  hintInBlank: {
+    fontFamily: Platform.OS === 'web' ? 'monospace' : 'monospace',
+    fontWeight: '400',
+    letterSpacing: 2,
+    textDecorationLine: 'underline',
+  },
+  hintArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: 4,
   },
   hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   germanHint: {
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  spellingHint: {
-    fontFamily: Platform.OS === 'web' ? 'monospace' : 'monospace',
-    fontSize: 18,
-    letterSpacing: 4,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  hintActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    marginTop: 2,
-  },
-  hintButton: {
-    margin: 0,
-  },
-  answerTypeLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     fontWeight: '700',
+    textAlign: 'center',
+    fontSize: 17,
   },
   alreadyKnowLink: {
     textDecorationLine: 'underline',
-    textAlign: 'center',
-    marginTop: 8,
-    opacity: 0.7,
+    marginLeft: 12,
+    opacity: 0.6,
+    fontSize: 11,
   },
   feedbackText: {
     fontWeight: '700',
     textAlign: 'center',
     fontSize: 18,
+    marginTop: 2,
   },
 });
