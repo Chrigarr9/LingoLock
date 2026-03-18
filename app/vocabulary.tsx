@@ -20,7 +20,7 @@ interface SectionData {
 export default function VocabularyScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-  const { chapters } = useActiveBundle();
+  const { config, chapters } = useActiveBundle();
   const params = useLocalSearchParams<{ chapter?: string }>();
 
   const [search, setSearch] = useState('');
@@ -141,7 +141,7 @@ export default function VocabularyScreen() {
       {/* Search bar */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Search Spanish or German..."
+          placeholder={config.searchPlaceholder}
           value={search}
           onChangeText={setSearch}
           style={[styles.searchBar, { backgroundColor: theme.custom.cardBackground }]}

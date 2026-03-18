@@ -33,13 +33,6 @@ import { useActiveBundle } from '../src/content/activeBundleProvider';
 /** How long to show the answer reveal before auto-advancing on correct answer */
 const AUTO_ADVANCE_MS = 1500;
 
-function getMotivationalMessage(accuracy: number): string {
-  if (accuracy === 100) return '¡Perfecto! Every answer correct.';
-  if (accuracy >= 80) return '¡Muy bien! Great session.';
-  if (accuracy >= 60) return '¡Bien! Keep practising.';
-  return 'Every mistake is a lesson. ¡Ánimo!';
-}
-
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
     source: string;
@@ -49,7 +42,15 @@ export default function ChallengeScreen() {
   }>();
   const router = useRouter();
   const theme = useAppTheme();
-  const { chapters } = useActiveBundle();
+  const { config, chapters } = useActiveBundle();
+
+  function getMotivationalMessage(accuracy: number): string {
+    if (accuracy === 100) return config.motivational.perfect;
+    if (accuracy >= 80) return config.motivational.great;
+    if (accuracy >= 60) return config.motivational.good;
+    return config.motivational.encouragement;
+  }
+
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalCardCount = useRef(0);   // original session length — used for stats
   const totalCardCount = useRef(0);      // grows when wrong-answer cards are re-inserted

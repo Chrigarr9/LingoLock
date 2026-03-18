@@ -27,7 +27,7 @@ import {
   saveNotificationSwipeAwayDate,
 } from './storage';
 import { isDue, getAnswerType } from './fsrs';
-import { CHAPTERS } from '../content/bundle';
+import { getAllEnabledChapters } from '../content/bundles';
 import type { NotificationData } from './notificationService';
 import type { ClozeCard } from '../types/vocabulary';
 
@@ -89,10 +89,10 @@ function formatChoicesForBody(choices: string[]): string {
   return choices.map((choice, i) => `${labels[i]}) ${choice}`).join('  ');
 }
 
-/** Get all due repetition cards across all chapters */
+/** Get all due repetition cards across all enabled bundles */
 function getDueReviewCards(): ClozeCard[] {
   const dueCards: ClozeCard[] = [];
-  for (const chapter of CHAPTERS) {
+  for (const chapter of getAllEnabledChapters()) {
     for (const card of chapter.cards) {
       const state = loadCardState(card.id);
       // Only repetition cards (have state) where FSRS says due
