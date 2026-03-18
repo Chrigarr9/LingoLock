@@ -405,7 +405,7 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                   <RNSwitch
-                    value={isEnabled || isActive}
+                    value={isEnabled}
                     onValueChange={() => toggleEnabled(bundle.id)}
                     trackColor={{ true: theme.custom.brandBlue }}
                   />
