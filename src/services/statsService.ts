@@ -15,6 +15,7 @@
 import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
 import { isCardMastered, isDue } from './fsrs';
 import type { ChapterData } from '../types/vocabulary';
+import type { SimpleCard } from '../types/simpleCard';
 import { getCurrentChapter } from './cardSelector';
 
 // ---------------------------------------------------------------------------
@@ -191,6 +192,27 @@ export function getCardsDueCount(chapters: ChapterData[]): number {
   const remainingBudget = Math.max(0, loadNewWordsPerDay() - loadNewWordsIntroducedToday());
   const newCardsToIntroduce = Math.min(newCardsAvailable, remainingBudget);
 
+  return dueReviews + newCardsToIntroduce;
+}
+
+/**
+ * Returns due card count for an imported deck (SimpleCard[]).
+ * Same logic as getCardsDueCount but for flat card arrays without chapters.
+ */
+export function getImportedCardsDueCount(cards: SimpleCard[], bundleId: string): number {
+  let dueReviews = 0;
+  let newCardsAvailable = 0;
+  for (const card of cards) {
+    const namespacedId = `${bundleId}:${card.id}`;
+    const state = loadCardState(namespacedId);
+    if (state === null) {
+      newCardsAvailable++;
+    } else if (isDue(state)) {
+      dueReviews++;
+    }
+  }
+  const remainingBudget = Math.max(0, loadNewWordsPerDay() - loadNewWordsIntroducedToday());
+  const newCardsToIntroduce = Math.min(newCardsAvailable, remainingBudget);
   return dueReviews + newCardsToIntroduce;
 }
 

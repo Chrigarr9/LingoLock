@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
-import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
+import { getStreak, getChapterMastery, getCardsDueCount, getImportedCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { usePWAInstall } from '../src/hooks/usePWAInstall';
 import { BundlePicker } from '../src/components/BundlePicker';
@@ -13,7 +13,7 @@ import { BundlePicker } from '../src/components/BundlePicker';
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-  const { config, chapters, switchBundle } = useActiveBundle();
+  const { config, chapters, simpleCards, switchBundle } = useActiveBundle();
   const [pickerVisible, setPickerVisible] = useState(false);
 
   function getGreeting(): string {
@@ -34,10 +34,16 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       setStreak(getStreak());
-      const chapter = getCurrentChapterNumber(chapters);
-      setCurrentChapter(chapter);
-      setChapterProgress(getChapterMastery(chapters, chapter));
-      setCardsDue(getCardsDueCount(chapters));
+      if (config.type === 'imported') {
+        setCurrentChapter(0);
+        setChapterProgress(0);
+        setCardsDue(getImportedCardsDueCount(simpleCards, config.id));
+      } else {
+        const chapter = getCurrentChapterNumber(chapters);
+        setCurrentChapter(chapter);
+        setChapterProgress(getChapterMastery(chapters, chapter));
+        setCardsDue(getCardsDueCount(chapters));
+      }
       // Refresh greeting in case time-of-day has changed
       setGreeting(getGreeting());
     }, [chapters])

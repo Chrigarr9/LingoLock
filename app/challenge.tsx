@@ -509,6 +509,7 @@ export default function ChallengeScreen() {
             {isSelfRated && (
               <View style={styles.mcArea}>
                 <SelfRatedCard
+                  key={currentCard.card.id}
                   card={currentCard.card as SimpleCard}
                   onRate={handleSelfRate}
                 />
