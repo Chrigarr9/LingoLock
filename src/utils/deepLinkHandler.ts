@@ -22,6 +22,11 @@ export type DeepLinkParams =
  */
 export function parseDeepLink(url: string): DeepLinkParams | null {
   try {
+    // Skip non-lingolock URLs (on web, the page URL itself triggers link events)
+    if (!url.startsWith('lingolock://') && !url.includes('lingolock://')) {
+      return null;
+    }
+
     const parsed = Linking.parse(url);
 
     // Route based on hostname
