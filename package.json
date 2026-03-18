@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
+    "web": "npx expo export --platform web && npx serve dist -s",
+    "web:dev": "expo start --web",
     "build:content": "npx tsx scripts/build-content.ts",
     "build:web": "npx expo export --platform web",
     "test": "jest"

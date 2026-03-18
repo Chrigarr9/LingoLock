@@ -21,6 +21,25 @@
 import type { CardState, PersistedStats } from '../types/vocabulary';
 
 // ---------------------------------------------------------------------------
+// SSR safety — localStorage doesn't exist during server-side rendering
+// ---------------------------------------------------------------------------
+
+/** Check SSR lazily each call — localStorage may not exist during server rendering
+ *  but gets defined later in test environments. */
+function hasLocalStorage(): boolean {
+  return typeof localStorage !== 'undefined';
+}
+
+/** SSR-safe localStorage wrapper. Returns defaults during SSR. */
+const store = {
+  getItem: (key: string): string | null => hasLocalStorage() ? localStorage.getItem(key) : null,
+  setItem: (key: string, value: string): void => { if (hasLocalStorage()) localStorage.setItem(key, value); },
+  removeItem: (key: string): void => { if (hasLocalStorage()) localStorage.removeItem(key); },
+  key: (index: number): string | null => hasLocalStorage() ? localStorage.key(index) : null,
+  get length(): number { return hasLocalStorage() ? localStorage.length : 0; },
+};
+
+// ---------------------------------------------------------------------------
 // Key constants
 // ---------------------------------------------------------------------------
 
@@ -54,7 +73,7 @@ const DEFAULT_STATS: PersistedStats = {
  * Serializes the CardState object to JSON string.
  */
 export function saveCardState(cardId: string, state: CardState): void {
-  localStorage.setItem(`${CARD_PREFIX}${cardId}`, JSON.stringify(state));
+  store.setItem(`${CARD_PREFIX}${cardId}`, JSON.stringify(state));
 }
 
 /**
@@ -62,7 +81,7 @@ export function saveCardState(cardId: string, state: CardState): void {
  * Returns null if the card has never been reviewed.
  */
 export function loadCardState(cardId: string): CardState | null {
-  const raw = localStorage.getItem(`${CARD_PREFIX}${cardId}`);
+  const raw = store.getItem(`${CARD_PREFIX}${cardId}`);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as CardState;
@@ -79,8 +98,8 @@ export function loadCardState(cardId: string): CardState | null {
 export function loadAllCardStates(): CardState[] {
   // Snapshot keys first to avoid iteration issues if storage mutates
   const keys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (let i = 0; i < store.length; i++) {
+    const key = store.key(i);
     if (key !== null && key.startsWith(CARD_PREFIX)) {
       keys.push(key);
     }
@@ -100,7 +119,7 @@ export function loadAllCardStates(): CardState[] {
  * Typically used when a card is removed or reset.
  */
 export function deleteCardState(cardId: string): void {
-  localStorage.removeItem(`${CARD_PREFIX}${cardId}`);
+  store.removeItem(`${CARD_PREFIX}${cardId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +130,7 @@ export function deleteCardState(cardId: string): void {
  * Persist user stats to localStorage.
  */
 export function saveStats(stats: PersistedStats): void {
-  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  store.setItem(STATS_KEY, JSON.stringify(stats));
 }
 
 /**
@@ -119,7 +138,7 @@ export function saveStats(stats: PersistedStats): void {
  * Returns sensible defaults (spread copy) if no stats have been saved yet.
  */
 export function loadStats(): PersistedStats {
-  const raw = localStorage.getItem(STATS_KEY);
+  const raw = store.getItem(STATS_KEY);
   if (!raw) return { ...DEFAULT_STATS, perAppStats: {} };
   try {
     return JSON.parse(raw) as PersistedStats;
@@ -137,7 +156,7 @@ export function loadStats(): PersistedStats {
  * Returns false (unmuted) if never set.
  */
 export function loadAudioMuted(): boolean {
-  const raw = localStorage.getItem(AUDIO_MUTED_KEY);
+  const raw = store.getItem(AUDIO_MUTED_KEY);
   if (raw === null) return false;
   return raw === 'true';
 }
@@ -146,7 +165,7 @@ export function loadAudioMuted(): boolean {
  * Persist the user's audio mute preference.
  */
 export function saveAudioMuted(muted: boolean): void {
-  localStorage.setItem(AUDIO_MUTED_KEY, String(muted));
+  store.setItem(AUDIO_MUTED_KEY, String(muted));
 }
 
 /**
@@ -155,7 +174,7 @@ export function saveAudioMuted(muted: boolean): void {
  * Valid values: 0.75, 1.0, 1.25
  */
 export function loadAudioSpeed(): number {
-  const raw = localStorage.getItem(AUDIO_SPEED_KEY);
+  const raw = store.getItem(AUDIO_SPEED_KEY);
   if (raw === null) return 1.0;
   const parsed = parseFloat(raw);
   return isNaN(parsed) ? 1.0 : parsed;
@@ -165,7 +184,7 @@ export function loadAudioSpeed(): number {
  * Persist the user's audio playback speed preference.
  */
 export function saveAudioSpeed(speed: number): void {
-  localStorage.setItem(AUDIO_SPEED_KEY, String(speed));
+  store.setItem(AUDIO_SPEED_KEY, String(speed));
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +200,7 @@ const NEW_WORDS_TODAY_DATE_KEY = 'll.new_words_today_date';
  * Returns 20 if never set.
  */
 export function loadNewWordsPerDay(): number {
-  const raw = localStorage.getItem(NEW_WORDS_PER_DAY_KEY);
+  const raw = store.getItem(NEW_WORDS_PER_DAY_KEY);
   if (raw === null) return 20;
   const parsed = parseInt(raw, 10);
   return isNaN(parsed) ? 20 : parsed;
@@ -192,7 +211,7 @@ export function loadNewWordsPerDay(): number {
  * Clamped to [1, 50].
  */
 export function saveNewWordsPerDay(n: number): void {
-  localStorage.setItem(NEW_WORDS_PER_DAY_KEY, String(Math.max(1, Math.min(50, n))));
+  store.setItem(NEW_WORDS_PER_DAY_KEY, String(Math.max(1, Math.min(50, n))));
 }
 
 /**
@@ -201,9 +220,9 @@ export function saveNewWordsPerDay(n: number): void {
  */
 export function loadNewWordsIntroducedToday(): number {
   const today = new Date().toISOString().slice(0, 10);
-  const storedDate = localStorage.getItem(NEW_WORDS_TODAY_DATE_KEY);
+  const storedDate = store.getItem(NEW_WORDS_TODAY_DATE_KEY);
   if (storedDate !== today) return 0;
-  const raw = localStorage.getItem(NEW_WORDS_TODAY_KEY);
+  const raw = store.getItem(NEW_WORDS_TODAY_KEY);
   if (raw === null) return 0;
   const parsed = parseInt(raw, 10);
   return isNaN(parsed) ? 0 : parsed;
@@ -217,8 +236,8 @@ export function loadNewWordsIntroducedToday(): number {
 export function recordNewWordsIntroduced(count: number): void {
   const today = new Date().toISOString().slice(0, 10);
   const current = loadNewWordsIntroducedToday();
-  localStorage.setItem(NEW_WORDS_TODAY_DATE_KEY, today);
-  localStorage.setItem(NEW_WORDS_TODAY_KEY, String(current + count));
+  store.setItem(NEW_WORDS_TODAY_DATE_KEY, today);
+  store.setItem(NEW_WORDS_TODAY_KEY, String(current + count));
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +253,7 @@ const NOTIFICATIONS_ENABLED_KEY = 'll.notifications_enabled';
  * Returns 300 (5 minutes) if never set.
  */
 export function loadNotificationInterval(): number {
-  const raw = localStorage.getItem(NOTIFICATION_INTERVAL_KEY);
+  const raw = store.getItem(NOTIFICATION_INTERVAL_KEY);
   if (raw === null) return 300;
   const parsed = parseInt(raw, 10);
   return isNaN(parsed) ? 300 : parsed;
@@ -244,7 +263,7 @@ export function loadNotificationInterval(): number {
  * Persist the notification interval in seconds.
  */
 export function saveNotificationInterval(seconds: number): void {
-  localStorage.setItem(NOTIFICATION_INTERVAL_KEY, String(seconds));
+  store.setItem(NOTIFICATION_INTERVAL_KEY, String(seconds));
 }
 
 /**
@@ -252,14 +271,14 @@ export function saveNotificationInterval(seconds: number): void {
  * Returns null if never set or not today.
  */
 export function loadNotificationSwipeAwayDate(): string | null {
-  return localStorage.getItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY) ?? null;
+  return store.getItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY) ?? null;
 }
 
 /**
  * Persist the swipe-away date (YYYY-MM-DD format).
  */
 export function saveNotificationSwipeAwayDate(date: string): void {
-  localStorage.setItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY, date);
+  store.setItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY, date);
 }
 
 /**
@@ -267,7 +286,7 @@ export function saveNotificationSwipeAwayDate(date: string): void {
  * Returns true (enabled) if never set.
  */
 export function loadNotificationsEnabled(): boolean {
-  const raw = localStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+  const raw = store.getItem(NOTIFICATIONS_ENABLED_KEY);
   if (raw === null) return true;
   return raw === 'true';
 }
@@ -276,7 +295,7 @@ export function loadNotificationsEnabled(): boolean {
  * Persist notification enabled state.
  */
 export function saveNotificationsEnabled(enabled: boolean): void {
-  localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
+  store.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
 }
 
 // ---------------------------------------------------------------------------
@@ -291,14 +310,14 @@ export function saveNotificationsEnabled(enabled: boolean): void {
  */
 export function clearAllData(): void {
   const keysToRemove: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (let i = 0; i < store.length; i++) {
+    const key = store.key(i);
     if (key !== null && key.startsWith(LL_PREFIX)) {
       keysToRemove.push(key);
     }
   }
   for (const key of keysToRemove) {
-    localStorage.removeItem(key);
+    store.removeItem(key);
   }
 }
 
@@ -312,11 +331,11 @@ const ENABLED_BUNDLES_KEY = 'll.enabledBundles';
 export const DEFAULT_BUNDLE_ID = 'es-de-buenos-aires';
 
 export function loadActiveBundle(): string {
-  return localStorage.getItem(ACTIVE_BUNDLE_KEY) ?? DEFAULT_BUNDLE_ID;
+  return store.getItem(ACTIVE_BUNDLE_KEY) ?? DEFAULT_BUNDLE_ID;
 }
 
 export function saveActiveBundle(bundleId: string): void {
-  localStorage.setItem(ACTIVE_BUNDLE_KEY, bundleId);
+  store.setItem(ACTIVE_BUNDLE_KEY, bundleId);
   const enabled = loadEnabledBundles();
   if (!enabled.includes(bundleId)) {
     saveEnabledBundles([...enabled, bundleId]);
@@ -324,7 +343,7 @@ export function saveActiveBundle(bundleId: string): void {
 }
 
 export function loadEnabledBundles(): string[] {
-  const raw = localStorage.getItem(ENABLED_BUNDLES_KEY);
+  const raw = store.getItem(ENABLED_BUNDLES_KEY);
   if (!raw) return [DEFAULT_BUNDLE_ID];
   try {
     return JSON.parse(raw);
@@ -334,7 +353,7 @@ export function loadEnabledBundles(): string[] {
 }
 
 export function saveEnabledBundles(bundleIds: string[]): void {
-  localStorage.setItem(ENABLED_BUNDLES_KEY, JSON.stringify(bundleIds));
+  store.setItem(ENABLED_BUNDLES_KEY, JSON.stringify(bundleIds));
 }
 
 export function isBundleMigrationDone(): boolean {
@@ -359,25 +378,25 @@ export function migrateCardIdsToNamespaced(): void {
 /** localStorage-backed shim matching the MMKV API surface used in the app. */
 function createWebStorage(prefix: string) {
   return {
-    getString: (key: string) => localStorage.getItem(`${prefix}${key}`) ?? undefined,
+    getString: (key: string) => store.getItem(`${prefix}${key}`) ?? undefined,
     set: (key: string, value: string | number | boolean) =>
-      localStorage.setItem(`${prefix}${key}`, String(value)),
+      store.setItem(`${prefix}${key}`, String(value)),
     getBoolean: (key: string) => {
-      const v = localStorage.getItem(`${prefix}${key}`);
+      const v = store.getItem(`${prefix}${key}`);
       if (v === null) return undefined;
       return v === 'true';
     },
     getNumber: (key: string) => {
-      const v = localStorage.getItem(`${prefix}${key}`);
+      const v = store.getItem(`${prefix}${key}`);
       if (v === null) return undefined;
       const n = parseFloat(v);
       return isNaN(n) ? undefined : n;
     },
-    remove: (key: string) => localStorage.removeItem(`${prefix}${key}`),
+    remove: (key: string) => store.removeItem(`${prefix}${key}`),
     getAllKeys: () => {
       const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
         if (k !== null && k.startsWith(prefix)) {
           keys.push(k.slice(prefix.length));
         }
@@ -386,11 +405,11 @@ function createWebStorage(prefix: string) {
     },
     clearAll: () => {
       const toRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
         if (k !== null && k.startsWith(prefix)) toRemove.push(k);
       }
-      toRemove.forEach(k => localStorage.removeItem(k));
+      toRemove.forEach(k => store.removeItem(k));
     },
   };
 }
