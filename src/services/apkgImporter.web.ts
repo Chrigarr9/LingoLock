@@ -20,31 +20,10 @@ export type { AnkiNoteRow } from './apkgParser';
 export type ProgressCallback = (stage: string, pct: number) => void;
 
 // ---------------------------------------------------------------------------
-// Web-specific helpers
+// Web-specific constants
 // ---------------------------------------------------------------------------
 
 const IMPORTED_DECK_PREFIX = 'll.imported.';
-const IMPORTED_MEDIA_PREFIX = 'll.media.';
-
-function arrayBufferToDataUri(buffer: ArrayBuffer, mimeType: string): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return `data:${mimeType};base64,${btoa(binary)}`;
-}
-
-function guessMimeType(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-  const mimeMap: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-    gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
-    mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav',
-    m4a: 'audio/mp4', mp4: 'video/mp4',
-  };
-  return mimeMap[ext] ?? 'application/octet-stream';
-}
 
 // ---------------------------------------------------------------------------
 // Web import pipeline
@@ -107,37 +86,19 @@ export async function importApkg(
   const cards = parseAnkiNotes(noteRows, deckId);
   if (cards.length === 0) throw new Error('No valid cards found in deck');
 
-  // Media
-  onProgress?.('Processing media…', 60);
-  let mediaMap: Record<string, string> = {};
-  const mediaFile = zip.file('media');
-  if (mediaFile) {
-    try { mediaMap = JSON.parse(await mediaFile.async('text')); } catch { /* skip */ }
-  }
-
-  const mediaUris: Record<string, string> = {};
-  for (const [numericName, realName] of Object.entries(mediaMap)) {
-    const entry = zip.file(numericName);
-    if (entry) {
-      try {
-        const buf = await entry.async('arraybuffer');
-        const dataUri = arrayBufferToDataUri(buf, guessMimeType(realName));
-        localStorage.setItem(`${IMPORTED_MEDIA_PREFIX}${deckId}.${realName}`, dataUri);
-        mediaUris[realName] = dataUri;
-      } catch { /* skip */ }
-    }
-  }
-
+  // Media: skip on web — localStorage has a ~5MB limit and base64-encoded
+  // audio/images easily exceed it. Cards are text-only on web.
+  onProgress?.('Processing cards…', 60);
   for (const card of cards) {
-    if (card.audio && mediaUris[card.audio]) { card.audio = mediaUris[card.audio]; } else { delete card.audio; }
-    if (card.image && mediaUris[card.image]) { card.image = mediaUris[card.image]; } else { delete card.image; }
+    delete card.audio;
+    delete card.image;
   }
 
   onProgress?.('Saving deck…', 90);
   localStorage.setItem(`${IMPORTED_DECK_PREFIX}${deckId}`, JSON.stringify(cards));
 
   const cardsJson = JSON.stringify(cards);
-  const sizeBytes = cardsJson.length + Object.values(mediaUris).reduce((sum, uri) => sum + uri.length, 0);
+  const sizeBytes = cardsJson.length;
 
   const meta: ImportedDeckMeta = {
     id: deckId, name: deckName, cardCount: cards.length,
