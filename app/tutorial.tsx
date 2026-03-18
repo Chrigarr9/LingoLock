@@ -1,23 +1,15 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, getGlassStyle } from '../src/theme';
 import { TutorialStep } from '../src/components/TutorialStep';
 
 export default function TutorialScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-
-  const glassStyle = {
-    backgroundColor: theme.custom.glassBackground,
-    borderColor: theme.custom.glassBorder,
-    ...Platform.select({
-      web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-      default: {},
-    }),
-  };
+  const glassStyle = getGlassStyle(theme);
 
   return (
     <SafeAreaView

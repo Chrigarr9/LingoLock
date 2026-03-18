@@ -523,7 +523,7 @@ describe('getCurrentChapter', () => {
       'word5-ch01-s04',
     ];
 
-    const learnedIds = ch1Cards.slice(0, 5); // 5/6 = 83% >= 80%
+    const learnedIds = ch1Cards.slice(0, 5); // 5/5 + wordV = all ch1 learned → ch2 unlocked
 
     mockLoadCardState.mockImplementation((id) => {
       if (ch1Cards.includes(id)) return makeCardState(id);

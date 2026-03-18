@@ -5,7 +5,7 @@ import { useAppTheme } from '../theme';
 interface ProgressDotsProps {
   total: number;
   current: number;
-  results?: ('correct' | 'incorrect' | null)[];
+
 }
 
 export function ProgressDots({ total, current }: ProgressDotsProps) {

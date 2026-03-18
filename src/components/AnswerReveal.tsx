@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import { useAppTheme } from '../theme';
+import { useAppTheme, getGlassStyle } from '../theme';
 import type { SessionCard } from '../types/vocabulary';
 
 interface AnswerRevealProps {
   sessionCard: SessionCard;
-  isCorrect: boolean;
   visible: boolean;
 }
 
@@ -16,7 +15,7 @@ interface AnswerRevealProps {
  *
  * Visible when `visible` is true; hidden otherwise (simple conditional render).
  */
-export function AnswerReveal({ sessionCard, isCorrect: _isCorrect, visible }: AnswerRevealProps) {
+export function AnswerReveal({ sessionCard, visible }: AnswerRevealProps) {
   const theme = useAppTheme();
   const { card } = sessionCard;
 
@@ -26,10 +25,7 @@ export function AnswerReveal({ sessionCard, isCorrect: _isCorrect, visible }: An
     <View
       style={[
         styles.container,
-        {
-          backgroundColor: theme.custom.glassBackground,
-          borderColor: theme.custom.glassBorder,
-        },
+        getGlassStyle(theme),
       ]}
     >
       {/* Full German sentence translation */}

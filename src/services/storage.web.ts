@@ -64,7 +64,11 @@ export function saveCardState(cardId: string, state: CardState): void {
 export function loadCardState(cardId: string): CardState | null {
   const raw = localStorage.getItem(`${CARD_PREFIX}${cardId}`);
   if (!raw) return null;
-  return JSON.parse(raw) as CardState;
+  try {
+    return JSON.parse(raw) as CardState;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -73,14 +77,19 @@ export function loadCardState(cardId: string): CardState | null {
  * Used by stats computation and card selector logic.
  */
 export function loadAllCardStates(): CardState[] {
-  const states: CardState[] = [];
+  // Snapshot keys first to avoid iteration issues if storage mutates
+  const keys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key !== null && key.startsWith(CARD_PREFIX)) {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) {
-        states.push(JSON.parse(raw) as CardState);
-      }
+      keys.push(key);
+    }
+  }
+  const states: CardState[] = [];
+  for (const key of keys) {
+    const state = loadCardState(key.slice(CARD_PREFIX.length));
+    if (state !== null) {
+      states.push(state);
     }
   }
   return states;
@@ -112,7 +121,11 @@ export function saveStats(stats: PersistedStats): void {
 export function loadStats(): PersistedStats {
   const raw = localStorage.getItem(STATS_KEY);
   if (!raw) return { ...DEFAULT_STATS, perAppStats: {} };
-  return JSON.parse(raw) as PersistedStats;
+  try {
+    return JSON.parse(raw) as PersistedStats;
+  } catch {
+    return { ...DEFAULT_STATS, perAppStats: {} };
+  }
 }
 
 // ---------------------------------------------------------------------------

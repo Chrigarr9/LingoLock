@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Image, Pressable, useWindowDimensions, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
-import { useAppTheme } from '../theme';
+import { useAppTheme, getGlassStyle } from '../theme';
 import { cardImages, cardAudios } from '../content/bundle';
 import type { SessionCard } from '../types/vocabulary';
 
@@ -112,7 +112,7 @@ export function ClozeCardDisplay({
         soundRef.current = null;
       }
     };
-  }, [showAnswer, card.audio, isMuted]);
+  }, [showAnswer, card.audio, isMuted, playbackSpeed]);
 
   // Cleanup sound on unmount (safety net)
   useEffect(() => {
@@ -237,14 +237,7 @@ export function ClozeCardDisplay({
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: theme.custom.glassBackground,
-          borderColor: theme.custom.glassBorder,
-        },
-        Platform.select({
-          web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-          default: {},
-        }),
+        getGlassStyle(theme),
         showImage && { padding: 0 },
       ]}
     >
@@ -318,7 +311,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   hintInBlank: {
-    fontFamily: Platform.OS === 'web' ? 'monospace' : 'monospace',
+    fontFamily: 'monospace',
     fontWeight: '400',
     letterSpacing: 2,
     textDecorationLine: 'underline',

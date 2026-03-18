@@ -60,11 +60,11 @@ export function MultipleChoiceGrid({
 
   return (
     <View style={styles.grid}>
-      {choices.map((choice) => {
+      {choices.map((choice, idx) => {
         const choiceStyle = getChoiceStyle(choice);
         return (
           <Pressable
-            key={choice}
+            key={`${idx}-${choice}`}
             onPress={() => onSelect(choice)}
             style={[
               styles.choice,

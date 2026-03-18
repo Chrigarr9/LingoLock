@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, getGlassStyle } from '../src/theme';
 import {
   loadAudioMuted,
   saveAudioMuted,
@@ -57,10 +57,7 @@ export default function SettingsScreen() {
         <View
           style={[
             styles.card,
-            {
-              backgroundColor: theme.custom.glassBackground,
-              borderColor: theme.custom.glassBorder,
-            },
+            getGlassStyle(theme),
           ]}
         >
           {/* Audio Mute Toggle */}
@@ -76,7 +73,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* Separator */}
-          <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
 
           {/* Audio Playback Speed */}
           <View style={styles.settingColumn}>
@@ -104,7 +101,7 @@ export default function SettingsScreen() {
                       styles.speedButton,
                       {
                         backgroundColor: isActive ? theme.custom.brandBlue : 'transparent',
-                        borderColor: isActive ? theme.custom.brandBlue : theme.custom.glassBorder,
+                        borderColor: isActive ? theme.custom.brandBlue : theme.colors.outline,
                       },
                     ]}
                     accessibilityRole="button"
@@ -127,7 +124,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* Separator */}
-          <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
 
           {/* New Words Per Day Stepper */}
           <View style={styles.settingColumn}>

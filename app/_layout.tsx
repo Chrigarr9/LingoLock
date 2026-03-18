@@ -1,10 +1,69 @@
-import { useEffect } from 'react';
+import React, { Component, useCallback, useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { Platform, View, useColorScheme } from 'react-native';
+import { Platform, View, useColorScheme, Text, StyleSheet } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
 import { ChallengeParams } from '../src/types/vocabulary';
 import { lightTheme, darkTheme } from '../src/theme';
+
+// ---------------------------------------------------------------------------
+// Error boundary — catches render errors and shows a recovery screen
+// ---------------------------------------------------------------------------
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class AppErrorBoundary extends Component<React.PropsWithChildren, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[ErrorBoundary]', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={errorStyles.container}>
+          <Text style={errorStyles.title}>Something went wrong</Text>
+          <Text style={errorStyles.body}>
+            Please close and reopen the app.
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const errorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#EEF3F9',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C2E4A',
+    marginBottom: 8,
+  },
+  body: {
+    fontSize: 16,
+    color: '#4A6B8A',
+    textAlign: 'center',
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Root layout
+// ---------------------------------------------------------------------------
 
 export default function RootLayout() {
   const router = useRouter();
@@ -19,7 +78,7 @@ export default function RootLayout() {
     }
   }, []);
 
-  const handleDeepLink = (params: ChallengeParams) => {
+  const handleDeepLink = useCallback((params: ChallengeParams) => {
     console.log('[App] Deep link received:', params);
     router.push({
       pathname: '/challenge',
@@ -29,7 +88,7 @@ export default function RootLayout() {
         type: params.type,
       },
     });
-  };
+  }, [router]);
 
   useDeepLink(handleDeepLink);
 
@@ -78,16 +137,18 @@ export default function RootLayout() {
   );
 
   return (
-    <PaperProvider theme={theme}>
-      {Platform.OS === 'web' ? (
-        <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
-          <View style={{ flex: 1, width: '100%', maxWidth: 480 }}>
-            {content}
+    <AppErrorBoundary>
+      <PaperProvider theme={theme}>
+        {Platform.OS === 'web' ? (
+          <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
+            <View style={{ flex: 1, width: '100%', maxWidth: 480 }}>
+              {content}
+            </View>
           </View>
-        </View>
-      ) : (
-        content
-      )}
-    </PaperProvider>
+        ) : (
+          content
+        )}
+      </PaperProvider>
+    </AppErrorBoundary>
   );
 }

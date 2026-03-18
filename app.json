@@ -16,7 +16,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lingolock.app",
       "infoPlist": {
-        "NSUserTrackingUsageDescription": "We use this to track vocabulary learning progress and provide personalized recommendations.",
         "NSNotificationAlwaysDisplayPermission": true,
         "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals."
       }

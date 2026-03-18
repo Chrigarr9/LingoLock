@@ -42,7 +42,11 @@ export function saveCardState(cardId: string, state: CardState): void {
 export function loadCardState(cardId: string): CardState | null {
   const raw = cardStorage.getString(cardId);
   if (!raw) return null;
-  return JSON.parse(raw) as CardState;
+  try {
+    return JSON.parse(raw) as CardState;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -100,7 +104,11 @@ export function saveStats(stats: PersistedStats): void {
 export function loadStats(): PersistedStats {
   const raw = statsStorage.getString(STATS_KEY);
   if (!raw) return { ...DEFAULT_STATS, perAppStats: {} };
-  return JSON.parse(raw) as PersistedStats;
+  try {
+    return JSON.parse(raw) as PersistedStats;
+  } catch {
+    return { ...DEFAULT_STATS, perAppStats: {} };
+  }
 }
 
 // ---------------------------------------------------------------------------

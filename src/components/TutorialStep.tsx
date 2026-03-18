@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Image, StyleSheet, ImageSourcePropType, Platform } from 'react-native';
+import { View, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { Text } from 'react-native-paper';
-import { useAppTheme } from '../theme';
+import { useAppTheme, getGlassStyle } from '../theme';
 
 interface TutorialStepProps {
   stepNumber: number;
@@ -47,14 +47,7 @@ export function TutorialStep({ stepNumber, title, description, image }: Tutorial
       <View
         style={[
           styles.imageContainer,
-          {
-            backgroundColor: theme.custom.glassBackground,
-            borderColor: theme.custom.glassBorder,
-          },
-          Platform.select({
-            web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-            default: {},
-          }),
+          getGlassStyle(theme),
         ]}
       >
         <Image source={image} style={styles.image} resizeMode="contain" />

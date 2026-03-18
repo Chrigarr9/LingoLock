@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../src/theme';
 import { ClozeCardDisplay } from '../src/components/ClozeCard';
 import { AnswerReveal } from '../src/components/AnswerReveal';
 import { AnswerInput } from '../src/components/AnswerInput';
@@ -51,6 +51,10 @@ export default function ChallengeScreen() {
   const totalCardCount = useRef(0);      // grows when wrong-answer cards are re-inserted
   const retriesUsed = useRef(new Set<string>()); // card IDs that have already been re-inserted once
   const answeredNewCardIds = useRef(new Set<string>()); // card IDs of new cards that were answered
+  // Accumulate correct count in a ref to avoid stale closures in setTimeout callbacks
+  const correctCountRef = useRef(0);
+  // Cache chapter number at session start — avoids O(chapters × cards) scan on every render
+  const sessionChapter = useRef(0);
 
   // Default mode to 'continuous' when absent
   const mode = params.mode ?? 'continuous';
@@ -94,6 +98,7 @@ export default function ChallengeScreen() {
       setQueue(session);
       originalCardCount.current = session.length;
       totalCardCount.current = session.length;
+      sessionChapter.current = getCurrentChapter();
     }
 
     console.log('[Challenge] Started:', {
@@ -102,6 +107,7 @@ export default function ChallengeScreen() {
       type: params.type,
       sessionLength: session.length,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Timer cleanup on unmount
@@ -129,50 +135,63 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   // Navigation helpers
   // --------------------------------------------------------------------------
-  const advanceToNext = () => {
+  const advanceToNext = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
 
     // On every card advance, check for cards that became due mid-session
     // (e.g. 10-min FSRS intervals). Appends them so the progress counter
     // updates immediately and the user doesn't need to return to the home screen.
-    const queueIds = new Set(queue.map((sc) => sc.card.id));
-    const newlyDue = getDueCards(queueIds);
-    if (newlyDue.length > 0) {
-      const updated = [...queue, ...newlyDue];
-      totalCardCount.current = updated.length;
-      setQueue(updated);
-      console.log(`[Challenge] Appended ${newlyDue.length} newly-due card(s)`);
-    }
+    setQueue((prevQueue) => {
+      const queueIds = new Set(prevQueue.map((sc) => sc.card.id));
+      const newlyDue = getDueCards(queueIds);
+      if (newlyDue.length > 0) {
+        const updated = [...prevQueue, ...newlyDue];
+        totalCardCount.current = updated.length;
+        console.log(`[Challenge] Appended ${newlyDue.length} newly-due card(s)`);
+        return updated;
+      }
+      return prevQueue;
+    });
 
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < totalCardCount.current) {
-      setCurrentIndex(nextIndex);
-      setShowAnswer(false);
-      setIsCorrect(null);
-      setAnsweredChoice(null);
-      setShowReveal(false);
-      setHintUsed(false);
-    } else {
-      updateStatsAfterSession(correctCount, originalCardCount.current, params.source ?? 'unknown');
-      recordNewWordsIntroduced(answeredNewCardIds.current.size);
-      const extra = buildSession(Infinity, params.source);
-      setHasMoreCards(extra.length > 0);
-      setIsComplete(true);
-    }
-  };
+    setCurrentIndex((prevIndex) => {
+      const nextIndex = prevIndex + 1;
+      if (nextIndex < totalCardCount.current) {
+        setShowAnswer(false);
+        setIsCorrect(null);
+        setAnsweredChoice(null);
+        setShowReveal(false);
+        setHintUsed(false);
+        return nextIndex;
+      } else {
+        updateStatsAfterSession(correctCountRef.current, originalCardCount.current, params.source ?? 'unknown');
+        recordNewWordsIntroduced(answeredNewCardIds.current.size);
+        const extra = buildSession(Infinity, params.source);
+        setHasMoreCards(extra.length > 0);
+        setIsComplete(true);
+        return prevIndex;
+      }
+    });
+  }, [params.source]);
 
-  const scheduleAdvance = () => {
+  const scheduleAdvance = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     advanceTimer.current = setTimeout(advanceToNext, AUTO_ADVANCE_MS);
-  };
+  }, [advanceToNext]);
 
-  const handleAudioFinish = () => {
+  const handleAudioFinish = useCallback(() => {
     // Only auto-advance on correct answers when audio finishes.
     // Wrong answers always require manual "Next" tap.
-    if (isCorrect === true) {
-      advanceToNext();
-    }
-  };
+    // Read isCorrect from the ref-based approach: since this is called from
+    // ClozeCard's audio finish, we check the current state via a functional pattern.
+    // The ClozeCard only fires onAudioFinish after showAnswer=true, so isCorrect
+    // is already set by the time this fires.
+    setIsCorrect((current) => {
+      if (current === true) {
+        advanceToNext();
+      }
+      return current;
+    });
+  }, [advanceToNext]);
 
   // --------------------------------------------------------------------------
   // FSRS state update helper
@@ -194,7 +213,11 @@ export default function ChallengeScreen() {
     setIsCorrect(true);
     setShowAnswer(true);
     setShowReveal(true);
-    setCorrectCount((c) => c + 1);
+    setCorrectCount((c) => {
+      const next = c + 1;
+      correctCountRef.current = next;
+      return next;
+    });
     const hasAudio = !!sessionCard.card.audio && !isMuted;
     if (!hasAudio) {
       scheduleAdvance();
@@ -246,6 +269,18 @@ export default function ChallengeScreen() {
     setHintUsed(true);
   };
 
+  const handleClose = () => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    // Record new words seen before abort — but NOT if session already completed
+    if (!isComplete && answeredNewCardIds.current.size > 0) {
+      recordNewWordsIntroduced(answeredNewCardIds.current.size);
+    }
+    if (mode === 'fixed' && !isComplete) {
+      recordAbort(params.source ?? 'unknown');
+    }
+    router.back();
+  };
+
   const startExtraSession = () => {
     const extra = buildSession(Infinity, params.source);
     if (extra.length === 0) return;
@@ -264,6 +299,7 @@ export default function ChallengeScreen() {
     setIsEmpty(false);
     setHasMoreCards(false);
     setCorrectCount(0);
+    correctCountRef.current = 0;
   };
 
   const handleAlreadyKnow = () => {
@@ -277,17 +313,7 @@ export default function ChallengeScreen() {
     ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
     : undefined;
 
-  // --------------------------------------------------------------------------
-  // Glass style (reuse from Phase 1 pattern)
-  // --------------------------------------------------------------------------
-  const glassStyle = {
-    backgroundColor: theme.custom.glassBackground,
-    borderColor: theme.custom.glassBorder,
-    ...Platform.select({
-      web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-      default: {},
-    }),
-  };
+  const glassStyle = getGlassStyle(theme);
 
   // --------------------------------------------------------------------------
   // Celebration data (computed when complete)
@@ -310,26 +336,14 @@ export default function ChallengeScreen() {
           icon="close"
           size={22}
           iconColor={theme.colors.onSurface}
-          onPress={() => {
-            if (advanceTimer.current) clearTimeout(advanceTimer.current);
-            // Record new words seen before abort — but NOT if session already completed
-            // (advanceToNext already recorded them; isComplete may still be false in the
-            // current closure if the user taps close before the next render).
-            if (!isComplete && answeredNewCardIds.current.size > 0) {
-              recordNewWordsIntroduced(answeredNewCardIds.current.size);
-            }
-            if (mode === 'fixed' && !isComplete) {
-              recordAbort(params.source ?? 'unknown');
-            }
-            router.back();
-          }}
+          onPress={handleClose}
           accessibilityLabel="Close challenge"
         />
         {!isComplete && (
           <View style={styles.headerCenter}>
             <Text
               variant="labelSmall"
-              style={[styles.headerLabel, { color: theme.colors.onSurfaceVariant }]}
+              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant, letterSpacing: 1.5 }]}
             >
               CARD
             </Text>
@@ -356,13 +370,13 @@ export default function ChallengeScreen() {
           <View style={styles.progressRow}>
             <Text
               variant="labelSmall"
-              style={[styles.progressLabel, { color: theme.colors.onSurfaceVariant }]}
+              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant, letterSpacing: 0.5 }]}
             >
-              CHAPTER {getCurrentChapter()} · CARD {currentIndex + 1} OF {totalCardCount.current}
+              CHAPTER {sessionChapter.current} · CARD {currentIndex + 1} OF {totalCardCount.current}
             </Text>
             <Text
               variant="labelSmall"
-              style={[styles.progressLabel, { color: theme.custom.brandBlue }]}
+              style={[labelOverlineStyle.label, { color: theme.custom.brandBlue, letterSpacing: 0.5 }]}
             >
               {correctCount} correct
             </Text>
@@ -400,7 +414,6 @@ export default function ChallengeScreen() {
                 {/* Answer reveal — shown after answering */}
                 <AnswerReveal
                   sessionCard={currentCard}
-                  isCorrect={isCorrect ?? false}
                   visible={showReveal}
                 />
 
@@ -435,7 +448,6 @@ export default function ChallengeScreen() {
                 {/* Answer reveal — shown after answering */}
                 <AnswerReveal
                   sessionCard={currentCard}
-                  isCorrect={isCorrect ?? false}
                   visible={showReveal}
                 />
 
@@ -520,7 +532,7 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {!isEmpty && hasMoreCards && (
+            {hasMoreCards && (
               <Pressable
                 onPress={startExtraSession}
                 style={[styles.learnMoreButton, { backgroundColor: theme.colors.surfaceVariant }]}
@@ -530,17 +542,6 @@ export default function ChallengeScreen() {
                 <Text style={[styles.learnMoreText, { color: theme.colors.onSurface }]}>
                   Learn more new words
                 </Text>
-              </Pressable>
-            )}
-
-            {isEmpty && hasMoreCards && (
-              <Pressable
-                onPress={startExtraSession}
-                style={[styles.learnMoreButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                accessibilityLabel="Learn more new words"
-                accessibilityRole="button"
-              >
-                <Text style={[styles.learnMoreText, { color: theme.colors.onSurface }]}>Learn more new words</Text>
               </Pressable>
             )}
 
@@ -584,12 +585,6 @@ const styles = StyleSheet.create({
   headerCenter: {
     alignItems: 'center',
   },
-  headerLabel: {
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    fontSize: 10,
-  },
   headerTitle: {
     fontWeight: '700',
   },
@@ -602,12 +597,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
-  },
-  progressLabel: {
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontSize: 10,
   },
   keyboardAvoid: {
     flex: 1,

@@ -6,16 +6,11 @@
  * - Diacritics/accents (café = cafe, résumé = resume)
  * - Apostrophe variations (' vs ')
  * - Leading/trailing whitespace
- * - Minor typos (configurable threshold)
+ * - Minor typos (edit distance ≤ 20% of word length)
  */
-
-import Fuse from 'fuse.js';
 
 /**
  * Normalize string: lowercase, remove diacritics, remove apostrophes, trim whitespace
- *
- * @param str - Input string to normalize
- * @returns Normalized string ready for comparison
  */
 function normalize(str: string): string {
   return str
@@ -27,21 +22,46 @@ function normalize(str: string): string {
 }
 
 /**
- * Validate user answer against correct answer with fuzzy matching
+ * Compute Levenshtein edit distance between two strings.
+ * Uses the standard dynamic programming approach with O(min(a,b)) space.
+ */
+function editDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  // Ensure a is the shorter string for space optimization
+  if (a.length > b.length) [a, b] = [b, a];
+
+  let prev = Array.from({ length: a.length + 1 }, (_, i) => i);
+  let curr = new Array(a.length + 1);
+
+  for (let j = 1; j <= b.length; j++) {
+    curr[0] = j;
+    for (let i = 1; i <= a.length; i++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[i] = Math.min(
+        prev[i] + 1,      // deletion
+        curr[i - 1] + 1,  // insertion
+        prev[i - 1] + cost // substitution
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+
+  return prev[a.length];
+}
+
+/**
+ * Validate user answer against correct answer with fuzzy matching.
  *
  * Strategy:
- * 1. First try exact match after normalization (fast path)
- * 2. Fall back to Fuse.js fuzzy matching for typo tolerance
- *
- * @param userInput - User's answer (raw input)
- * @param correctAnswer - Correct answer from vocabulary card
- * @returns true if answer is correct (within threshold), false otherwise
+ * 1. Exact match after normalization (fast path)
+ * 2. Edit distance check — allows ~1 typo per 5 characters (20% threshold)
  *
  * @example
  * validateAnswer('hola', 'Hola') // true (case)
- * validateAnswer("l'été", 'lete') // true (apostrophe + diacritic)
  * validateAnswer('café', 'cafe') // true (diacritic)
- * validateAnswer(' hello  ', 'hello') // true (whitespace)
+ * validateAnswer('pregumta', 'pregunta') // true (1 typo in 8 chars)
  * validateAnswer('goodbye', 'hello') // false (wrong answer)
  */
 export function validateAnswer(userInput: string, correctAnswer: string): boolean {
@@ -53,25 +73,18 @@ export function validateAnswer(userInput: string, correctAnswer: string): boolea
     return true;
   }
 
-  // Fuzzy match using Fuse.js for typo tolerance
-  const fuse = new Fuse([normalizedCorrect], {
-    threshold: 0.2,           // 0.0 = exact, 1.0 = match anything (0.2 allows small typos)
-    ignoreLocation: true,     // Don't care where in string match occurs
-    includeScore: true,       // Include match quality score in results
-  });
+  // Fuzzy match: allow edit distance up to 20% of the longer string
+  const maxLen = Math.max(normalizedInput.length, normalizedCorrect.length);
+  if (maxLen === 0) return true;
 
-  const result = fuse.search(normalizedInput);
-  return result.length > 0;
+  const maxDistance = Math.floor(maxLen * 0.2);
+  if (maxDistance === 0) return false; // Very short words: require exact match
+
+  return editDistance(normalizedInput, normalizedCorrect) <= maxDistance;
 }
 
 /**
  * Get normalized version of string for debugging/display
- *
- * Useful for troubleshooting validation issues or showing
- * users what their input was normalized to.
- *
- * @param str - String to normalize
- * @returns Normalized version of input
  */
 export function normalizeForDisplay(str: string): string {
   return normalize(str);

@@ -23,7 +23,9 @@ export function parseDeepLink(url: string): ChallengeParams | null {
     }
 
     // Extract and validate parameters
-    const source = parsed.queryParams?.source as string;
+    const rawSource = parsed.queryParams?.source as string;
+    // Sanitize source: cap length and remove non-printable characters
+    const source = rawSource ? rawSource.slice(0, 64).replace(/[^\x20-\x7E]/g, '') : rawSource;
     const countStr = parsed.queryParams?.count as string;
     const type = parsed.queryParams?.type as string;
 

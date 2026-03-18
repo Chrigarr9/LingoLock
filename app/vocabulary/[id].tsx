@@ -3,19 +3,10 @@ import { View, ScrollView, Image, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../src/theme';
+import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../../src/theme';
 import { getCardById, cardImages } from '../../src/content/bundle';
 import { loadCardState } from '../../src/services/storage';
-import { isCardMastered } from '../../src/services/fsrs';
-
-type MasteryStatus = 'New' | 'Learning' | 'Mastered';
-
-function deriveMastery(cardId: string): MasteryStatus {
-  const state = loadCardState(cardId);
-  if (state === null) return 'New';
-  if (isCardMastered(state)) return 'Mastered';
-  return 'Learning';
-}
+import { deriveMastery, getMasteryColor } from '../../src/utils/mastery';
 
 function formatDate(isoString: string): string {
   const d = new Date(isoString);
@@ -52,14 +43,7 @@ export default function WordDetailScreen() {
 
   const cardState = loadCardState(card.id);
   const mastery = deriveMastery(card.id);
-
-  // Mastery dot color
-  const masteryColor =
-    mastery === 'Mastered'
-      ? theme.custom.success
-      : mastery === 'Learning'
-      ? theme.custom.brandBlue
-      : theme.colors.onSurfaceVariant;
+  const masteryColor = getMasteryColor(mastery, theme);
 
   // Resolve image source — bundled (number) or URI (string)
   let imageSource: number | { uri: string } | null = null;
@@ -76,10 +60,7 @@ export default function WordDetailScreen() {
   const parts = card.sentence.split('_____');
   const hasSplit = parts.length >= 2;
 
-  const glassStyle = {
-    backgroundColor: theme.custom.glassBackground,
-    borderColor: theme.custom.glassBorder,
-  };
+  const glassStyle = getGlassStyle(theme);
 
   return (
     <SafeAreaView
@@ -150,7 +131,7 @@ export default function WordDetailScreen() {
           <View style={styles.section}>
             <Text
               variant="labelSmall"
-              style={[styles.sectionLabel, { color: theme.custom.brandBlue }]}
+              style={[labelOverlineStyle.label, { color: theme.custom.brandBlue }]}
             >
               SENTENCE
             </Text>
@@ -204,7 +185,7 @@ export default function WordDetailScreen() {
           <View style={styles.section}>
             <Text
               variant="labelSmall"
-              style={[styles.sectionLabel, { color: theme.custom.brandBlue }]}
+              style={[labelOverlineStyle.label, { color: theme.custom.brandBlue }]}
             >
               PROGRESS
             </Text>
@@ -281,7 +262,7 @@ export default function WordDetailScreen() {
           <View style={styles.section}>
             <Text
               variant="labelSmall"
-              style={{ color: theme.colors.onSurfaceVariant, fontWeight: '700', letterSpacing: 1 }}
+              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
             >
               CHAPTER {card.chapter}
             </Text>
@@ -350,10 +331,6 @@ const styles = StyleSheet.create({
   imageSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-  },
-  sectionLabel: {
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   sentence: {
     lineHeight: 26,

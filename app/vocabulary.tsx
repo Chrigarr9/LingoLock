@@ -1,16 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { SectionList, View, StyleSheet, Pressable } from 'react-native';
 import { Text, Searchbar } from 'react-native-paper';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, labelOverlineStyle } from '../src/theme';
 import { CHAPTERS } from '../src/content/bundle';
-import { loadCardState } from '../src/services/storage';
-import { isCardMastered } from '../src/services/fsrs';
 import { getChapterMastery } from '../src/services/statsService';
-import type { ClozeCard } from '../src/types/vocabulary';
-
-type MasteryStatus = 'new' | 'learning' | 'mastered';
+import { deriveMastery, getMasteryColor } from '../src/utils/mastery';
+import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
+import type { ClozeCard, MasteryStatus } from '../src/types/vocabulary';
+import { useState } from 'react';
 
 interface SectionData {
   title: string;
@@ -24,22 +23,16 @@ export default function VocabularyScreen() {
   const params = useLocalSearchParams<{ chapter?: string }>();
 
   const [search, setSearch] = useState('');
-  const [focusKey, setFocusKey] = useState(0);
-
-  // Refresh mastery data every time screen gains focus
-  useFocusEffect(useCallback(() => { setFocusKey(k => k + 1); }, []));
+  const focusKey = useFocusRefresh();
 
   const filterChapter = params.chapter ? parseInt(params.chapter, 10) : null;
 
-  // Compute mastery status for every card (memoized — per RESEARCH.md Pitfall 3)
+  // Compute mastery status for every card (memoized)
   const masteryMap = useMemo<Record<string, MasteryStatus>>(() => {
     const map: Record<string, MasteryStatus> = {};
     for (const ch of CHAPTERS) {
       for (const card of ch.cards) {
-        const state = loadCardState(card.id);
-        if (state === null) map[card.id] = 'new';
-        else if (isCardMastered(state)) map[card.id] = 'mastered';
-        else map[card.id] = 'learning';
+        map[card.id] = deriveMastery(card.id);
       }
     }
     return map;
@@ -55,7 +48,7 @@ export default function VocabularyScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);
 
-  // Build filtered, search-narrowed sections
+  // Build filtered, search-narrowed sections (no focusKey dep — data is static)
   const sections = useMemo<SectionData[]>(() => {
     const lc = search.toLowerCase();
     return CHAPTERS
@@ -71,22 +64,13 @@ export default function VocabularyScreen() {
         ),
       }))
       .filter(s => s.data.length > 0);
-  }, [search, filterChapter, focusKey]);
-
-  // Mastery dot color
-  const dotColor = (status: MasteryStatus): string => {
-    switch (status) {
-      case 'mastered': return theme.custom.success;
-      case 'learning': return theme.custom.brandBlue;
-      default:         return theme.colors.onSurfaceVariant;
-    }
-  };
+  }, [search, filterChapter]);
 
   const renderSectionHeader = ({ section }: { section: SectionData }) => (
     <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
       <Text
         variant="labelSmall"
-        style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}
+        style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
       >
         {section.title.toUpperCase()}
       </Text>
@@ -100,7 +84,7 @@ export default function VocabularyScreen() {
   );
 
   const renderItem = ({ item }: { item: ClozeCard }) => {
-    const status = masteryMap[item.id] ?? 'new';
+    const status = masteryMap[item.id] ?? 'New';
     return (
       <Pressable
         onPress={() =>
@@ -120,7 +104,7 @@ export default function VocabularyScreen() {
         <View
           style={[
             styles.masteryDot,
-            { backgroundColor: dotColor(status) },
+            { backgroundColor: getMasteryColor(status, theme) },
           ]}
         />
 
@@ -208,10 +192,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   sectionMastery: {
     fontWeight: '700',

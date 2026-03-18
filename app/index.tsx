@@ -4,7 +4,7 @@ import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { getTotalCards } from '../src/content/bundle';
 import { usePWAInstall } from '../src/hooks/usePWAInstall';
@@ -40,14 +40,8 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const glassStyle = {
-    backgroundColor: theme.custom.glassBackground,
-    borderColor: theme.custom.glassBorder,
-    ...Platform.select({
-      web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
-      default: {},
-    }),
-  };
+  const glassStyle = getGlassStyle(theme);
+  const cardStyle = getCardStyle(theme);
 
   // CTA label changes based on whether any cards are due
   const ctaLabel = cardsDue === 0 ? 'Review anyway' : 'Start Practice';
@@ -120,7 +114,7 @@ export default function HomeScreen() {
             <View>
               <Text
                 variant="labelSmall"
-                style={[styles.statLabel, { color: theme.custom.labelMuted }]}
+                style={[labelOverlineStyle.label, { color: theme.custom.labelMuted, marginBottom: 2 }]}
               >
                 CURRENT STREAK
               </Text>
@@ -139,10 +133,10 @@ export default function HomeScreen() {
           </View>
 
           {/* Progress Card */}
-          <View style={[styles.halfCard, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}>
+          <View style={[styles.halfCard, cardStyle]}>
             <Text
               variant="labelSmall"
-              style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}
+              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
             >
               {`PROGRESS IN\nCHAPTER ${currentChapter}`}
             </Text>
@@ -158,10 +152,10 @@ export default function HomeScreen() {
           </View>
 
           {/* Cards Due Card */}
-          <View style={[styles.halfCard, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}>
+          <View style={[styles.halfCard, cardStyle]}>
             <Text
               variant="labelSmall"
-              style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}
+              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
             >
               CARDS DUE
             </Text>
@@ -200,7 +194,7 @@ export default function HomeScreen() {
           <View style={styles.quickActions}>
             <Pressable
               onPress={() => router.push('/vocabulary')}
-              style={[styles.actionTile, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+              style={[styles.actionTile, cardStyle]}
               accessibilityLabel="Vocabulary"
               accessibilityRole="button"
             >
@@ -214,7 +208,7 @@ export default function HomeScreen() {
             </Pressable>
             <Pressable
               onPress={() => router.push('/stats')}
-              style={[styles.actionTile, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+              style={[styles.actionTile, cardStyle]}
               accessibilityLabel="Stats"
               accessibilityRole="button"
             >
@@ -245,7 +239,7 @@ export default function HomeScreen() {
           {Platform.OS !== 'web' && (
             <Pressable
               onPress={() => router.push('/tutorial')}
-              style={[styles.tutorialLink, { backgroundColor: theme.custom.cardBackground, borderColor: theme.custom.cardBorder }]}
+              style={[styles.tutorialLink, cardStyle]}
             >
               <Icon source="book-open-variant" size={18} color={theme.custom.brandBlue} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
@@ -340,13 +334,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-  },
-  statLabel: {
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    fontSize: 10,
-    marginBottom: 2,
   },
   streakValue: {
     fontWeight: '700',

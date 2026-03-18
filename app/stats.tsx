@@ -1,79 +1,54 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Text, ProgressBar } from 'react-native-paper';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../src/theme';
+import { useAppTheme, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { CHAPTERS, getTotalCards } from '../src/content/bundle';
 import { getStreak, getSuccessRate, getChapterMastery } from '../src/services/statsService';
 import { loadCardState } from '../src/services/storage';
 import { isCardMastered, isDue } from '../src/services/fsrs';
+import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
 
 export default function StatsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-
-  // Trigger re-render when this screen gains focus so stats stay fresh
-  const [focusKey, setFocusKey] = useState(0);
-  useFocusEffect(
-    useCallback(() => {
-      setFocusKey((k) => k + 1);
-    }, [])
-  );
+  const focusKey = useFocusRefresh();
 
   // ---------------------------------------------------------------------------
-  // Compute overall summary stats
+  // Compute all stats in a single pass over all card states
   // ---------------------------------------------------------------------------
-  const successRate = useMemo(() => getSuccessRate(), [focusKey]);
-  const streak = useMemo(() => getStreak(), [focusKey]);
-
-  const totalCards = useMemo(() => getTotalCards(), []);
-
-  const totalMastered = useMemo(() => {
-    let count = 0;
-    for (const chapter of CHAPTERS) {
-      for (const card of chapter.cards) {
+  const { successRate, streak, totalCards, totalMastered, chapterStats } = useMemo(() => {
+    // Load all card states once — single pass for both totalMastered and chapterStats
+    const chapters = CHAPTERS.map((ch) => {
+      let mastered = 0;
+      let dueCount = 0;
+      for (const card of ch.cards) {
         const state = loadCardState(card.id);
-        if (state !== null && isCardMastered(state)) {
-          count += 1;
+        if (state !== null) {
+          if (isCardMastered(state)) mastered++;
+          if (isDue(state)) dueCount++;
         }
       }
-    }
-    return count;
-  }, [focusKey]);
-
-  // ---------------------------------------------------------------------------
-  // Compute per-chapter stats
-  // ---------------------------------------------------------------------------
-  const chapterStats = useMemo(() => {
-    return CHAPTERS.map((ch) => {
-      const mastery = getChapterMastery(ch.chapterNumber);
-      const total = ch.cards.length;
-      const mastered = ch.cards.filter((card) => {
-        const state = loadCardState(card.id);
-        return state !== null && isCardMastered(state);
-      }).length;
-      const dueCount = ch.cards.filter((card) => {
-        const state = loadCardState(card.id);
-        return state !== null && isDue(state);
-      }).length;
       return {
         chapterNumber: ch.chapterNumber,
-        mastery,
-        total,
+        mastery: getChapterMastery(ch.chapterNumber),
+        total: ch.cards.length,
         mastered,
         dueCount,
       };
     });
+
+    return {
+      successRate: getSuccessRate(),
+      streak: getStreak(),
+      totalCards: getTotalCards(),
+      totalMastered: chapters.reduce((sum, ch) => sum + ch.mastered, 0),
+      chapterStats: chapters,
+    };
   }, [focusKey]);
 
-  // ---------------------------------------------------------------------------
-  // Styles derived from theme
-  // ---------------------------------------------------------------------------
-  const cardStyle = {
-    backgroundColor: theme.custom.cardBackground,
-    borderColor: theme.custom.cardBorder,
-  };
+  const cardStyle = getCardStyle(theme);
 
   return (
     <SafeAreaView
@@ -89,7 +64,7 @@ export default function StatsScreen() {
         <View style={[styles.summaryCard, cardStyle]}>
           <Text
             variant="labelSmall"
-            style={[styles.sectionLabel, { color: theme.custom.labelMuted }]}
+            style={[labelOverlineStyle.label, { color: theme.custom.labelMuted }]}
           >
             OVERALL PROGRESS
           </Text>
@@ -164,7 +139,7 @@ export default function StatsScreen() {
         {/* Per-Chapter Breakdown */}
         <Text
           variant="labelSmall"
-          style={[styles.sectionLabel, styles.chapterSectionLabel, { color: theme.custom.labelMuted }]}
+          style={[labelOverlineStyle.label, styles.chapterSectionLabel, { color: theme.custom.labelMuted }]}
         >
           BY CHAPTER
         </Text>
@@ -208,7 +183,7 @@ export default function StatsScreen() {
             {/* Stats line */}
             <Text
               variant="labelSmall"
-              style={[styles.chapterStats, { color: theme.colors.onSurfaceVariant }]}
+              style={[styles.chapterStatsText, { color: theme.colors.onSurfaceVariant }]}
             >
               {ch.mastered}/{ch.total} mastered
               {ch.dueCount > 0 ? `  ·  ${ch.dueCount} due` : '  ·  all caught up'}
@@ -232,12 +207,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 32,
     gap: 10,
-  },
-  sectionLabel: {
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    fontSize: 10,
   },
   summaryCard: {
     padding: 16,
@@ -290,7 +259,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  chapterStats: {
+  chapterStatsText: {
     fontWeight: '500',
   },
 });

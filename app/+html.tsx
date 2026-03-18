@@ -12,6 +12,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#0F1929" media="(prefers-color-scheme: dark)" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <title>LingoLock</title>
         <link rel="manifest" href="/manifest.json" />
         <ScrollViewStyleReset />
       </head>

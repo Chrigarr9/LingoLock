@@ -119,3 +119,39 @@ export const darkTheme = {
 export type AppTheme = typeof lightTheme;
 
 export const useAppTheme = () => useTheme<AppTheme>();
+
+// ---------------------------------------------------------------------------
+// Shared style utilities — single-source-of-truth for repeated visual tokens
+// ---------------------------------------------------------------------------
+
+import { Platform, StyleSheet } from 'react-native';
+
+/** Glass surface: translucent background + border + backdrop blur (web only). */
+export function getGlassStyle(theme: AppTheme) {
+  return {
+    backgroundColor: theme.custom.glassBackground,
+    borderColor: theme.custom.glassBorder,
+    ...Platform.select({
+      web: { backdropFilter: `blur(${theme.custom.glassBlur}px)` } as any,
+      default: {},
+    }),
+  };
+}
+
+/** Standard card surface: opaque background + subtle border. */
+export function getCardStyle(theme: AppTheme) {
+  return {
+    backgroundColor: theme.custom.cardBackground,
+    borderColor: theme.custom.cardBorder,
+  };
+}
+
+/** Overline label typography used for section headers across the app. */
+export const labelOverlineStyle = StyleSheet.create({
+  label: {
+    fontWeight: '700' as const,
+    letterSpacing: 1,
+    textTransform: 'uppercase' as const,
+    fontSize: 10,
+  },
+});

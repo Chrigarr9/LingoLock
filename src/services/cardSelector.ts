@@ -37,6 +37,9 @@ function shuffle<T>(arr: T[]): T[] {
  */
 function buildChoices(card: ClozeCard): string[] {
   const distractors = card.distractors.slice(0, 3);
+  if (distractors.length < 3) {
+    console.warn(`[CardSelector] Card ${card.id} has only ${distractors.length} distractors`);
+  }
   const choices = [card.wordInContext, ...distractors];
   return shuffle(choices);
 }
@@ -136,7 +139,7 @@ function toSessionCard(
       card: activeCard,
       answerType,
       isFirstEncounter,
-      hintLevel: getHintLevel(cardState!),
+      hintLevel: cardState !== null ? getHintLevel(cardState) : 'full',
     };
   }
 
