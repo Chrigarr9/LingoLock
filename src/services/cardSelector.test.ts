@@ -95,10 +95,11 @@ jest.mock('../content/bundle', () => {
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { buildSession, handleWrongAnswer, getCurrentChapter } from './cardSelector';
+import { buildSession, buildImportedSession, handleWrongAnswer, getCurrentChapter } from './cardSelector';
 import { CHAPTERS } from '../content/bundle';
-import { loadCardState, loadAllCardStates } from './storage';
+import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
 import { isDue, getAnswerType, getHintLevel, isCardLearned, isCardMastered } from './fsrs';
+import type { SimpleCard } from '../types/simpleCard';
 
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockLoadAllCardStates = loadAllCardStates as jest.MockedFunction<typeof loadAllCardStates>;
@@ -107,6 +108,7 @@ const mockGetAnswerType = getAnswerType as jest.MockedFunction<typeof getAnswerT
 const mockGetHintLevel = getHintLevel as jest.MockedFunction<typeof getHintLevel>;
 const mockIsCardLearned = isCardLearned as jest.MockedFunction<typeof isCardLearned>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
+const mockLoadNewWordsIntroducedToday = loadNewWordsIntroducedToday as jest.MockedFunction<typeof loadNewWordsIntroducedToday>;
 
 // Helper: create a minimal CardState
 function makeCardState(cardId: string, due: string = new Date(Date.now() - 1000).toISOString()) {
@@ -540,5 +542,136 @@ describe('getCurrentChapter', () => {
     const chapter = getCurrentChapter(CHAPTERS);
 
     expect(chapter).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildImportedSession tests
+// ---------------------------------------------------------------------------
+
+describe('buildImportedSession', () => {
+  const makeSimpleCard = (id: string): SimpleCard => ({
+    id,
+    front: `front-${id}`,
+    back: `back-${id}`,
+    deckId: 'test-deck',
+  });
+
+  const bundleId = 'imported-test';
+  const testCards = [
+    makeSimpleCard('1'),
+    makeSimpleCard('2'),
+    makeSimpleCard('3'),
+    makeSimpleCard('4'),
+    makeSimpleCard('5'),
+  ];
+
+  test('returns all cards as selfRated when no card states exist (all new)', () => {
+    mockLoadCardState.mockReturnValue(null);
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession(testCards, 10, bundleId);
+
+    expect(session).toHaveLength(5);
+    for (const sc of session) {
+      expect(sc.answerType).toBe('selfRated');
+    }
+  });
+
+  test('respects daily new word budget (limits new cards)', () => {
+    mockLoadCardState.mockReturnValue(null);
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession(testCards, 2, bundleId);
+
+    expect(session).toHaveLength(2);
+    for (const sc of session) {
+      expect(sc.answerType).toBe('selfRated');
+    }
+  });
+
+  test('includes due review cards (cards with state where isDue returns true)', () => {
+    const dueIds = ['1', '2'];
+    mockLoadCardState.mockImplementation((id) => {
+      const originalId = id.replace(`${bundleId}:`, '');
+      if (dueIds.includes(originalId)) return makeCardState(id);
+      return null;
+    });
+    mockIsDue.mockImplementation((state) => dueIds.some((d) => state.cardId === `${bundleId}:${d}`));
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession(testCards, 2, bundleId);
+
+    // 2 due + 2 new = 4
+    expect(session).toHaveLength(4);
+  });
+
+  test('shuffles due cards, new cards come after', () => {
+    // Make cards 1-3 due, cards 4-5 new
+    const dueIds = ['1', '2', '3'];
+    mockLoadCardState.mockImplementation((id) => {
+      const originalId = id.replace(`${bundleId}:`, '');
+      if (dueIds.includes(originalId)) return makeCardState(id);
+      return null;
+    });
+    mockIsDue.mockImplementation((state) => dueIds.some((d) => state.cardId === `${bundleId}:${d}`));
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession(testCards, 5, bundleId);
+
+    // Last 2 should be new cards (4 and 5)
+    const newCards = session.slice(3);
+    expect(newCards).toHaveLength(2);
+    expect(newCards[0].card.id).toBe('4');
+    expect(newCards[1].card.id).toBe('5');
+  });
+
+  test('uses namespaced card IDs for state lookup (bundleId:cardId)', () => {
+    mockLoadCardState.mockReturnValue(null);
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    buildImportedSession(testCards, 5, bundleId);
+
+    // Verify loadCardState was called with namespaced IDs
+    expect(mockLoadCardState).toHaveBeenCalledWith(`${bundleId}:1`);
+    expect(mockLoadCardState).toHaveBeenCalledWith(`${bundleId}:2`);
+    expect(mockLoadCardState).toHaveBeenCalledWith(`${bundleId}:3`);
+    expect(mockLoadCardState).toHaveBeenCalledWith(`${bundleId}:4`);
+    expect(mockLoadCardState).toHaveBeenCalledWith(`${bundleId}:5`);
+  });
+
+  test('returns empty array when no cards and no due cards', () => {
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession([], 5, bundleId);
+
+    expect(session).toHaveLength(0);
+  });
+
+  test('sets isFirstEncounter correctly', () => {
+    // Card 1 has state (not first encounter), cards 2-5 are new (first encounter)
+    mockLoadCardState.mockImplementation((id) => {
+      if (id === `${bundleId}:1`) return makeCardState(id);
+      return null;
+    });
+    mockIsDue.mockImplementation((state) => state.cardId === `${bundleId}:1`);
+    mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+
+    const session = buildImportedSession(testCards, 5, bundleId);
+
+    const card1Session = session.find((sc) => sc.card.id === '1');
+    const card2Session = session.find((sc) => sc.card.id === '2');
+    expect(card1Session!.isFirstEncounter).toBe(false);
+    expect(card2Session!.isFirstEncounter).toBe(true);
+  });
+
+  test('accounts for words already introduced today', () => {
+    mockLoadCardState.mockReturnValue(null);
+    // 3 words already introduced today, budget is 5 → only 2 remaining
+    mockLoadNewWordsIntroducedToday.mockReturnValue(3);
+
+    const session = buildImportedSession(testCards, 5, bundleId);
+
+    expect(session).toHaveLength(2);
   });
 });
