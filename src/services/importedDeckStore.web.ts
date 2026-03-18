@@ -105,6 +105,22 @@ export function getImportedDeckDir(deckId: string): string {
 // Registry (localStorage — small, sync access needed by bundle system)
 // ---------------------------------------------------------------------------
 
+// One-time cleanup: remove legacy ll.imported.* and ll.media.* keys from localStorage
+// (leftover from pre-IndexedDB imports that used localStorage for card/media data)
+if (!isSSR) {
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.startsWith('ll.imported.') || k.startsWith('ll.media.'))) {
+      keysToRemove.push(k);
+    }
+  }
+  if (keysToRemove.length > 0) {
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    console.log(`[ImportedDeckStore] Cleaned ${keysToRemove.length} legacy localStorage keys`);
+  }
+}
+
 export function getImportedDecks(): ImportedDeckMeta[] {
   if (isSSR) return [];
   const raw = localStorage.getItem(IMPORTED_DECKS_KEY);
