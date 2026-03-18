@@ -6,8 +6,9 @@ import * as esDeBuenosAires from './es-de-buenos-aires';
 
 const BUNDLE_MAP: Record<string, Bundle> = {
   'es-de-buenos-aires': {
-    config: esDeBuenosAires.config,
+    config: { ...esDeBuenosAires.config, type: 'builtin' as const },
     chapters: esDeBuenosAires.CHAPTERS,
+    simpleCards: [],
     cardImages: esDeBuenosAires.cardImages,
     cardAudios: esDeBuenosAires.cardAudios,
   },

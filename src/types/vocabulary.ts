@@ -37,6 +37,21 @@ export interface WidgetAnswerParams {
   triggeredAt?: string;
 }
 
+/**
+ * Parameters for widget spell mode deep linking.
+ * Used when user taps character/back/submit buttons on the widget's spell keyboard.
+ */
+export interface WidgetSpellParams {
+  /** ID of the card being spelled */
+  cardId: string;
+
+  /** Action type: add a character, delete last character, or submit the answer */
+  action: 'char' | 'back' | 'submit';
+
+  /** The character tapped (only present when action === 'char') */
+  char?: string;
+}
+
 /** Alternative sentence for a cloze card — same word, different context.
  *  Includes chapter + sentenceIndex so the app can progressively unlock
  *  variants as the user advances through the story. */
@@ -112,8 +127,8 @@ export interface CardState {
 
 /** Card in the active session queue — combines content + state + answer type */
 export interface SessionCard {
-  card: ClozeCard;
-  answerType: 'mc4' | 'text';
+  card: ClozeCard | import('./simpleCard').SimpleCard;
+  answerType: 'mc4' | 'text' | 'selfRated';
   /** Choices for MC mode (includes correct answer + 3 distractors) */
   choices?: string[];
   /** True when card has never been seen before (cardState was null) */
