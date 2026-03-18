@@ -106,3 +106,26 @@ export async function loadImportedDeckCards(deckId: string): Promise<SimpleCard[
   const content = await file.text();
   return JSON.parse(content) as SimpleCard[];
 }
+
+/**
+ * Save cards for an imported deck.
+ * On native, this is handled by apkgImporter writing deck.json directly.
+ * This function exists for API parity with the web implementation.
+ */
+export async function saveImportedDeckCards(_deckId: string, _cards: SimpleCard[]): Promise<void> {
+  // No-op on native — apkgImporter writes deck.json directly to filesystem
+}
+
+/**
+ * Save a media blob. Native uses filesystem directly (not needed here).
+ */
+export async function saveMediaBlob(_deckId: string, _filename: string, _blob: Blob): Promise<void> {
+  // No-op on native — apkgImporter copies media files directly
+}
+
+/**
+ * Get a media blob URL. Native uses file:// URIs directly.
+ */
+export async function getMediaBlobUrl(_deckId: string, _filename: string): Promise<string | undefined> {
+  return undefined; // Native uses file:// URIs on SimpleCard.image/audio
+}
