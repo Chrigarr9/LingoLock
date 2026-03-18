@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch, Alert } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
+import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle } from '../src/theme';
 import {
@@ -25,9 +26,12 @@ import {
   cancelAllNotifications,
 } from '../src/services/notificationScheduler';
 import { requestNotificationPermissions } from '../src/services/notificationService';
-import { AVAILABLE_BUNDLES, getBundle } from '../src/content/bundles';
+import { getAvailableBundles, getBundle, registerImportedBundle } from '../src/content/bundles';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { getCardsDueCount } from '../src/services/statsService';
+import { importApkg } from '../src/services/apkgImporter';
+import { loadImportedDeckCards } from '../src/services/importedDeckStore';
+import type { Bundle } from '../src/types/bundle';
 
 const SPEED_OPTIONS: { label: string; value: number }[] = [
   { label: '0.75×', value: 0.75 },
@@ -54,6 +58,39 @@ export default function SettingsScreen() {
   const setActive = (bundleId: string) => {
     switchBundle(bundleId);
     setActiveBundleId(bundleId);
+  };
+
+  const handleImport = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const file = result.assets[0];
+      if (!file.uri.toLowerCase().endsWith('.apkg')) {
+        Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
+        return;
+      }
+      const meta = await importApkg(file.uri);
+      const cards = await loadImportedDeckCards(meta.id);
+      const bundle: Bundle = {
+        config: {
+          id: meta.id, type: 'imported', nativeLanguage: '', targetLanguage: '',
+          displayLabel: meta.name,
+          greetings: { morning: '', afternoon: '', evening: '' },
+          motivational: { perfect: '', great: '', good: '', encouragement: '' },
+          spellCharacters: [], searchPlaceholder: '',
+          cardCount: meta.cardCount, importedAt: meta.importedAt,
+        },
+        chapters: [], simpleCards: cards, cardImages: {}, cardAudios: {},
+      };
+      registerImportedBundle(meta.id, bundle);
+      switchBundle(meta.id);
+      setActiveBundleId(meta.id);
+    } catch (error) {
+      Alert.alert('Import failed', error instanceof Error ? error.message : 'An unknown error occurred.');
+    }
   };
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
@@ -325,7 +362,7 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Language Pairs card group */}
+        {/* Decks card group */}
         <View
           style={[
             styles.card,
@@ -334,13 +371,19 @@ export default function SettingsScreen() {
           ]}
         >
           <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface, marginBottom: 8 }]}>
-            Language Pairs
+            Decks
           </Text>
 
-          {AVAILABLE_BUNDLES.map((bundle) => {
+          {getAvailableBundles().map((bundle) => {
             const isActive = bundle.id === activeBundleId;
             const isEnabled = enabledBundles.includes(bundle.id);
-            const dueCount = getCardsDueCount(getBundle(bundle.id).chapters);
+            const isImported = bundle.type === 'imported';
+            let dueCount = 0;
+            try {
+              if (!isImported) {
+                dueCount = getCardsDueCount(getBundle(bundle.id).chapters);
+              }
+            } catch {}
             return (
               <React.Fragment key={bundle.id}>
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
@@ -359,7 +402,7 @@ export default function SettingsScreen() {
                       variant="bodySmall"
                       style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                     >
-                      {isActive ? 'Active' : `${dueCount} cards due`}
+                      {isActive ? 'Active' : isImported ? `${bundle.cardCount ?? 0} cards` : `${dueCount} cards due`}
                     </Text>
                   </View>
                   <RNSwitch
@@ -374,11 +417,11 @@ export default function SettingsScreen() {
           })}
 
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-          <View style={[styles.settingRow, { opacity: 0.4 }]}>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              + Download more (coming soon)
+          <Pressable style={styles.settingRow} onPress={handleImport}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.primary, fontWeight: '500' }}>
+              + Import your own deck
             </Text>
-          </View>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>

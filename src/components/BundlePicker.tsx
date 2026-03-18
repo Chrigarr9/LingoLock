@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { getAvailableBundles, getBundle, registerImportedBundle, unregisterImportedBundle } from '../content/bundles';
@@ -142,6 +142,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1}>
+        <View style={[styles.sheetContainer]}>
         <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Decks</Text>
 
@@ -188,6 +189,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
             </TouchableOpacity>
           )}
         </View>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
@@ -199,11 +201,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
+  sheetContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
   sheet: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
     paddingBottom: 40,
+    width: '100%',
+    ...(Platform.OS === 'web' ? { maxWidth: 480 } : {}),
   },
   title: {
     fontSize: 18,
