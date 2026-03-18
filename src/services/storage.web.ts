@@ -301,3 +301,99 @@ export function clearAllData(): void {
     localStorage.removeItem(key);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Bundle state
+// ---------------------------------------------------------------------------
+
+const ACTIVE_BUNDLE_KEY = 'll.activeBundle';
+const ENABLED_BUNDLES_KEY = 'll.enabledBundles';
+
+export const DEFAULT_BUNDLE_ID = 'es-de-buenos-aires';
+
+export function loadActiveBundle(): string {
+  return localStorage.getItem(ACTIVE_BUNDLE_KEY) ?? DEFAULT_BUNDLE_ID;
+}
+
+export function saveActiveBundle(bundleId: string): void {
+  localStorage.setItem(ACTIVE_BUNDLE_KEY, bundleId);
+  const enabled = loadEnabledBundles();
+  if (!enabled.includes(bundleId)) {
+    saveEnabledBundles([...enabled, bundleId]);
+  }
+}
+
+export function loadEnabledBundles(): string[] {
+  const raw = localStorage.getItem(ENABLED_BUNDLES_KEY);
+  if (!raw) return [DEFAULT_BUNDLE_ID];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [DEFAULT_BUNDLE_ID];
+  }
+}
+
+export function saveEnabledBundles(bundleIds: string[]): void {
+  localStorage.setItem(ENABLED_BUNDLES_KEY, JSON.stringify(bundleIds));
+}
+
+export function isBundleMigrationDone(): boolean {
+  return true; // No migration needed on web
+}
+
+export function setBundleMigrationDone(): void {
+  // No-op on web
+}
+
+/**
+ * No-op on web — migration is only needed for native MMKV → namespaced IDs.
+ */
+export function migrateCardIdsToNamespaced(): void {
+  // No-op on web
+}
+
+// ---------------------------------------------------------------------------
+// MMKV-compatible shims for code that imports cardStorage/statsStorage directly
+// ---------------------------------------------------------------------------
+
+/** localStorage-backed shim matching the MMKV API surface used in the app. */
+function createWebStorage(prefix: string) {
+  return {
+    getString: (key: string) => localStorage.getItem(`${prefix}${key}`) ?? undefined,
+    set: (key: string, value: string | number | boolean) =>
+      localStorage.setItem(`${prefix}${key}`, String(value)),
+    getBoolean: (key: string) => {
+      const v = localStorage.getItem(`${prefix}${key}`);
+      if (v === null) return undefined;
+      return v === 'true';
+    },
+    getNumber: (key: string) => {
+      const v = localStorage.getItem(`${prefix}${key}`);
+      if (v === null) return undefined;
+      const n = parseFloat(v);
+      return isNaN(n) ? undefined : n;
+    },
+    remove: (key: string) => localStorage.removeItem(`${prefix}${key}`),
+    getAllKeys: () => {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k !== null && k.startsWith(prefix)) {
+          keys.push(k.slice(prefix.length));
+        }
+      }
+      return keys;
+    },
+    clearAll: () => {
+      const toRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k !== null && k.startsWith(prefix)) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+    },
+  };
+}
+
+export const cardStorage = createWebStorage('ll.card.');
+export const statsStorage = createWebStorage('ll.stats.');
