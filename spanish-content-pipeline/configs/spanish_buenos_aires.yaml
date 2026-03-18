@@ -600,6 +600,7 @@ image_generation:
 
 audio_generation:
   enabled: true
+  provider: "gemini"
   model: "gemini-2.5-flash-preview-tts"
   voice_name: "Aoede"
   speaking_rate: 1.0

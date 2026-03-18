@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T22:50:14.863Z"
+status: in_progress
+last_updated: "2026-03-04T21:37:46Z"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 21
+  completed_plans: 24
 ---
 
 # Project State
@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 ## Current Position
 
-Phase: 2.2 of 4 (02.2-app-polish-missing-screens)
-Plan: 1 of 3 complete in current phase
-Status: Phase 02.2 in progress — Plan 01 (Settings + daily cap) complete
-Last activity: 2026-03-03 — Phase 02.2 Plan 01 complete (Settings screen, storage functions, routes)
+Phase: 3 of 4 (03-notifications-live-activities)
+Plan: 4 of 4 complete in current phase
+Status: Phase 03 COMPLETE — All notification and widget functionality implemented
+Last activity: 2026-03-04 — Phase 03 Plan 04 complete (notification settings UI with interval configuration)
 
-Progress: [████████░░] ~80%
+Progress: [█████████░] ~90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 4 min
-- Total execution time: 0.5 hours
+- Total plans completed: 24
+- Average duration: 7.0 min
+- Total execution time: 2.95 hours
 
 **By Phase:**
 
@@ -43,15 +43,24 @@ Progress: [████████░░] ~80%
 | 1-shortcuts-integration | 7 | 28min | 4min |
 | 2-spaced-repetition-progress | 5 | 19min | 3.8min |
 | 02.1-pwa-deployment-content-integration | 3/3 | ~10min | ~3min |
+| 02.2-app-polish-missing-screens | 3/3 | ~18min | ~6min |
+| 02.3-audio-generation-pipeline | 2/2 | 7min | 3.5min |
+| 03-notifications-live-activities | 4/4 | 96min | 24min |
 
 **Recent Trend:**
-- Last 3 plans: 02-05 (5min), 02.1-02 (2min), 02.1-01 (2min)
-- Trend: Excellent velocity, tasks well-scoped
+- Last 3 plans: 03-02 (4min), 03-03 (5min), 03-04 (84min checkpoint plan)
+- Trend: Phase 03 complete, checkpoint plan included user verification time
 
 *Updated after each plan completion*
 | Phase 02.2-app-polish-missing-screens P01 | 3 | 3 tasks | 7 files |
 | Phase 02.2-app-polish-missing-screens P02 | 5 | 2 tasks | 2 files |
 | Phase 02.2-app-polish-missing-screens P03 | 4 | 3 tasks | 3 files |
+| Phase 02.3-audio-generation-pipeline P01 | 2 | 2 tasks | 6 files |
+| Phase 02.3-audio-generation-pipeline P02 | 3 | 2 tasks | 6 files |
+| Phase 03-notifications-live-activities P01 | 3 | 2 tasks | 6 files |
+| Phase 03-notifications-live-activities P02 | 4 | 2 tasks | 5 files |
+| Phase 03-notifications-live-activities P03 | 5 | 3 tasks | 8 files |
+| Phase 03-notifications-live-activities P04 | 84 | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -198,11 +207,105 @@ Recent decisions affecting current work:
 - [Phase 02.2-app-polish-missing-screens]: Continuous mode default: mode param defaults to 'continuous' when absent — backward-compatible with existing deep links
 - [Phase 02.2-app-polish-missing-screens]: Abort guard: only fixed mode sessions call recordAbort; voluntary continuous exits do not break streak
 
+**From Plan 02.3-01 (Audio Generation Module):**
+- AudioGenerator class mirrors ImageGenerator pattern: same directory structure, manifest format, incremental generation logic
+- Multi-provider TTS support: Google Cloud TTS (primary) and OpenAI TTS (secondary) via config-driven selection
+- Manifest-based incremental generation: content hash (SHA-256 first 16 chars) enables skip of unchanged sentences on re-runs
+- Retry logic with exponential backoff: max 3 retries, 2 * (attempt + 1) seconds delay
+- Failed TTS calls produce failed manifest entries without crashing pipeline
+- Config-driven language selection: reads from config.languages.target_code (not hardcoded es-ES)
+- MP3 format chosen for universal browser support and native TTS provider support
+- Lazy client initialization enables mocking in tests without network dependencies
+- 8 comprehensive tests cover success, failure, skip, and regeneration scenarios
+
+**From Plan 02.3-02 (Audio Pipeline Integration):**
+- Pass 6 uses lazy AudioGenerator import (only when API key present) to avoid ImportError without google-cloud-texttospeech
+- Audio manifest loading mirrors image manifest pattern exactly for consistency
+- cardAudios map uses static require() calls for Metro bundler (same as cardImages)
+- ClozeCard audio resolution checks bundled assets first, falls back to HTTP URI
+- Pipeline Pass pattern: Check flag → check config → check API key → lazy import → graceful skip on any failure
+- Asset bundling pattern: manifest.json → copy files → generate require() map → export for Metro
+- Audio playback pattern: cardAudios[card.audio] ?? URI fallback → Audio.Sound.createAsync()
+
+**From Plan 03-01 (Notification Infrastructure):**
+- expo-notifications configured with two categories: vocabulary-text (text input) and vocabulary-mc (A/B/C/D buttons)
+- iOS limitation: notification action button titles fixed at registration time, not per-notification
+- Multiple choice notification body lists choices as "A) word1  B) word2  C) word3  D) word4" matching button labels
+- mcMapping field in NotificationData maps action IDs to actual words: {"answer-a": "gato", "answer-b": "perro"}
+- Foreground notification handler configured at module top-level (before setupNotifications) to ensure handler active immediately
+- Permission flow: granted → true, denied → Settings alert, undetermined → request
+- setupNotifications() called in root layout useEffect with cleanup function for native platforms
+- Platform-specific service pattern: .web.ts files provide no-op stubs with matching exports
+
+**From Plan 03-02 (Widget Integration):**
+- expo-widgets installed and configured in app.json with widget families (systemSmall, systemMedium, accessoryRectangular)
+- Widget service pattern: getWidgetCardData, updateWidgetData, processWidgetAnswer, clearWidgetData
+- Conservative widget content filtering: repetition-only cards (no new cards on Lock Screen without images)
+- MC cards (mc2/mc4) show A/B/C/D answer buttons directly on widget (iOS 17+ Button support)
+- Text cards show tap-to-open deep link (iOS widgets cannot have text input fields)
+- Widget button taps use deep links: `lingolock://widget-answer?cardId=xxx&choice=gato`
+- processWidgetAnswer handles MC button taps and updates FSRS state without opening app
+- Widget data service reads from shared FSRS queue (same logic as buildSession)
+- updateWidgetData() placeholder for timeline refresh (expo-widgets SDK 55 API TBD)
+- Platform-specific widget stubs: .web.ts files provide no-op stubs for web builds
+
+**From Plan 03-03 (Notification Scheduling System):**
+- Screen unlock detection uses AppState timing heuristic: < 50ms = unlock, ~800ms = app switch
+- 10-second debounce prevents rapid repeated unlock detections
+- Notification scheduler picks due repetition cards (only words seen at least once)
+- Notification interval configurable (default 300s = 5 min), persisted to storage
+- MC notification body format: "El gato ___ en la mesa. A) come B) bebe C) duerme D) corre"
+- mcMapping in NotificationData maps button IDs to actual words for validation
+- 1-minute response window: answers >1 min after delivery trigger handleSwipeAway (streak lost)
+- Swipe-away detection: 1-minute timeout is intentional (not true swipe-away events, which iOS doesn't provide)
+- Notifications pause during in-app practice (challenge.tsx calls pauseNotifications/resumeNotifications)
+- Widget refreshes after notification answers and in-app session completion
+- Notification answer processing: validates with fuzzy matching (text) or mcMapping (MC), updates FSRS + stats
+- Feedback notifications: correct → "Correct! [germanHint]", incorrect → "[correctAnswer] -- [translation]"
+
+**From Plan 03-04 (Settings Integration):**
+- Notification settings UI: enable/disable toggle + interval selector (3/5/10 min per NOTF-01)
+- Settings changes call both storage save AND scheduler update for immediate effect
+- Notification controls hidden on web via Platform.OS !== 'web' guard
+- All notification/widget services have .web.ts stubs for web compatibility
+- Challenge screen, notification service, and widget service all call updateWidgetData() after answers
+- Cross-context FSRS queue verified: all practice contexts use same loadCardState + isDue logic
+
+**Phase 03 Gap Closure:**
+- Widget answer deep link handler added: parseDeepLink returns discriminated union (challenge | widget-answer)
+- WidgetAnswerParams interface: { cardId, choice }
+- parseWidgetAnswerLink function extracts params from lingolock://widget-answer URLs
+- _layout.tsx routes widget-answer links to processWidgetAnswer → FSRS update → widget refresh
+- Deep link flow: widget button tap → URL scheme → app background handler → FSRS + widget refresh (no app open)
+
+**From Plan 03-03 (Notification Scheduling System):**
+- Screen unlock detection via AppState timing heuristic: inactive→active < 50ms = unlock (vs ~800ms for app switch)
+- 10-second debounce prevents rapid repeated unlock detections
+- Notification scheduler picks due repetition cards only (conservative: no new cards on Lock Screen)
+- Minimal notification content per user decision: cloze sentence only, no title
+- MC choices formatted in body as "A) word1  B) word2  C) word3  D) word4" matching button labels
+- mcMapping in NotificationData maps action IDs (answer-a/b/c/d) to actual choice words
+- 1-minute response window enforced: expired responses break streak via handleSwipeAway
+- Swipe-away breaks streak and pauses notifications until next day (isSwipedAwayToday flag)
+- Feedback notifications: correct shows `✓ ${germanHint}`, incorrect shows `✗ ${correctAnswer} — ${sentenceTranslation}`
+- Notifications pause during in-app practice (pauseNotifications on mount, resumeNotifications on unmount)
+- Widget refreshed after notification answers and session completion (updateWidgetData)
+- setupNotifications initializes scheduler, requests permissions, starts unlock detection
+
+**From Plan 03-04 (Notification Settings UI):**
+- Notification interval configurable in settings: 3/5/10 minutes per NOTF-01 spec (180/300/600 seconds)
+- Enable/disable toggle requests permissions on enable, shows Settings alert on deny
+- Immediate effect pattern: changing interval calls both storage (saveNotificationInterval) and scheduler (setNotificationInterval)
+- Platform guards hide notification controls on web (Platform.OS !== 'web')
+- Interval selector conditionally visible only when notifications enabled
+- Settings UI follows existing patterns: glass card style, separators, label/subtitle typography
+
 ### Roadmap Evolution
 
 - Phase 3 (Deck Import) removed — replaced by own content pipeline, Anki import no longer needed
 - Phase 2.1 inserted after Phase 2: PWA Deployment & Content Integration (strategic pivot to PWA-first testing)
 - Phase 2.2 inserted after Phase 2: App Polish & Missing Screens (URGENT) — infinite practice session, Stats screen, Vocabulary browser, Settings screen, emoji→icon replacement
+- Phase 2.3 inserted after Phase 2.2: Audio Generation Pipeline (URGENT) — extend content pipeline with AI TTS for sentence audio generation
 
 ### Pending Todos
 
@@ -232,10 +335,11 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Phase 02.2 Plan 01 complete — Settings screen, daily new-word cap, routes registered
+Last session: 2026-03-04
+Stopped at: Phase 03 Plan 04 complete — Notification settings UI (interval configuration, enable/disable toggle)
+Phase 03 complete: All notification and widget functionality implemented and ready for device testing
 Resume file: None
 
 ---
 *State initialized: 2026-03-01*
-*Last updated: 2026-03-03 (Phase 02.1 complete — PWA deployed to Vercel)*
+*Last updated: 2026-03-04 (Phase 03 complete — Notifications and Live Activities)*

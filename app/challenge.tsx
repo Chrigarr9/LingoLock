@@ -25,6 +25,8 @@ import {
 import { updateStatsAfterSession, recordAbort, getStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import { useKeyboardVisible } from '../src/hooks/useKeyboardVisible';
+import { pauseNotifications, resumeNotifications } from '../src/services/notificationScheduler';
+import { updateWidgetData } from '../src/services/widgetService';
 import type { SessionCard } from '../src/types/vocabulary';
 
 /** How long to show the answer reveal before auto-advancing on correct answer */
@@ -81,6 +83,11 @@ export default function ChallengeScreen() {
   // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
+    // Pause notifications when entering practice session
+    pauseNotifications().catch((err) => {
+      console.error('[Challenge] Failed to pause notifications:', err);
+    });
+
     let session: SessionCard[];
     if (mode === 'continuous') {
       session = buildSession(loadNewWordsPerDay(), params.source);
@@ -107,6 +114,13 @@ export default function ChallengeScreen() {
       type: params.type,
       sessionLength: session.length,
     });
+    // Resume notifications when exiting practice session
+    return () => {
+      resumeNotifications().catch((err) => {
+        console.error('[Challenge] Failed to resume notifications:', err);
+      });
+      updateWidgetData();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -165,6 +179,10 @@ export default function ChallengeScreen() {
       } else {
         updateStatsAfterSession(correctCountRef.current, originalCardCount.current, params.source ?? 'unknown');
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
+        resumeNotifications().catch((err) => {
+          console.error('[Challenge] Failed to resume notifications on completion:', err);
+        });
+        updateWidgetData();
         const extra = buildSession(Infinity, params.source);
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);

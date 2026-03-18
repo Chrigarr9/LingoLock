@@ -910,15 +910,33 @@ def run_media_stage(config, chapter_range, output_base, skip_audio=False):
 
     # Audio generation
     if not skip_audio and config.audio_generation and config.audio_generation.enabled:
-        print("\n=== Pass 4: Audio Generation ===")
+        print("\n=== Audio Generation ===")
         from pipeline.audio_generator import AudioGenerator
-        gemini_key = os.environ.get("GEMINI_API_KEY")
-        all_sentences = [pair for i in chapter_range for pair in all_pairs[i]]
-        audio_gen = AudioGenerator(config, api_key=gemini_key, output_base=output_base)
-        audio_manifest = audio_gen.generate_all(all_sentences)
-        success = sum(1 for e in audio_manifest.audio.values() if e.status == "success")
-        failed = sum(1 for e in audio_manifest.audio.values() if e.status == "failed")
-        print(f"  {success} audio files generated, {failed} failed")
+
+        provider = config.audio_generation.provider
+        if provider == "gemini":
+            audio_api_key = os.environ.get("GEMINI_API_KEY")
+            if not audio_api_key:
+                print("  WARNING: GEMINI_API_KEY not set — skipping audio generation")
+        elif provider == "google":
+            audio_api_key = os.environ.get("GOOGLE_TTS_API_KEY")
+            if not audio_api_key:
+                print("  WARNING: GOOGLE_TTS_API_KEY not set — skipping audio generation")
+        elif provider == "openai":
+            audio_api_key = os.environ.get("OPENAI_API_KEY")
+            if not audio_api_key:
+                print("  WARNING: OPENAI_API_KEY not set — skipping audio generation")
+        else:
+            audio_api_key = None
+            print(f"  WARNING: Unknown audio provider '{provider}' — skipping")
+
+        if audio_api_key:
+            all_sentences = [pair for i in chapter_range for pair in all_pairs[i]]
+            audio_gen = AudioGenerator(config, api_key=audio_api_key, output_base=output_base)
+            audio_manifest = audio_gen.generate_all(all_sentences)
+            success = sum(1 for e in audio_manifest.audio.values() if e.status == "success")
+            failed = sum(1 for e in audio_manifest.audio.values() if e.status == "failed")
+            print(f"  {success} audio files generated, {failed} failed")
 
 
 def run_lemmatize_stage(config, output_base, frequency_file):

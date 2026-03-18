@@ -96,9 +96,11 @@ class ImageGenerationConfig(BaseModel):
 
 class AudioGenerationConfig(BaseModel):
     enabled: bool = True
-    model: str = "gemini-2.5-flash-preview-tts"
+    provider: str = "gemini"  # "gemini", "google" (Cloud TTS), or "openai"
+    model: str = "gemini-2.5-flash-preview-tts"  # Gemini TTS model name
     voice_name: str = "Aoede"  # Gemini TTS prebuilt voice name
-    speaking_rate: float = 1.0  # Reserved for future use
+    voice_gender: str = "male"  # For Google Cloud TTS / future use
+    speaking_rate: float = 1.0
 
 
 class DeckConfig(BaseModel):

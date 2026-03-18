@@ -31,27 +31,27 @@ Requirements for initial MVP release. Focus: Table stakes only, no differentiato
 
 ### Timed Notifications
 
-- [ ] **NOTF-01**: System schedules local notifications every configurable interval (3 min, 5 min, 10 min options)
-- [ ] **NOTF-02**: Notification shows: "Time for vocabulary! Tap to practice"
-- [ ] **NOTF-03**: User tapping notification opens LingoLock with vocabulary challenge
-- [ ] **NOTF-04**: User can configure notification interval in app settings
-- [ ] **NOTF-05**: Notifications only appear during active usage hours (9 AM - 10 PM, configurable)
+- [x] **NOTF-01**: System schedules local notifications every configurable interval (3 min, 5 min, 10 min options)
+- [x] **NOTF-02**: Notification shows: "Time for vocabulary! Tap to practice"
+- [x] **NOTF-03**: User tapping notification opens LingoLock with vocabulary challenge
+- [x] **NOTF-04**: User can configure notification interval in app settings
+- [x] **NOTF-05**: Notifications only appear during active usage hours (9 AM - 10 PM, configurable)
 
 ### Interactive Notifications
 
-- [ ] **INOT-01**: Notifications include interactive actions (Answer A/B/C/D buttons for multiple choice)
-- [ ] **INOT-02**: User can answer vocabulary directly from notification (without opening app)
-- [ ] **INOT-03**: System provides immediate feedback on notification (✓ Correct / ✗ Incorrect)
-- [ ] **INOT-04**: Answered cards via notification count toward progress/streak
-- [ ] **INOT-05**: User can choose "Open App" action from notification for full challenge
+- [x] **INOT-01**: Notifications include interactive actions (Answer A/B/C/D buttons for multiple choice)
+- [x] **INOT-02**: User can answer vocabulary directly from notification (without opening app)
+- [x] **INOT-03**: System provides immediate feedback on notification (✓ Correct / ✗ Incorrect)
+- [x] **INOT-04**: Answered cards via notification count toward progress/streak
+- [x] **INOT-05**: User can choose "Open App" action from notification for full challenge
 
 ### Live Activities (Lock Screen Widget)
 
-- [ ] **LIVE-01**: System displays Live Activity on Lock Screen with current vocabulary card
-- [ ] **LIVE-02**: User can answer vocabulary directly on Lock Screen (swipe down for options)
-- [ ] **LIVE-03**: Live Activity updates in real-time with new card after answering
-- [ ] **LIVE-04**: Live Activity shows streak count and daily progress
-- [ ] **LIVE-05**: User can enable/disable Live Activities in app settings
+- [x] **LIVE-01**: System displays Live Activity on Lock Screen with current vocabulary card
+- [x] **LIVE-02**: User can answer vocabulary directly on Lock Screen (swipe down for options)
+- [x] **LIVE-03**: Live Activity updates in real-time with new card after answering
+- [x] **LIVE-04**: Live Activity shows streak count and daily progress
+- [x] **LIVE-05**: User can enable/disable Live Activities in app settings
 
 ### Per-App Configuration
 
@@ -188,21 +188,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UNLK-01 | Phase 1 | Complete |
 | UNLK-02 | Phase 1 | Complete |
 | UNLK-03 | Phase 5 | Pending |
-| NOTF-01 | Phase 4 | Pending |
-| NOTF-02 | Phase 4 | Pending |
-| NOTF-03 | Phase 4 | Pending |
-| NOTF-04 | Phase 5 | Pending |
-| NOTF-05 | Phase 5 | Pending |
-| INOT-01 | Phase 4 | Pending |
-| INOT-02 | Phase 4 | Pending |
-| INOT-03 | Phase 4 | Pending |
-| INOT-04 | Phase 4 | Pending |
-| INOT-05 | Phase 4 | Pending |
-| LIVE-01 | Phase 4 | Pending |
-| LIVE-02 | Phase 4 | Pending |
-| LIVE-03 | Phase 4 | Pending |
-| LIVE-04 | Phase 4 | Pending |
-| LIVE-05 | Phase 5 | Pending |
+| NOTF-01 | Phase 03 | Complete |
+| NOTF-02 | Phase 03 | Complete |
+| NOTF-03 | Phase 03 | Complete |
+| NOTF-04 | Phase 03 | Complete |
+| NOTF-05 | Phase 03 | Complete |
+| INOT-01 | Phase 03 | Complete |
+| INOT-02 | Phase 03 | Complete |
+| INOT-03 | Phase 03 | Complete |
+| INOT-04 | Phase 03 | Complete |
+| INOT-05 | Phase 03 | Complete |
+| LIVE-01 | Phase 03 | Complete |
+| LIVE-02 | Phase 03 | Complete |
+| LIVE-03 | Phase 03 | Complete |
+| LIVE-04 | Phase 03 | Complete |
+| LIVE-05 | Phase 03 | Complete |
 
 **Coverage:**
 - v1 requirements: 54 total (18 new requirements: UNLK, NOTF, INOT, LIVE)

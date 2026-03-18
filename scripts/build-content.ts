@@ -221,7 +221,7 @@ if (fs.existsSync(IMAGE_MANIFEST_FILE)) {
 }
 
 // ---------------------------------------------------------------------------
-// Load audio manifest (if available from pipeline Pass 4)
+// Load audio manifest (if available from pipeline)
 // ---------------------------------------------------------------------------
 
 const AUDIO_MANIFEST_FILE = path.join(PIPELINE_DIR, 'audio_manifest.json');

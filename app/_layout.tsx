@@ -3,8 +3,10 @@ import { Stack, useRouter } from 'expo-router';
 import { Platform, View, useColorScheme, Text, StyleSheet } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
-import { ChallengeParams } from '../src/types/vocabulary';
+import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
+import { setupNotifications } from '../src/services/notificationService';
+import { processWidgetAnswer, updateWidgetData } from '../src/services/widgetService';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -71,23 +73,48 @@ export default function RootLayout() {
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
 
   useEffect(() => {
+    // Web: Register service worker
     if (Platform.OS === 'web' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('[SW] Registration failed:', err);
       });
     }
+
+    // Native: Setup notifications
+    let cleanupNotifications: (() => void) | undefined;
+    if (Platform.OS !== 'web') {
+      cleanupNotifications = setupNotifications();
+    }
+
+    return () => {
+      cleanupNotifications?.();
+    };
   }, []);
 
-  const handleDeepLink = useCallback((params: ChallengeParams) => {
-    console.log('[App] Deep link received:', params);
-    router.push({
-      pathname: '/challenge',
-      params: {
-        source: params.source,
-        count: params.count.toString(),
-        type: params.type,
-      },
-    });
+  const handleDeepLink = useCallback((deepLink: DeepLinkParams) => {
+    console.log('[App] Deep link received:', deepLink);
+
+    if (deepLink.type === 'challenge') {
+      router.push({
+        pathname: '/challenge',
+        params: {
+          source: deepLink.params.source,
+          count: deepLink.params.count.toString(),
+          type: deepLink.params.type,
+        },
+      });
+    } else if (deepLink.type === 'widget-answer') {
+      const { cardId, choice } = deepLink.params;
+      console.log('[App] Processing widget answer:', { cardId, choice });
+
+      try {
+        const result = processWidgetAnswer(cardId, choice);
+        console.log('[App] Widget answer processed:', result);
+        updateWidgetData();
+      } catch (error) {
+        console.error('[App] Failed to process widget answer:', error);
+      }
+    }
   }, [router]);
 
   useDeepLink(handleDeepLink);

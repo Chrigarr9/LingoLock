@@ -132,8 +132,8 @@ class AudioManifestEntry(BaseModel):
 
 
 class AudioManifest(BaseModel):
-    provider: str          # e.g. "google-gemini"
-    model: str             # TTS model name
+    provider: str          # e.g. "gemini", "google", "openai"
+    model: str = ""        # TTS model name (for Gemini TTS)
     language: str          # e.g. "es"
     audio: dict[str, AudioManifestEntry]  # Key: "ch{NN}_s{NN}"
 

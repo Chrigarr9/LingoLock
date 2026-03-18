@@ -98,6 +98,26 @@ Plans:
 - [ ] 02.2-02-PLAN.md -- Vocabulary browser + word detail view
 - [ ] 02.2-03-PLAN.md -- Continuous session flow + Stats detail + Home screen polish
 
+### Phase 02.3: Audio Generation Pipeline (INSERTED)
+
+**Goal:** Extend Spanish content pipeline with AI text-to-speech generation for sentence audio, enabling audio playback in vocabulary cards
+**Depends on:** Phase 2.2
+**Requirements**: AUDIO-01 (TTS API integration), AUDIO-02 (audio file generation), AUDIO-03 (audio storage), AUDIO-04 (content bundle integration), AUDIO-05 (playback logic wiring)
+**Success Criteria** (what must be TRUE):
+  1. Content pipeline includes Pass 6: Audio Generation using AI text-to-speech API
+  2. For each sentence in the content, system generates Spanish audio file (MP3/OGG format)
+  3. Audio files are saved to appropriate directory structure (by chapter/sentence)
+  4. build-content.ts script includes audio file paths in generated bundle.ts
+  5. ClozeCard type includes optional audioUrl field
+  6. Challenge screen plays sentence audio when audio button is tapped (if audioUrl present)
+  7. Audio generation is skippable if TTS API key not configured (graceful degradation)
+  8. All existing content pipeline tests still pass
+**Plans:** 2 plans in 2 waves
+
+Plans:
+- [x] 02.3-01-PLAN.md — Audio generator core: config, models, AudioGenerator class + tests
+- [x] 02.3-02-PLAN.md — Pipeline wiring (run_all.py Pass 6) + build-content.ts audio bundling + ClozeCard audio resolution
+
 ### Phase 02.1: PWA Deployment & Content Integration (INSERTED)
 
 **Goal:** Deploy LingoLock as a Progressive Web App on Vercel with full FSRS scheduling, streaks, and stats via localStorage platform adapter. Mobile-first layout with max-width container for desktop.
@@ -119,26 +139,31 @@ Plans:
 - [x] 02.1-03-PLAN.md -- Responsive layout, SW registration, and deployment verification
 
 ### Phase 3: Notifications & Live Activities
-**Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen widget
+**Goal**: User receives timed vocabulary reminders via notifications and can interact with Lock Screen/Home Screen widget
 **Depends on**: Phase 2 (needs FSRS scheduling and card data)
-**Requirements**: NOTF-01 through NOTF-05 (timed notifications), INOT-01 through INOT-05 (interactive notifications), LIVE-01 through LIVE-04 (Live Activities)
+**Requirements**: NOTF-01 through NOTF-05 (timed notifications), INOT-01 through INOT-05 (interactive notifications), LIVE-01 through LIVE-04 (Home Screen/Lock Screen widgets)
 **Success Criteria** (what must be TRUE):
-  1. System schedules local notifications every configurable interval (3/5/10 min)
-  2. Notifications show: "Time for vocabulary! 🧠" with vocabulary word preview
-  3. User tapping notification opens LingoLock with full vocabulary challenge
-  4. Notifications include interactive buttons (A/B/C/D for multiple choice)
-  5. User can answer vocabulary directly from notification without opening app
-  6. System provides immediate feedback on notification (✓ Correct / ✗ Try again)
-  7. Answered cards via notification count toward progress/streak
-  8. Live Activity appears on Lock Screen showing current vocabulary card
-  9. User can answer vocabulary directly on Lock Screen (swipe down for options)
-  10. Live Activity updates in real-time with new card after correct answer
-  11. Live Activity shows streak count and daily progress
-  12. Notifications only appear during active hours (9 AM - 10 PM, configurable)
-**Plans**: TBD
+  1. System schedules local notifications every configurable interval (5/10/15/30 min)
+  2. Notifications show cloze sentence with gap (minimal, text-only)
+  3. User can answer vocabulary directly from notification via text input without opening app
+  4. User tapping notification opens LingoLock with full vocabulary challenge
+  5. Answered cards via notification update FSRS state and count toward progress/streak
+  6. System provides feedback after notification answer (correct/incorrect + next card)
+  7. Notifications triggered on screen unlock via AppState timing heuristic
+  8. Swiping away notification breaks streak and pauses notifications until next day
+  9. Notifications stop when all due cards (per FSRS) are completed
+  10. Home Screen widget displays current vocabulary card with progress indicator
+  11. Lock Screen widget shows vocabulary card (text-only, compact)
+  12. Widget shows empty state when no cards due
+  13. User can configure notification interval and enable/disable in settings
+  14. All practice contexts (in-app, notification, widget) share same FSRS queue
+**Plans:** 4 plans in 3 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 03-01-PLAN.md -- Notification infrastructure (expo-notifications, categories, permissions, handler)
+- [ ] 03-02-PLAN.md -- Widget foundation + practice UI (expo-widgets, Home/Lock Screen widget, data service)
+- [ ] 03-03-PLAN.md -- Notification scheduling + response handling + FSRS wiring
+- [ ] 03-04-PLAN.md -- Settings integration + cross-context wiring + verification
 
 ### Phase 3: Configuration & Settings
 **Goal**: User can customize app behavior per Shortcut automation and manage preferences
@@ -174,9 +199,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shortcuts Integration & Basic UI | 7/7 | Human verification needed | 2003-03-02 |
 | 2. Spaced Repetition & Progress | 5/5 | Complete   | 2003-03-02 |
 | 2.1 PWA Deployment & Content Integration | 3/3 | Complete | 2026-03-03 |
-| 3. Notifications & Live Activities | 0/TBD | Not started | - |
+| 2.2 App Polish & Missing Screens | 3/3 | Complete | 2026-03-04 |
+| 2.3 Audio Generation Pipeline | 2/2 | Complete | 2026-03-04 |
+| 3. Notifications & Live Activities | 4/4 | Complete | 2026-03-04 |
 | 3. Configuration & Settings | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2003-03-01*
-*Last updated: 2026-03-03 (Phase 02.1 complete — PWA deployed to Vercel)*
+*Last updated: 2026-03-04 (Phase 03 complete — notifications, widgets, settings integration)*
