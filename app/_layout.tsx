@@ -6,7 +6,7 @@ import { useDeepLink } from '../src/hooks/useDeepLink';
 import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
 import { setupNotifications } from '../src/services/notificationService';
-import { processWidgetAnswer, processSpellAction, updateWidgetData } from '../src/services/widgetService';
+import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWidgetRate, updateWidgetData } from '../src/services/widgetService';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 
 // ---------------------------------------------------------------------------
@@ -126,6 +126,25 @@ export default function RootLayout() {
         }
       } catch (error) {
         console.error('[App] Failed to process widget spell:', error);
+      }
+    } else if (deepLink.type === 'widget-reveal') {
+      const { cardId } = deepLink.params;
+      console.log('[App] Processing widget reveal:', { cardId });
+
+      try {
+        processWidgetReveal(cardId);
+        updateWidgetData();
+      } catch (error) {
+        console.error('[App] Failed to process widget reveal:', error);
+      }
+    } else if (deepLink.type === 'widget-rate') {
+      const { cardId, rating } = deepLink.params;
+      console.log('[App] Processing widget rate:', { cardId, rating });
+
+      try {
+        processWidgetRate(cardId, rating);
+      } catch (error) {
+        console.error('[App] Failed to process widget rate:', error);
       }
     }
   }, [router]);
