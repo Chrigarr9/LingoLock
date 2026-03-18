@@ -6,7 +6,8 @@ import { useDeepLink } from '../src/hooks/useDeepLink';
 import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
 import { setupNotifications } from '../src/services/notificationService';
-import { processWidgetAnswer, updateWidgetData } from '../src/services/widgetService';
+import { processWidgetAnswer, processSpellAction, updateWidgetData } from '../src/services/widgetService';
+import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -114,6 +115,18 @@ export default function RootLayout() {
       } catch (error) {
         console.error('[App] Failed to process widget answer:', error);
       }
+    } else if (deepLink.type === 'widget-spell') {
+      const { cardId, action, char } = deepLink.params;
+      console.log('[App] Processing widget spell:', { cardId, action, char });
+
+      try {
+        const result = processSpellAction(cardId, action, char);
+        if (result.submitted) {
+          console.log('[App] Spell submitted:', result);
+        }
+      } catch (error) {
+        console.error('[App] Failed to process widget spell:', error);
+      }
     }
   }, [router]);
 
@@ -127,6 +140,7 @@ export default function RootLayout() {
   };
 
   const content = (
+    <ActiveBundleProvider>
     <Stack screenOptions={themedHeaderOptions}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
@@ -161,6 +175,7 @@ export default function RootLayout() {
         options={{ title: 'Word Detail' }}
       />
     </Stack>
+    </ActiveBundleProvider>
   );
 
   return (
