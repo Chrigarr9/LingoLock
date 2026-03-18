@@ -52,6 +52,26 @@ export interface WidgetSpellParams {
   char?: string;
 }
 
+/**
+ * Parameters for widget self-rated reveal deep link.
+ * Used when user taps "Reveal" on a self-rated card on the widget.
+ */
+export interface WidgetRevealParams {
+  /** ID of the card to reveal */
+  cardId: string;
+}
+
+/**
+ * Parameters for widget self-rated rating deep link.
+ * Used when user taps Again/Good on a revealed self-rated card on the widget.
+ */
+export interface WidgetRateParams {
+  /** ID of the card being rated */
+  cardId: string;
+  /** FSRS rating: 1 = Again, 3 = Good */
+  rating: '1' | '3';
+}
+
 /** Alternative sentence for a cloze card — same word, different context.
  *  Includes chapter + sentenceIndex so the app can progressively unlock
  *  variants as the user advances through the story. */
