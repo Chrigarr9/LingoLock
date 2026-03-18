@@ -47,7 +47,6 @@ export default function SettingsScreen() {
   const [enabledBundles, setEnabledBundles] = useState(() => loadEnabledBundles());
 
   const toggleEnabled = (bundleId: string) => {
-    if (bundleId === activeBundleId) return;
     const newEnabled = enabledBundles.includes(bundleId)
       ? enabledBundles.filter(id => id !== bundleId)
       : [...enabledBundles, bundleId];
@@ -408,7 +407,6 @@ export default function SettingsScreen() {
                   <RNSwitch
                     value={isEnabled || isActive}
                     onValueChange={() => toggleEnabled(bundle.id)}
-                    disabled={isActive}
                     trackColor={{ true: theme.custom.brandBlue }}
                   />
                 </Pressable>
