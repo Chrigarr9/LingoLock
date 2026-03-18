@@ -59,19 +59,45 @@ export default function SettingsScreen() {
     setActiveBundleId(bundleId);
   };
 
+  const pickFileWeb = (): Promise<{ uri: string; name: string } | null> => {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.apkg';
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) { resolve(null); return; }
+        resolve({ uri: URL.createObjectURL(file), name: file.name });
+      };
+      input.click();
+    });
+  };
+
   const handleImport = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      const file = result.assets[0];
-      if (!file.uri.toLowerCase().endsWith('.apkg')) {
+      let fileUri: string;
+      let fileName: string;
+
+      if (Platform.OS === 'web') {
+        const picked = await pickFileWeb();
+        if (!picked) return;
+        fileUri = picked.uri;
+        fileName = picked.name;
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled || !result.assets?.length) return;
+        fileUri = result.assets[0].uri;
+        fileName = result.assets[0].name ?? '';
+      }
+
+      if (!fileName.toLowerCase().endsWith('.apkg')) {
         Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
         return;
       }
-      const meta = await importApkg(file.uri);
+      const meta = await importApkg(fileUri);
       const cards = await loadImportedDeckCards(meta.id);
       const bundle: Bundle = {
         config: {

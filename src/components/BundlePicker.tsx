@@ -35,17 +35,41 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
     onClose();
   };
 
+  const pickFileWeb = (): Promise<{ uri: string; name: string } | null> => {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.apkg';
+      input.onchange = () => {
+        const f = input.files?.[0];
+        if (!f) { resolve(null); return; }
+        resolve({ uri: URL.createObjectURL(f), name: f.name });
+      };
+      input.click();
+    });
+  };
+
   const handleImport = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
-      });
+      let fileUri: string;
+      let fileName: string;
 
-      if (result.canceled || !result.assets?.length) return;
+      if (Platform.OS === 'web') {
+        const picked = await pickFileWeb();
+        if (!picked) return;
+        fileUri = picked.uri;
+        fileName = picked.name;
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled || !result.assets?.length) return;
+        fileUri = result.assets[0].uri;
+        fileName = result.assets[0].name ?? '';
+      }
 
-      const file = result.assets[0];
-      if (!file.uri.toLowerCase().endsWith('.apkg')) {
+      if (!fileName.toLowerCase().endsWith('.apkg')) {
         Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
         return;
       }
@@ -53,7 +77,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
       setImporting(true);
       setImportProgress('Starting import...');
 
-      const meta = await importApkg(file.uri, (stage, _pct) => {
+      const meta = await importApkg(fileUri, (stage, _pct) => {
         setImportProgress(stage);
       });
 

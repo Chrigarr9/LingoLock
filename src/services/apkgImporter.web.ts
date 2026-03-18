@@ -73,7 +73,7 @@ export async function importApkg(
 
   const dbBuffer = await dbFile.async('arraybuffer');
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+    locateFile: () => 'https://sql.js.org/dist/sql-wasm.wasm',
   });
   const db = new SQL.Database(new Uint8Array(dbBuffer));
 
