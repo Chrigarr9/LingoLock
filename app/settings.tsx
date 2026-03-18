@@ -420,6 +420,13 @@ export default function SettingsScreen() {
               + Import your own deck
             </Text>
           </Pressable>
+
+          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+          <View style={[styles.settingRow, { opacity: 0.4 }]}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              + Download more (coming soon)
+            </Text>
+          </View>
         </View>
       </View>
     </SafeAreaView>

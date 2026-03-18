@@ -188,6 +188,12 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
               </Text>
             </TouchableOpacity>
           )}
+
+          <View style={[styles.row, styles.disabledRow]}>
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+              + Download more (coming soon)
+            </Text>
+          </View>
         </View>
         </View>
       </TouchableOpacity>
@@ -240,6 +246,9 @@ const styles = StyleSheet.create({
   },
   due: {
     fontSize: 14,
+  },
+  disabledRow: {
+    opacity: 0.4,
   },
   importingRow: {
     justifyContent: 'flex-start',

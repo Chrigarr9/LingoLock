@@ -1,31 +1,12 @@
 /**
- * Tests for apkgImporter pure utility functions
+ * Tests for apkg parser pure utility functions
  *
- * Only tests stripHtml, generateDeckId, and parseAnkiNotes — the synchronous
- * functions that don't need filesystem or SQLite access.
- *
- * Mocks: expo-file-system, react-native-zip-archive, expo-sqlite,
- *        importedDeckStore (all needed to avoid native module errors on import)
+ * Tests stripHtml, generateDeckId, and parseAnkiNotes — the synchronous
+ * functions shared between native and web importers.
+ * No mocks needed — apkgParser.ts has no native dependencies.
  */
-
-// ---------------------------------------------------------------------------
-// Mocks — must be declared before importing the module under test
-// ---------------------------------------------------------------------------
-
-jest.mock('expo-file-system', () => ({}));
-jest.mock('react-native-zip-archive', () => ({ unzip: jest.fn() }));
-jest.mock('expo-sqlite', () => ({ openDatabaseAsync: jest.fn() }));
-jest.mock('./importedDeckStore', () => ({
-  saveImportedDeck: jest.fn(),
-  getImportedDeckDir: jest.fn(),
-  getImportedDecksBaseDir: jest.fn(),
-}));
-
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { stripHtml, generateDeckId, parseAnkiNotes, AnkiNoteRow } from './apkgImporter';
+import { stripHtml, generateDeckId, parseAnkiNotes } from './apkgParser';
+import type { AnkiNoteRow } from './apkgParser';
 
 // ---------------------------------------------------------------------------
 // stripHtml
