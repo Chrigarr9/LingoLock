@@ -10,7 +10,9 @@ import { AnswerInput } from '../src/components/AnswerInput';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { ProgressDots } from '../src/components/ProgressDots';
-import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
+import { SelfRatedCard } from '../src/components/SelfRatedCard';
+import { buildSession, buildImportedSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
+import type { SimpleCard } from '../src/types/simpleCard';
 import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
 import type { ReviewGrade } from '../src/services/fsrs';
 import {
@@ -42,13 +44,13 @@ export default function ChallengeScreen() {
   }>();
   const router = useRouter();
   const theme = useAppTheme();
-  const { config, chapters } = useActiveBundle();
+  const { config, chapters, simpleCards } = useActiveBundle();
 
   function getMotivationalMessage(accuracy: number): string {
-    if (accuracy === 100) return config.motivational.perfect;
-    if (accuracy >= 80) return config.motivational.great;
-    if (accuracy >= 60) return config.motivational.good;
-    return config.motivational.encouragement;
+    if (accuracy === 100) return config.motivational.perfect || 'Perfect!';
+    if (accuracy >= 80) return config.motivational.great || 'Great job!';
+    if (accuracy >= 60) return config.motivational.good || 'Good work!';
+    return config.motivational.encouragement || 'Keep going!';
   }
 
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +94,9 @@ export default function ChallengeScreen() {
     });
 
     let session: SessionCard[];
-    if (mode === 'continuous') {
+    if (config.type === 'imported') {
+      session = buildImportedSession(simpleCards, loadNewWordsPerDay(), config.id);
+    } else if (mode === 'continuous') {
       session = buildSession(chapters, loadNewWordsPerDay(), params.source);
     } else {
       session = buildSession(chapters, parseInt(params.count || '3', 10), params.source);
@@ -140,6 +144,7 @@ export default function ChallengeScreen() {
   const currentCard: SessionCard | undefined = queue[currentIndex];
   const answerType = currentCard?.answerType ?? 'mc4';
   const isMC = answerType === 'mc4';
+  const isSelfRated = answerType === 'selfRated';
 
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -329,6 +334,22 @@ export default function ChallengeScreen() {
     handleCorrect(currentCard, 'easy');
   };
 
+  const handleSelfRate = (grade: ReviewGrade) => {
+    if (!currentCard) return;
+    updateCardFSRS(currentCard, grade);
+    if (currentCard.isFirstEncounter) answeredNewCardIds.current.add(currentCard.card.id);
+    const isPositive = grade !== 'again';
+    if (isPositive) {
+      setCorrectCount((c) => {
+        const next = c + 1;
+        correctCountRef.current = next;
+        return next;
+      });
+    }
+    setShowAnswer(true);
+    advanceToNext();
+  };
+
   // Generate hint text for current card (text mode only)
   const currentHintText = currentCard?.answerType === 'text' && currentCard.hintLevel
     ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
@@ -419,7 +440,7 @@ export default function ChallengeScreen() {
         >
         {!isComplete && currentCard && (
           <>
-            {isMC ? (
+            {isMC && !isSelfRated && (
               /* Multiple Choice mode (MC4) */
               <View style={styles.mcArea}>
                 <ClozeCardDisplay
@@ -450,7 +471,9 @@ export default function ChallengeScreen() {
                   </View>
                 )}
               </View>
-            ) : (
+            )}
+
+            {!isMC && !isSelfRated && (
               /* Text input mode */
               <View style={styles.textArea}>
                 <ClozeCardDisplay
@@ -480,8 +503,17 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {/* Next button — always visible after answering */}
-            {showAnswer && (
+            {isSelfRated && (
+              <View style={styles.mcArea}>
+                <SelfRatedCard
+                  card={currentCard.card as SimpleCard}
+                  onRate={handleSelfRate}
+                />
+              </View>
+            )}
+
+            {/* Next button — visible after answering, hidden for selfRated (auto-advances via onRate) */}
+            {showAnswer && !isSelfRated && (
               <Pressable
                 onPress={advanceToNext}
                 style={[styles.nextButton, { backgroundColor: theme.colors.surfaceVariant }]}

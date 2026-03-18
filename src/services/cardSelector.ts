@@ -14,6 +14,7 @@
 import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
 import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
 import type { SessionCard, ClozeCard, ChapterData } from '../types/vocabulary';
+import type { SimpleCard } from '../types/simpleCard';
 
 function getChapterCards(chapters: ChapterData[], chapterNumber: number): ClozeCard[] {
   return chapters.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
@@ -296,6 +297,49 @@ export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number
   const selected = [...shuffle(dueCards), ...selectedNew];
 
   return selected.map((card) => toSessionCard(card, currentChapterNumber, seenByChapter));
+}
+
+// ---------------------------------------------------------------------------
+// buildImportedSession — session for imported (SimpleCard) decks
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a session queue for an imported deck of SimpleCards.
+ *
+ * Works like buildSession but without chapters, variants, or MC choices —
+ * all cards are self-rated (front/back with reveal + grade buttons).
+ *
+ * @param cards - All SimpleCards in the imported deck
+ * @param dailyNewWordBudget - Maximum new words the user wants to learn per day
+ * @param bundleId - Bundle ID used to namespace card states in storage
+ */
+export function buildImportedSession(
+  cards: SimpleCard[],
+  dailyNewWordBudget: number,
+  bundleId: string,
+): SessionCard[] {
+  const dueCards: SimpleCard[] = [];
+  const newCards: SimpleCard[] = [];
+
+  for (const card of cards) {
+    const namespacedId = `${bundleId}:${card.id}`;
+    const state = loadCardState(namespacedId);
+    if (state === null) {
+      newCards.push(card);
+    } else if (isDue(state)) {
+      dueCards.push(card);
+    }
+  }
+
+  const remainingBudget = Math.max(0, dailyNewWordBudget - loadNewWordsIntroducedToday());
+  const selectedNew = newCards.slice(0, remainingBudget);
+  const selected = [...shuffle(dueCards), ...selectedNew];
+
+  return selected.map((card) => ({
+    card,
+    answerType: 'selfRated' as const,
+    isFirstEncounter: loadCardState(`${bundleId}:${card.id}`) === null,
+  }));
 }
 
 // ---------------------------------------------------------------------------
