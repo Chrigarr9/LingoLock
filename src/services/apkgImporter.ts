@@ -9,8 +9,8 @@
  * requires real filesystem and SQLite access.
  */
 import { Directory, File, Paths } from 'expo-file-system';
-import { unzip } from 'react-native-zip-archive';
-import { openDatabaseAsync } from 'expo-sqlite';
+// expo-sqlite and react-native-zip-archive are imported dynamically in
+// importApkg() to avoid bundling native modules on web (crashes Metro).
 
 import type { SimpleCard, ImportedDeckMeta } from '../types/simpleCard';
 import {
@@ -173,6 +173,7 @@ export async function importApkg(
     onProgress?.('Extracting archive…', 10);
     const unzipDir = new Directory(cacheDir, 'unzipped');
     unzipDir.create();
+    const { unzip } = await import('react-native-zip-archive');
     await unzip(apkgFile.uri, unzipDir.uri);
 
     // -----------------------------------------------------------------------
@@ -188,6 +189,8 @@ export async function importApkg(
     const anki2 = new File(unzipDir, 'collection.anki2');
     const dbPath = anki21.exists ? anki21.uri : anki2.uri;
 
+    // Dynamic import to avoid bundling WASM on web
+    const { openDatabaseAsync } = await import('expo-sqlite');
     const db = await openDatabaseAsync(dbPath);
 
     // -----------------------------------------------------------------------
