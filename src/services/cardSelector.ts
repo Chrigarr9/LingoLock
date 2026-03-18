@@ -189,6 +189,7 @@ export function getCurrentChapter(chapters: ChapterData[]): number {
   }
 
   // All chapters mastered — return last chapter (review mode)
+  if (chapters.length === 0) return 0; // Imported decks have no chapters
   return chapters[chapters.length - 1].chapterNumber;
 }
 
