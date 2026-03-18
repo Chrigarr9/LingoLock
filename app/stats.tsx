@@ -4,8 +4,8 @@ import { Text, ProgressBar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getCardStyle, labelOverlineStyle } from '../src/theme';
-import { CHAPTERS, getTotalCards } from '../src/content/bundle';
 import { getStreak, getSuccessRate, getChapterMastery } from '../src/services/statsService';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { loadCardState } from '../src/services/storage';
 import { isCardMastered, isDue } from '../src/services/fsrs';
 import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
@@ -13,6 +13,7 @@ import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
 export default function StatsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
+  const { chapters } = useActiveBundle();
   const focusKey = useFocusRefresh();
 
   // ---------------------------------------------------------------------------
@@ -20,7 +21,7 @@ export default function StatsScreen() {
   // ---------------------------------------------------------------------------
   const { successRate, streak, totalCards, totalMastered, chapterStats } = useMemo(() => {
     // Load all card states once — single pass for both totalMastered and chapterStats
-    const chapters = CHAPTERS.map((ch) => {
+    const chapterList = chapters.map((ch) => {
       let mastered = 0;
       let dueCount = 0;
       for (const card of ch.cards) {
@@ -32,7 +33,7 @@ export default function StatsScreen() {
       }
       return {
         chapterNumber: ch.chapterNumber,
-        mastery: getChapterMastery(ch.chapterNumber),
+        mastery: getChapterMastery(chapters, ch.chapterNumber),
         total: ch.cards.length,
         mastered,
         dueCount,
@@ -42,11 +43,11 @@ export default function StatsScreen() {
     return {
       successRate: getSuccessRate(),
       streak: getStreak(),
-      totalCards: getTotalCards(),
-      totalMastered: chapters.reduce((sum, ch) => sum + ch.mastered, 0),
-      chapterStats: chapters,
+      totalCards: chapters.flatMap(ch => ch.cards).length,
+      totalMastered: chapterList.reduce((sum, ch) => sum + ch.mastered, 0),
+      chapterStats: chapterList,
     };
-  }, [focusKey]);
+  }, [focusKey, chapters]);
 
   const cardStyle = getCardStyle(theme);
 

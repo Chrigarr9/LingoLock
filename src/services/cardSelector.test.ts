@@ -91,6 +91,7 @@ jest.mock('../content/bundle', () => {
 // ---------------------------------------------------------------------------
 
 import { buildSession, handleWrongAnswer, getCurrentChapter } from './cardSelector';
+import { CHAPTERS } from '../content/bundle';
 import { loadCardState, loadAllCardStates } from './storage';
 import { isDue, getAnswerType, getHintLevel, isCardLearned, isCardMastered } from './fsrs';
 
@@ -143,7 +144,7 @@ describe('buildSession', () => {
     // All cards are new (no card states)
     mockLoadCardState.mockReturnValue(null);
 
-    const session = buildSession(5);
+    const session = buildSession(CHAPTERS, 5);
 
     expect(session).toHaveLength(5);
     // All from chapter 1 (first 5 are chapter 1 cards)
@@ -168,7 +169,7 @@ describe('buildSession', () => {
     mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc4'));
 
     // Budget of 2 new words → 3 due + 2 new = 5
-    const session = buildSession(2);
+    const session = buildSession(CHAPTERS, 2);
 
     expect(session).toHaveLength(5);
     const dueInSession = session.filter((sc: import('../types/vocabulary').SessionCard) => dueIds.includes(sc.card.id));
@@ -179,7 +180,7 @@ describe('buildSession', () => {
 
   test('all due reviews + new words up to daily budget', () => {
     // word1-word5 + wordV are due, ch2 cards (word6-word8) are new
-    // buildSession(5) = ALL due (6) + up to 5 new (3 available) = 9 total
+    // buildSession(CHAPTERS, 5) = ALL due (6) + up to 5 new (3 available) = 9 total
     const dueIds = [
       'word1-ch01-s00',
       'word2-ch01-s01',
@@ -196,7 +197,7 @@ describe('buildSession', () => {
     mockIsDue.mockImplementation((state) => dueIds.includes(state.cardId));
     mockGetAnswerType.mockImplementation((state) => (state ? 'mc4' : 'mc4'));
 
-    const session = buildSession(5);
+    const session = buildSession(CHAPTERS, 5);
 
     // All 6 due + 3 new from ch2 = 9
     expect(session).toHaveLength(9);
@@ -255,7 +256,7 @@ describe('buildSession', () => {
     mockIsCardMastered.mockReturnValue(false); // none mastered (for getCurrentChapter, ch1 is current)
     mockGetAnswerType.mockReturnValue('mc4');
 
-    const session = buildSession(5);
+    const session = buildSession(CHAPTERS, 5);
 
     expect(session).toHaveLength(5);
     const ch1InSession = session.filter(sc => sc.card.chapter === 1);
@@ -268,7 +269,7 @@ describe('buildSession', () => {
     mockLoadCardState.mockReturnValue(null);
     mockGetAnswerType.mockReturnValue('mc4');
 
-    const session = buildSession(1);
+    const session = buildSession(CHAPTERS, 1);
 
     expect(session).toHaveLength(1);
     const sc = session[0];
@@ -281,7 +282,7 @@ describe('buildSession', () => {
     mockLoadCardState.mockReturnValue(null);
     mockGetAnswerType.mockReturnValue('text');
 
-    const session = buildSession(1);
+    const session = buildSession(CHAPTERS, 1);
 
     expect(session).toHaveLength(1);
     const sc = session[0];
@@ -380,7 +381,7 @@ describe('sentence variant rotation', () => {
   test('card without sentenceVariants always uses primary sentence', () => {
     // word1 has no sentenceVariants — sentence should always be '_____' (mock default)
     mockLoadCardState.mockReturnValue(null);
-    const session = buildSession(1);
+    const session = buildSession(CHAPTERS, 1);
     expect(session[0].card.sentence).toBe('_____');
   });
 
@@ -391,7 +392,7 @@ describe('sentence variant rotation', () => {
     mockLoadAllCardStates.mockReturnValue([]);
     setupWordVDue();
 
-    const session = buildSession(0);
+    const session = buildSession(CHAPTERS, 0);
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
     expect(sc).toBeDefined();
     expect(sc!.card.sentence).toBe('Original _____ sentence');
@@ -404,7 +405,7 @@ describe('sentence variant rotation', () => {
     mockLoadAllCardStates.mockReturnValue([makeCardState('word3-ch01-s02')]);
     setupWordVDue();
 
-    const session = buildSession(0);
+    const session = buildSession(CHAPTERS, 0);
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
     expect(sc!.card.sentence).toBe('Original _____ sentence');
   });
@@ -421,7 +422,7 @@ describe('sentence variant rotation', () => {
 
     const sentences = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      const session = buildSession(0);
+      const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
       if (sc) sentences.add(sc.card.sentence);
     }
@@ -442,7 +443,7 @@ describe('sentence variant rotation', () => {
 
     const sentences = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      const session = buildSession(0);
+      const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
       if (sc) sentences.add(sc.card.sentence);
     }
@@ -471,7 +472,7 @@ describe('sentence variant rotation', () => {
 
     const sentences = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      const session = buildSession(0);
+      const session = buildSession(CHAPTERS, 0);
       const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
       if (sc) sentences.add(sc.card.sentence);
     }
@@ -491,7 +492,7 @@ describe('sentence variant rotation', () => {
     ]);
     setupWordVDue();
 
-    const session = buildSession(0);
+    const session = buildSession(CHAPTERS, 0);
     const sc = session.find((s) => s.card.id === 'wordV-ch01-s05');
 
     // 1 unlocked (< 2 required) → returns original card unchanged
@@ -508,7 +509,7 @@ describe('getCurrentChapter', () => {
     mockLoadCardState.mockReturnValue(null);
     mockIsCardLearned.mockReturnValue(false);
 
-    const chapter = getCurrentChapter();
+    const chapter = getCurrentChapter(CHAPTERS);
 
     expect(chapter).toBe(1);
   });
@@ -531,7 +532,7 @@ describe('getCurrentChapter', () => {
     });
     mockIsCardLearned.mockImplementation((state) => learnedIds.includes(state.cardId));
 
-    const chapter = getCurrentChapter();
+    const chapter = getCurrentChapter(CHAPTERS);
 
     expect(chapter).toBe(2);
   });

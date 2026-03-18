@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform, Image, Pressable, useWindowDimensions, type
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
-import { cardImages, cardAudios } from '../content/bundle';
+import { useActiveBundle } from '../content/activeBundleProvider';
 import type { SessionCard } from '../types/vocabulary';
 
 interface ClozeCardDisplayProps {
@@ -49,6 +49,7 @@ export function ClozeCardDisplay({
   hideImage = false,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
+  const { cardImages, cardAudios } = useActiveBundle();
   const { card, answerType } = sessionCard;
   const soundRef = useRef<AudioPlayer | null>(null);
   // Ref to always call the latest onAudioFinish callback without re-triggering the effect

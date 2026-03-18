@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, Image, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../../src/theme';
-import { getCardById, cardImages } from '../../src/content/bundle';
+import { useActiveBundle } from '../../src/content/activeBundleProvider';
 import { loadCardState } from '../../src/services/storage';
 import { deriveMastery, getMasteryColor } from '../../src/utils/mastery';
 
@@ -23,8 +23,15 @@ function formatDate(isoString: string): string {
 export default function WordDetailScreen() {
   const theme = useAppTheme();
   const params = useLocalSearchParams<{ id: string }>();
+  const { cardImages, chapters } = useActiveBundle();
 
-  const card = getCardById(params.id);
+  const card = useMemo(() => {
+    for (const ch of chapters) {
+      const found = ch.cards.find(c => c.id === params.id);
+      if (found) return found;
+    }
+    return undefined;
+  }, [chapters, params.id]);
 
   if (!card) {
     return (

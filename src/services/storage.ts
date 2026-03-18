@@ -250,6 +250,76 @@ export function saveNotificationsEnabled(enabled: boolean): void {
 }
 
 // ---------------------------------------------------------------------------
+// Bundle state
+// ---------------------------------------------------------------------------
+
+const ACTIVE_BUNDLE_KEY = 'activeBundle';
+const ENABLED_BUNDLES_KEY = 'enabledBundles';
+const BUNDLE_MIGRATION_DONE_KEY = 'bundleMigrationDone';
+
+export const DEFAULT_BUNDLE_ID = 'es-de-buenos-aires';
+
+export function loadActiveBundle(): string {
+  return statsStorage.getString(ACTIVE_BUNDLE_KEY) ?? DEFAULT_BUNDLE_ID;
+}
+
+export function saveActiveBundle(bundleId: string): void {
+  statsStorage.set(ACTIVE_BUNDLE_KEY, bundleId);
+  // Active bundle is always implicitly enabled
+  const enabled = loadEnabledBundles();
+  if (!enabled.includes(bundleId)) {
+    saveEnabledBundles([...enabled, bundleId]);
+  }
+}
+
+export function loadEnabledBundles(): string[] {
+  const raw = statsStorage.getString(ENABLED_BUNDLES_KEY);
+  if (!raw) return [DEFAULT_BUNDLE_ID];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [DEFAULT_BUNDLE_ID];
+  }
+}
+
+export function saveEnabledBundles(bundleIds: string[]): void {
+  statsStorage.set(ENABLED_BUNDLES_KEY, JSON.stringify(bundleIds));
+}
+
+export function isBundleMigrationDone(): boolean {
+  return statsStorage.getBoolean(BUNDLE_MIGRATION_DONE_KEY) ?? false;
+}
+
+export function setBundleMigrationDone(): void {
+  statsStorage.set(BUNDLE_MIGRATION_DONE_KEY, true);
+}
+
+/**
+ * One-time migration: prefix all existing card state keys with the default bundle ID.
+ * Converts "gato-ch01-s03" → "es-de-buenos-aires:gato-ch01-s03".
+ * Safe to call multiple times — no-ops after first successful run.
+ */
+export function migrateCardIdsToNamespaced(): void {
+  if (isBundleMigrationDone()) return;
+
+  const keys = cardStorage.getAllKeys();
+  let migrated = 0;
+  for (const key of keys) {
+    if (key.includes(':')) continue;
+    const value = cardStorage.getString(key);
+    if (value) {
+      const newKey = `${DEFAULT_BUNDLE_ID}:${key}`;
+      cardStorage.set(newKey, value);
+      cardStorage.remove(key);
+      migrated++;
+    }
+  }
+
+  setBundleMigrationDone();
+  console.log(`[Migration] Migrated ${migrated} card states to namespaced IDs`);
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 

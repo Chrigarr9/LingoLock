@@ -1,43 +1,46 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
-import { getTotalCards } from '../src/content/bundle';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { usePWAInstall } from '../src/hooks/usePWAInstall';
-
-function getSpanishGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Buenos días';   // 0-11
-  if (hour < 20) return 'Buenas tardes'; // 12-19
-  return 'Buenas noches';                 // 20-23
-}
+import { BundlePicker } from '../src/components/BundlePicker';
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
+  const { config, chapters, switchBundle } = useActiveBundle();
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return config.greetings.morning;
+    if (hour < 20) return config.greetings.afternoon;
+    return config.greetings.evening;
+  }
 
   const [streak, setStreak] = useState(0);
   const [chapterProgress, setChapterProgress] = useState(0);
   const [cardsDue, setCardsDue] = useState(0);
   const [currentChapter, setCurrentChapter] = useState(1);
-  const [greeting, setGreeting] = useState(getSpanishGreeting);
+  const [greeting, setGreeting] = useState(getGreeting);
   const promptInstall = usePWAInstall();
 
   // Refresh stats when screen gains focus (returning from challenge)
   useFocusEffect(
     useCallback(() => {
       setStreak(getStreak());
-      const chapter = getCurrentChapterNumber();
+      const chapter = getCurrentChapterNumber(chapters);
       setCurrentChapter(chapter);
-      setChapterProgress(getChapterMastery(chapter));
-      setCardsDue(getCardsDueCount());
+      setChapterProgress(getChapterMastery(chapters, chapter));
+      setCardsDue(getCardsDueCount(chapters));
       // Refresh greeting in case time-of-day has changed
-      setGreeting(getSpanishGreeting());
-    }, [])
+      setGreeting(getGreeting());
+    }, [chapters])
   );
 
   const glassStyle = getGlassStyle(theme);
@@ -81,22 +84,24 @@ export default function HomeScreen() {
 
         {/* Language Badge */}
         <View style={styles.badgeRow}>
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor: theme.colors.primaryContainer,
-                borderColor: theme.colors.outlineVariant,
-              },
-            ]}
-          >
-            <View style={styles.badgeContent}>
-              <Icon source="earth" size={12} color={theme.custom.labelMuted} />
-              <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
-                SPANISH
-              </Text>
+          <TouchableOpacity onPress={() => setPickerVisible(true)}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderColor: theme.colors.outlineVariant,
+                },
+              ]}
+            >
+              <View style={styles.badgeContent}>
+                <Icon source="earth" size={12} color={theme.custom.labelMuted} />
+                <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
+                  {config.displayLabel}
+                </Text>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Greeting */}
@@ -250,6 +255,15 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      <BundlePicker
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onBundleChanged={(bundleId) => {
+          switchBundle(bundleId);
+          setPickerVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

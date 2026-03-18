@@ -28,16 +28,10 @@ import { useKeyboardVisible } from '../src/hooks/useKeyboardVisible';
 import { pauseNotifications, resumeNotifications } from '../src/services/notificationScheduler';
 import { updateWidgetData } from '../src/services/widgetService';
 import type { SessionCard } from '../src/types/vocabulary';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
 
 /** How long to show the answer reveal before auto-advancing on correct answer */
 const AUTO_ADVANCE_MS = 1500;
-
-function getMotivationalMessage(accuracy: number): string {
-  if (accuracy === 100) return '¡Perfecto! Every answer correct.';
-  if (accuracy >= 80) return '¡Muy bien! Great session.';
-  if (accuracy >= 60) return '¡Bien! Keep practising.';
-  return 'Every mistake is a lesson. ¡Ánimo!';
-}
 
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
@@ -48,6 +42,15 @@ export default function ChallengeScreen() {
   }>();
   const router = useRouter();
   const theme = useAppTheme();
+  const { config, chapters } = useActiveBundle();
+
+  function getMotivationalMessage(accuracy: number): string {
+    if (accuracy === 100) return config.motivational.perfect;
+    if (accuracy >= 80) return config.motivational.great;
+    if (accuracy >= 60) return config.motivational.good;
+    return config.motivational.encouragement;
+  }
+
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalCardCount = useRef(0);   // original session length — used for stats
   const totalCardCount = useRef(0);      // grows when wrong-answer cards are re-inserted
@@ -90,14 +93,14 @@ export default function ChallengeScreen() {
 
     let session: SessionCard[];
     if (mode === 'continuous') {
-      session = buildSession(loadNewWordsPerDay(), params.source);
+      session = buildSession(chapters, loadNewWordsPerDay(), params.source);
     } else {
-      session = buildSession(parseInt(params.count || '3', 10), params.source);
+      session = buildSession(chapters, parseInt(params.count || '3', 10), params.source);
     }
 
     if (session.length === 0) {
       // Check if unlimited budget would yield cards (budget exhausted, not truly done)
-      const extra = buildSession(Infinity, params.source);
+      const extra = buildSession(chapters, Infinity, params.source);
       setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
       setIsComplete(true);
@@ -105,7 +108,7 @@ export default function ChallengeScreen() {
       setQueue(session);
       originalCardCount.current = session.length;
       totalCardCount.current = session.length;
-      sessionChapter.current = getCurrentChapter();
+      sessionChapter.current = getCurrentChapter(chapters);
     }
 
     console.log('[Challenge] Started:', {
@@ -157,7 +160,7 @@ export default function ChallengeScreen() {
     // updates immediately and the user doesn't need to return to the home screen.
     setQueue((prevQueue) => {
       const queueIds = new Set(prevQueue.map((sc) => sc.card.id));
-      const newlyDue = getDueCards(queueIds);
+      const newlyDue = getDueCards(chapters, queueIds);
       if (newlyDue.length > 0) {
         const updated = [...prevQueue, ...newlyDue];
         totalCardCount.current = updated.length;
@@ -183,13 +186,13 @@ export default function ChallengeScreen() {
           console.error('[Challenge] Failed to resume notifications on completion:', err);
         });
         updateWidgetData();
-        const extra = buildSession(Infinity, params.source);
+        const extra = buildSession(chapters, Infinity, params.source);
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);
         return prevIndex;
       }
     });
-  }, [params.source]);
+  }, [params.source, chapters]);
 
   const scheduleAdvance = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
@@ -300,7 +303,7 @@ export default function ChallengeScreen() {
   };
 
   const startExtraSession = () => {
-    const extra = buildSession(Infinity, params.source);
+    const extra = buildSession(chapters, Infinity, params.source);
     if (extra.length === 0) return;
     setQueue(extra);
     originalCardCount.current = extra.length;

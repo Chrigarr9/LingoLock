@@ -7,7 +7,7 @@ import { updateStatsAfterSession } from './statsService';
 import { scheduleNextNotification, handleSwipeAway, initScheduler } from './notificationScheduler';
 import { startScreenUnlockDetection, stopScreenUnlockDetection } from './screenUnlockDetector';
 import { updateWidgetData } from './widgetService';
-import { CHAPTERS } from '../content/bundle';
+import { getCardById } from '../content/bundles';
 import type { ClozeCard } from '../types/vocabulary';
 
 // Configure foreground notification handler at module top-level
@@ -160,14 +160,8 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   }
 
   // Load card from content bundle
-  let card: ClozeCard | null = null;
-  for (const chapter of CHAPTERS) {
-    const found = chapter.cards.find((c) => c.id === data.cardId);
-    if (found) {
-      card = found;
-      break;
-    }
-  }
+  const result = getCardById(data.cardId);
+  const card = result?.card ?? null;
 
   if (!card) {
     console.error('[Notifications] Card not found:', data.cardId);
