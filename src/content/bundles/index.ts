@@ -1,10 +1,12 @@
 import type { BundleConfig, Bundle } from '../../types/bundle';
 import type { ClozeCard, ChapterData } from '../../types/vocabulary';
+import type { SimpleCard } from '../../types/simpleCard';
 import { loadEnabledBundles, DEFAULT_BUNDLE_ID } from '../../services/storage';
+import { getImportedDecks } from '../../services/importedDeckStore';
 
 import * as esDeBuenosAires from './es-de-buenos-aires';
 
-const BUNDLE_MAP: Record<string, Bundle> = {
+const BUILTIN_BUNDLE_MAP: Record<string, Bundle> = {
   'es-de-buenos-aires': {
     config: { ...esDeBuenosAires.config, type: 'builtin' as const },
     chapters: esDeBuenosAires.CHAPTERS,
@@ -14,14 +16,53 @@ const BUNDLE_MAP: Record<string, Bundle> = {
   },
 };
 
-/** All available bundle configs (for picker UI) */
-export const AVAILABLE_BUNDLES: BundleConfig[] = Object.values(BUNDLE_MAP).map(b => b.config);
+/** In-memory cache of loaded imported deck bundles. */
+const importedBundleCache: Record<string, Bundle> = {};
 
-/** Get a full bundle by ID. Throws if not found. */
+/** Register a loaded imported deck in the runtime cache. */
+export function registerImportedBundle(deckId: string, bundle: Bundle): void {
+  importedBundleCache[deckId] = bundle;
+}
+
+/** Remove an imported deck from the runtime cache. */
+export function unregisterImportedBundle(deckId: string): void {
+  delete importedBundleCache[deckId];
+}
+
+/** All available bundle configs (for picker UI) — builtin + imported. */
+export function getAvailableBundles(): BundleConfig[] {
+  const builtin = Object.values(BUILTIN_BUNDLE_MAP).map(b => b.config);
+  const imported = getImportedDecks().map(meta => ({
+    id: meta.id,
+    type: 'imported' as const,
+    nativeLanguage: '',
+    targetLanguage: '',
+    displayLabel: meta.name,
+    greetings: { morning: '', afternoon: '', evening: '' },
+    motivational: { perfect: '', great: '', good: '', encouragement: '' },
+    spellCharacters: [],
+    searchPlaceholder: '',
+    cardCount: meta.cardCount,
+    importedAt: meta.importedAt,
+  }));
+  return [...builtin, ...imported];
+}
+
+// Backwards-compat export for code that reads AVAILABLE_BUNDLES directly
+export const AVAILABLE_BUNDLES: BundleConfig[] = Object.values(BUILTIN_BUNDLE_MAP).map(b => b.config);
+
+/** Check if a bundle ID is an imported deck. */
+export function isImportedBundle(bundleId: string): boolean {
+  return !BUILTIN_BUNDLE_MAP[bundleId];
+}
+
+/** Get a full bundle by ID. Checks builtin first, then imported cache. */
 export function getBundle(bundleId: string): Bundle {
-  const bundle = BUNDLE_MAP[bundleId];
-  if (!bundle) throw new Error(`Bundle not found: ${bundleId}`);
-  return bundle;
+  const builtin = BUILTIN_BUNDLE_MAP[bundleId];
+  if (builtin) return builtin;
+  const imported = importedBundleCache[bundleId];
+  if (imported) return imported;
+  throw new Error(`Bundle not found: ${bundleId}. If imported, it may not be loaded yet.`);
 }
 
 /** Extract bundle ID from a namespaced card ID ("bundleId:cardId" → "bundleId") */
@@ -43,28 +84,36 @@ export function getBundleForCard(namespacedCardId: string): Bundle {
   return getBundle(extractBundleId(namespacedCardId));
 }
 
-/** Find a card by namespaced ID across all bundles */
-export function getCardById(namespacedCardId: string): { card: ClozeCard; bundle: Bundle } | null {
+/**
+ * Find a card by namespaced ID across all bundles (builtin + imported).
+ * Returns ClozeCard | SimpleCard — callers must narrow with 'wordInContext' in card
+ * before accessing ClozeCard-specific fields.
+ */
+export function getCardById(namespacedCardId: string): { card: ClozeCard | SimpleCard; bundle: Bundle } | null {
   const bundleId = extractBundleId(namespacedCardId);
-  const bundle = BUNDLE_MAP[bundleId];
+  const bundle = BUILTIN_BUNDLE_MAP[bundleId] ?? importedBundleCache[bundleId];
   if (!bundle) return null;
   const originalId = extractOriginalCardId(namespacedCardId);
+
+  // Search builtin chapters
   for (const chapter of bundle.chapters) {
     const card = chapter.cards.find(c => c.id === originalId);
     if (card) return { card, bundle };
   }
+
+  // Search imported simple cards
+  const simpleCard = bundle.simpleCards.find(c => c.id === originalId);
+  if (simpleCard) return { card: simpleCard, bundle };
+
   return null;
 }
 
-/**
- * Get combined chapters from all enabled bundles.
- * Used by widgets, notifications, and streak calculation.
- */
+/** Get combined chapters from all enabled builtin bundles. */
 export function getAllEnabledChapters(): ChapterData[] {
   const enabledIds = loadEnabledBundles();
   const chapters: ChapterData[] = [];
   for (const id of enabledIds) {
-    const bundle = BUNDLE_MAP[id];
+    const bundle = BUILTIN_BUNDLE_MAP[id];
     if (bundle) chapters.push(...bundle.chapters);
   }
   return chapters;
