@@ -62,7 +62,10 @@ export function getBundle(bundleId: string): Bundle {
   if (builtin) return builtin;
   const imported = importedBundleCache[bundleId];
   if (imported) return imported;
-  throw new Error(`Bundle not found: ${bundleId}. If imported, it may not be loaded yet.`);
+  // Imported deck not loaded yet (async IndexedDB load in progress).
+  // Fall back to default bundle to prevent crash on startup.
+  console.warn(`[Bundles] Bundle "${bundleId}" not loaded yet, falling back to default`);
+  return BUILTIN_BUNDLE_MAP[DEFAULT_BUNDLE_ID];
 }
 
 /** Extract bundle ID from a namespaced card ID ("bundleId:cardId" → "bundleId") */
