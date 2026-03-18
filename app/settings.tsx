@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch, Alert } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch, Alert, ActivityIndicator } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -97,7 +97,15 @@ export default function SettingsScreen() {
         Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
         return;
       }
-      const meta = await importApkg(fileUri);
+
+      setImporting(true);
+      setImportStatus('Starting import...');
+
+      const meta = await importApkg(fileUri, (stage) => {
+        setImportStatus(stage);
+      });
+
+      setImportStatus('Loading cards...');
       const cards = await loadImportedDeckCards(meta.id);
       const bundle: Bundle = {
         config: {
@@ -113,10 +121,18 @@ export default function SettingsScreen() {
       registerImportedBundle(meta.id, bundle);
       switchBundle(meta.id);
       setActiveBundleId(meta.id);
+      setImporting(false);
+      setImportStatus('');
     } catch (error) {
+      console.error('[Settings] Import failed:', error);
+      setImporting(false);
+      setImportStatus('');
       Alert.alert('Import failed', error instanceof Error ? error.message : 'An unknown error occurred.');
     }
   };
+
+  const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [audioSpeed, setAudioSpeed] = useState(() => loadAudioSpeed());
@@ -441,11 +457,20 @@ export default function SettingsScreen() {
           })}
 
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-          <Pressable style={styles.settingRow} onPress={handleImport}>
-            <Text variant="bodyMedium" style={{ color: theme.colors.primary, fontWeight: '500' }}>
-              + Import your own deck
-            </Text>
-          </Pressable>
+          {importing ? (
+            <View style={[styles.settingRow, { gap: 12 }]}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {importStatus || 'Importing...'}
+              </Text>
+            </View>
+          ) : (
+            <Pressable style={styles.settingRow} onPress={handleImport}>
+              <Text variant="bodyMedium" style={{ color: theme.colors.primary, fontWeight: '500' }}>
+                + Import your own deck
+              </Text>
+            </Pressable>
+          )}
 
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
           <View style={[styles.settingRow, { opacity: 0.4 }]}>
