@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle } from '../src/theme';
@@ -14,6 +14,9 @@ import {
   saveNotificationsEnabled,
   loadNotificationInterval,
   saveNotificationInterval,
+  loadActiveBundle,
+  loadEnabledBundles,
+  saveEnabledBundles,
 } from '../src/services/storage';
 import {
   setNotificationInterval,
@@ -22,6 +25,9 @@ import {
   cancelAllNotifications,
 } from '../src/services/notificationScheduler';
 import { requestNotificationPermissions } from '../src/services/notificationService';
+import { AVAILABLE_BUNDLES, getBundle } from '../src/content/bundles';
+import { useActiveBundle } from '../src/content/activeBundleProvider';
+import { getCardsDueCount } from '../src/services/statsService';
 
 const SPEED_OPTIONS: { label: string; value: number }[] = [
   { label: '0.75×', value: 0.75 },
@@ -31,6 +37,24 @@ const SPEED_OPTIONS: { label: string; value: number }[] = [
 
 export default function SettingsScreen() {
   const theme = useAppTheme();
+  const { switchBundle } = useActiveBundle();
+
+  const [activeBundleId, setActiveBundleId] = useState(() => loadActiveBundle());
+  const [enabledBundles, setEnabledBundles] = useState(() => loadEnabledBundles());
+
+  const toggleEnabled = (bundleId: string) => {
+    if (bundleId === activeBundleId) return;
+    const newEnabled = enabledBundles.includes(bundleId)
+      ? enabledBundles.filter(id => id !== bundleId)
+      : [...enabledBundles, bundleId];
+    saveEnabledBundles(newEnabled);
+    setEnabledBundles(newEnabled);
+  };
+
+  const setActive = (bundleId: string) => {
+    switchBundle(bundleId);
+    setActiveBundleId(bundleId);
+  };
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [audioSpeed, setAudioSpeed] = useState(() => loadAudioSpeed());
@@ -300,6 +324,62 @@ export default function SettingsScreen() {
             </>
           )}
         </View>
+
+        {/* Language Pairs card group */}
+        <View
+          style={[
+            styles.card,
+            styles.languagePairsCard,
+            getGlassStyle(theme),
+          ]}
+        >
+          <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface, marginBottom: 8 }]}>
+            Language Pairs
+          </Text>
+
+          {AVAILABLE_BUNDLES.map((bundle) => {
+            const isActive = bundle.id === activeBundleId;
+            const isEnabled = enabledBundles.includes(bundle.id);
+            const dueCount = getCardsDueCount(getBundle(bundle.id).chapters);
+            return (
+              <React.Fragment key={bundle.id}>
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <Pressable
+                  onPress={() => setActive(bundle.id)}
+                  style={[
+                    styles.settingRow,
+                    isActive && { backgroundColor: theme.colors.primaryContainer, borderRadius: 10, paddingHorizontal: 8 },
+                  ]}
+                >
+                  <View style={styles.settingLabelGroup}>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                      {bundle.displayLabel}
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      {isActive ? 'Active' : `${dueCount} cards due`}
+                    </Text>
+                  </View>
+                  <RNSwitch
+                    value={isEnabled || isActive}
+                    onValueChange={() => toggleEnabled(bundle.id)}
+                    disabled={isActive}
+                    trackColor={{ true: theme.custom.brandBlue }}
+                  />
+                </Pressable>
+              </React.Fragment>
+            );
+          })}
+
+          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+          <View style={[styles.settingRow, { opacity: 0.4 }]}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              + Download more (coming soon)
+            </Text>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -318,6 +398,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,
+  },
+  languagePairsCard: {
+    marginTop: 16,
   },
   settingRow: {
     flexDirection: 'row',

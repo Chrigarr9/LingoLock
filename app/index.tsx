@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -8,11 +8,13 @@ import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '..
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { usePWAInstall } from '../src/hooks/usePWAInstall';
+import { BundlePicker } from '../src/components/BundlePicker';
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-  const { config, chapters } = useActiveBundle();
+  const { config, chapters, switchBundle } = useActiveBundle();
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   function getGreeting(): string {
     const hour = new Date().getHours();
@@ -82,22 +84,24 @@ export default function HomeScreen() {
 
         {/* Language Badge */}
         <View style={styles.badgeRow}>
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor: theme.colors.primaryContainer,
-                borderColor: theme.colors.outlineVariant,
-              },
-            ]}
-          >
-            <View style={styles.badgeContent}>
-              <Icon source="earth" size={12} color={theme.custom.labelMuted} />
-              <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
-                {config.displayLabel}
-              </Text>
+          <TouchableOpacity onPress={() => setPickerVisible(true)}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderColor: theme.colors.outlineVariant,
+                },
+              ]}
+            >
+              <View style={styles.badgeContent}>
+                <Icon source="earth" size={12} color={theme.custom.labelMuted} />
+                <Text style={[styles.badgeText, { color: theme.custom.labelMuted }]}>
+                  {config.displayLabel}
+                </Text>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Greeting */}
@@ -251,6 +255,15 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      <BundlePicker
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onBundleChanged={(bundleId) => {
+          switchBundle(bundleId);
+          setPickerVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
