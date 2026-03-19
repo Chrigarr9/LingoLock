@@ -1,0 +1,606 @@
+diff --git a/node_modules/react-native-mmkv/NitroMmkv.podspec b/node_modules/react-native-mmkv/NitroMmkv.podspec
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/README.md b/node_modules/react-native-mmkv/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/CMakeLists.txt b/node_modules/react-native-mmkv/android/CMakeLists.txt
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/build.gradle b/node_modules/react-native-mmkv/android/build.gradle
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/fix-prefab.gradle b/node_modules/react-native-mmkv/android/fix-prefab.gradle
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/gradle.properties b/node_modules/react-native-mmkv/android/gradle.properties
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/src/main/AndroidManifest.xml b/node_modules/react-native-mmkv/android/src/main/AndroidManifest.xml
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/src/main/cpp/cpp-adapter.cpp b/node_modules/react-native-mmkv/android/src/main/cpp/cpp-adapter.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/src/main/java/com/margelo/nitro/mmkv/HybridMMKVPlatformContext.kt b/node_modules/react-native-mmkv/android/src/main/java/com/margelo/nitro/mmkv/HybridMMKVPlatformContext.kt
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/android/src/main/java/com/margelo/nitro/mmkv/NitroMmkvPackage.java b/node_modules/react-native-mmkv/android/src/main/java/com/margelo/nitro/mmkv/NitroMmkvPackage.java
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/HybridMMKV.cpp b/node_modules/react-native-mmkv/cpp/HybridMMKV.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/HybridMMKV.hpp b/node_modules/react-native-mmkv/cpp/HybridMMKV.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/HybridMMKVFactory.cpp b/node_modules/react-native-mmkv/cpp/HybridMMKVFactory.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/HybridMMKVFactory.hpp b/node_modules/react-native-mmkv/cpp/HybridMMKVFactory.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/MMKVTypes.hpp b/node_modules/react-native-mmkv/cpp/MMKVTypes.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/MMKVValueChangedListenerRegistry.cpp b/node_modules/react-native-mmkv/cpp/MMKVValueChangedListenerRegistry.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/MMKVValueChangedListenerRegistry.hpp b/node_modules/react-native-mmkv/cpp/MMKVValueChangedListenerRegistry.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/cpp/ManagedMMBuffer.hpp b/node_modules/react-native-mmkv/cpp/ManagedMMBuffer.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/ios/HybridMMKVPlatformContext.swift b/node_modules/react-native-mmkv/ios/HybridMMKVPlatformContext.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/__tests__/hooks.test.d.ts b/node_modules/react-native-mmkv/lib/__tests__/hooks.test.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/__tests__/hooks.test.js b/node_modules/react-native-mmkv/lib/__tests__/hooks.test.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.d.ts b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.js b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.mock.d.ts b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.mock.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.mock.js b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.mock.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.web.d.ts b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.web.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.web.js b/node_modules/react-native-mmkv/lib/addMemoryWarningListener/addMemoryWarningListener.web.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.d.ts b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.js b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.js
+old mode 100644
+new mode 100755
+index 71feda6..01e1863
+--- a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.js
++++ b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.js
+@@ -1,8 +1,8 @@
+ import { Platform } from 'react-native';
+-import { addMemoryWarningListener } from '../addMemoryWarningListener/addMemoryWarningListener';
+-import { isTest } from '../isTest';
+-import { createMockMMKV } from './createMockMMKV';
+-import { getMMKVFactory, getPlatformContext } from '../getMMKVFactory';
++import { addMemoryWarningListener } from '../addMemoryWarningListener/addMemoryWarningListener.js';
++import { isTest } from '../isTest.js';
++import { createMockMMKV } from './createMockMMKV.js';
++import { getMMKVFactory, getPlatformContext } from '../getMMKVFactory.js';
+ export function createMMKV(configuration) {
+     if (isTest()) {
+         // In a test environment, we mock the MMKV instance.
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.d.ts b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.js b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.js
+old mode 100644
+new mode 100755
+index dcac7c2..d8c927f
+--- a/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.js
++++ b/node_modules/react-native-mmkv/lib/createMMKV/createMMKV.web.js
+@@ -1,5 +1,5 @@
+-import { createTextEncoder } from '../web/createTextEncoder';
+-import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage';
++import { createTextEncoder } from '../web/createTextEncoder.js';
++import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage.js';
+ export function createMMKV(config = { id: 'mmkv.default' }) {
+     if (config.encryptionKey != null) {
+         throw new Error("MMKV: 'encryptionKey' is not supported on Web!");
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMockMMKV.d.ts b/node_modules/react-native-mmkv/lib/createMMKV/createMockMMKV.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/createMockMMKV.js b/node_modules/react-native-mmkv/lib/createMMKV/createMockMMKV.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.d.ts b/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.js b/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.js
+old mode 100644
+new mode 100755
+index a89a9a1..f34a2ea
+--- a/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.js
++++ b/node_modules/react-native-mmkv/lib/createMMKV/getDefaultMMKVInstance.js
+@@ -1,4 +1,4 @@
+-import { createMMKV } from './createMMKV';
++import { createMMKV } from './createMMKV.js';
+ let defaultInstance = null;
+ export function getDefaultMMKVInstance() {
+     if (defaultInstance == null) {
+diff --git a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.d.ts b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.js b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.js
+old mode 100644
+new mode 100755
+index 4a07d9c..cc3c9b0
+--- a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.js
++++ b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.js
+@@ -1,5 +1,5 @@
+-import { getMMKVFactory } from '../getMMKVFactory';
+-import { isTest } from '../isTest';
++import { getMMKVFactory } from '../getMMKVFactory.js';
++import { isTest } from '../isTest.js';
+ export function deleteMMKV(id) {
+     if (isTest()) {
+         return true;
+diff --git a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.d.ts b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.js b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.js
+old mode 100644
+new mode 100755
+index 10967ca..d976d4e
+--- a/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.js
++++ b/node_modules/react-native-mmkv/lib/deleteMMKV/deleteMMKV.web.js
+@@ -1,4 +1,4 @@
+-import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage';
++import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage.js';
+ export function deleteMMKV(id) {
+     const storage = getLocalStorage();
+     const prefix = id + LOCAL_STORAGE_KEY_WILDCARD;
+diff --git a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.d.ts b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.js b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.js
+old mode 100644
+new mode 100755
+index 1682951..b98de80
+--- a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.js
++++ b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.js
+@@ -1,5 +1,5 @@
+-import { getMMKVFactory } from '../getMMKVFactory';
+-import { isTest } from '../isTest';
++import { getMMKVFactory } from '../getMMKVFactory.js';
++import { isTest } from '../isTest.js';
+ export function existsMMKV(id) {
+     if (isTest()) {
+         return true;
+diff --git a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.d.ts b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.js b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.js
+old mode 100644
+new mode 100755
+index a94d859..badaa9a
+--- a/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.js
++++ b/node_modules/react-native-mmkv/lib/existsMMKV/existsMMKV.web.js
+@@ -1,4 +1,4 @@
+-import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage';
++import { getLocalStorage, LOCAL_STORAGE_KEY_WILDCARD, } from '../web/getLocalStorage.js';
+ export function existsMMKV(id) {
+     const storage = getLocalStorage();
+     const prefix = id + LOCAL_STORAGE_KEY_WILDCARD;
+diff --git a/node_modules/react-native-mmkv/lib/getMMKVFactory.d.ts b/node_modules/react-native-mmkv/lib/getMMKVFactory.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/getMMKVFactory.js b/node_modules/react-native-mmkv/lib/getMMKVFactory.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.d.ts b/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.js b/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.js
+old mode 100644
+new mode 100755
+index 9eccf06..0e94e86
+--- a/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.js
++++ b/node_modules/react-native-mmkv/lib/hooks/createMMKVHook.js
+@@ -1,5 +1,5 @@
+ import { useCallback, useEffect, useMemo, useState } from 'react';
+-import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance';
++import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance.js';
+ export function createMMKVHook(getter) {
+     return (key, instance) => {
+         const mmkv = instance ?? getDefaultMMKVInstance();
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKV.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKV.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKV.js b/node_modules/react-native-mmkv/lib/hooks/useMMKV.js
+old mode 100644
+new mode 100755
+index b7ce90c..4bb6261
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKV.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKV.js
+@@ -1,6 +1,6 @@
+ import { useRef } from 'react';
+-import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance';
+-import { createMMKV } from '../createMMKV/createMMKV';
++import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance.js';
++import { createMMKV } from '../createMMKV/createMMKV.js';
+ function isConfigurationEqual(left, right) {
+     if (left == null || right == null)
+         return left == null && right == null;
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.js
+old mode 100644
+new mode 100755
+index 7bb9a56..56633b1
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVBoolean.js
+@@ -1,4 +1,4 @@
+-import { createMMKVHook } from './createMMKVHook';
++import { createMMKVHook } from './createMMKVHook.js';
+ /**
+  * Use the boolean value of the given `key` from the given MMKV storage instance.
+  *
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.js
+old mode 100644
+new mode 100755
+index 880416e..41882bc
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVBuffer.js
+@@ -1,4 +1,4 @@
+-import { createMMKVHook } from './createMMKVHook';
++import { createMMKVHook } from './createMMKVHook.js';
+ /**
+  * Use the buffer value (unsigned 8-bit (0-255)) of the given `key` from the given MMKV storage instance.
+  *
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.js
+old mode 100644
+new mode 100755
+index 78209b1..8e95914
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVKeys.js
+@@ -1,6 +1,6 @@
+ import { useState } from 'react';
+-import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance';
+-import { useMMKVListener } from './useMMKVListener';
++import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance.js';
++import { useMMKVListener } from './useMMKVListener.js';
+ /**
+  * Get a list of all keys that exist in the given MMKV {@linkcode instance}.
+  * The keys update when new keys are added or removed.
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.js
+old mode 100644
+new mode 100755
+index 093b8df..606148a
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVListener.js
+@@ -1,5 +1,5 @@
+ import { useEffect, useRef } from 'react';
+-import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance';
++import { getDefaultMMKVInstance } from '../createMMKV/getDefaultMMKVInstance.js';
+ /**
+  * Listen for changes in the given MMKV storage instance.
+  * If no instance is passed, the default instance will be used.
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.js
+old mode 100644
+new mode 100755
+index 80e8ba4..eab2b17
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVNumber.js
+@@ -1,4 +1,4 @@
+-import { createMMKVHook } from './createMMKVHook';
++import { createMMKVHook } from './createMMKVHook.js';
+ /**
+  * Use the number value of the given `key` from the given MMKV storage instance.
+  *
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.js
+old mode 100644
+new mode 100755
+index 7a707f8..a6a41b2
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVObject.js
+@@ -1,5 +1,5 @@
+ import { useCallback, useMemo } from 'react';
+-import { useMMKVString } from './useMMKVString';
++import { useMMKVString } from './useMMKVString.js';
+ /**
+  * Use an object value of the given `key` from the given MMKV storage instance.
+  *
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVString.d.ts b/node_modules/react-native-mmkv/lib/hooks/useMMKVString.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/hooks/useMMKVString.js b/node_modules/react-native-mmkv/lib/hooks/useMMKVString.js
+old mode 100644
+new mode 100755
+index 1ab92de..b377394
+--- a/node_modules/react-native-mmkv/lib/hooks/useMMKVString.js
++++ b/node_modules/react-native-mmkv/lib/hooks/useMMKVString.js
+@@ -1,4 +1,4 @@
+-import { createMMKVHook } from './createMMKVHook';
++import { createMMKVHook } from './createMMKVHook.js';
+ /**
+  * Use the string value of the given `key` from the given MMKV storage instance.
+  *
+diff --git a/node_modules/react-native-mmkv/lib/index.d.ts b/node_modules/react-native-mmkv/lib/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/index.js b/node_modules/react-native-mmkv/lib/index.js
+old mode 100644
+new mode 100755
+index 315c604..fafc775
+--- a/node_modules/react-native-mmkv/lib/index.js
++++ b/node_modules/react-native-mmkv/lib/index.js
+@@ -1,14 +1,14 @@
+ // The create function
+-export { createMMKV } from './createMMKV/createMMKV';
++export { createMMKV } from './createMMKV/createMMKV.js';
+ // Exists + Delete
+-export { existsMMKV } from './existsMMKV/existsMMKV';
+-export { deleteMMKV } from './deleteMMKV/deleteMMKV';
++export { existsMMKV } from './existsMMKV/existsMMKV.js';
++export { deleteMMKV } from './deleteMMKV/deleteMMKV.js';
+ // All the hooks
+-export { useMMKV } from './hooks/useMMKV';
+-export { useMMKVBoolean } from './hooks/useMMKVBoolean';
+-export { useMMKVBuffer } from './hooks/useMMKVBuffer';
+-export { useMMKVNumber } from './hooks/useMMKVNumber';
+-export { useMMKVObject } from './hooks/useMMKVObject';
+-export { useMMKVString } from './hooks/useMMKVString';
+-export { useMMKVListener } from './hooks/useMMKVListener';
+-export { useMMKVKeys } from './hooks/useMMKVKeys';
++export { useMMKV } from './hooks/useMMKV.js';
++export { useMMKVBoolean } from './hooks/useMMKVBoolean.js';
++export { useMMKVBuffer } from './hooks/useMMKVBuffer.js';
++export { useMMKVNumber } from './hooks/useMMKVNumber.js';
++export { useMMKVObject } from './hooks/useMMKVObject.js';
++export { useMMKVString } from './hooks/useMMKVString.js';
++export { useMMKVListener } from './hooks/useMMKVListener.js';
++export { useMMKVKeys } from './hooks/useMMKVKeys.js';
+diff --git a/node_modules/react-native-mmkv/lib/isTest.d.ts b/node_modules/react-native-mmkv/lib/isTest.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/isTest.js b/node_modules/react-native-mmkv/lib/isTest.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKV.nitro.d.ts b/node_modules/react-native-mmkv/lib/specs/MMKV.nitro.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKV.nitro.js b/node_modules/react-native-mmkv/lib/specs/MMKV.nitro.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKVFactory.nitro.d.ts b/node_modules/react-native-mmkv/lib/specs/MMKVFactory.nitro.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKVFactory.nitro.js b/node_modules/react-native-mmkv/lib/specs/MMKVFactory.nitro.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKVPlatformContext.nitro.d.ts b/node_modules/react-native-mmkv/lib/specs/MMKVPlatformContext.nitro.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/specs/MMKVPlatformContext.nitro.js b/node_modules/react-native-mmkv/lib/specs/MMKVPlatformContext.nitro.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/web/createTextEncoder.d.ts b/node_modules/react-native-mmkv/lib/web/createTextEncoder.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/web/createTextEncoder.js b/node_modules/react-native-mmkv/lib/web/createTextEncoder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/web/getLocalStorage.d.ts b/node_modules/react-native-mmkv/lib/web/getLocalStorage.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/lib/web/getLocalStorage.js b/node_modules/react-native-mmkv/lib/web/getLocalStorage.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitro.json b/node_modules/react-native-mmkv/nitro.json
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/.gitattributes b/node_modules/react-native-mmkv/nitrogen/generated/.gitattributes
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkv+autolinking.cmake b/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkv+autolinking.cmake
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkv+autolinking.gradle b/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkv+autolinking.gradle
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkvOnLoad.cpp b/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkvOnLoad.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkvOnLoad.hpp b/node_modules/react-native-mmkv/nitrogen/generated/android/NitroMmkvOnLoad.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/c++/JHybridMMKVPlatformContextSpec.cpp b/node_modules/react-native-mmkv/nitrogen/generated/android/c++/JHybridMMKVPlatformContextSpec.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/c++/JHybridMMKVPlatformContextSpec.hpp b/node_modules/react-native-mmkv/nitrogen/generated/android/c++/JHybridMMKVPlatformContextSpec.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/kotlin/com/margelo/nitro/mmkv/HybridMMKVPlatformContextSpec.kt b/node_modules/react-native-mmkv/nitrogen/generated/android/kotlin/com/margelo/nitro/mmkv/HybridMMKVPlatformContextSpec.kt
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/android/kotlin/com/margelo/nitro/mmkv/NitroMmkvOnLoad.kt b/node_modules/react-native-mmkv/nitrogen/generated/android/kotlin/com/margelo/nitro/mmkv/NitroMmkvOnLoad.kt
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv+autolinking.rb b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv+autolinking.rb
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Bridge.cpp b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Bridge.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Bridge.hpp b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Bridge.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Umbrella.hpp b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkv-Swift-Cxx-Umbrella.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkvAutolinking.mm b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkvAutolinking.mm
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkvAutolinking.swift b/node_modules/react-native-mmkv/nitrogen/generated/ios/NitroMmkvAutolinking.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/c++/HybridMMKVPlatformContextSpecSwift.cpp b/node_modules/react-native-mmkv/nitrogen/generated/ios/c++/HybridMMKVPlatformContextSpecSwift.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/c++/HybridMMKVPlatformContextSpecSwift.hpp b/node_modules/react-native-mmkv/nitrogen/generated/ios/c++/HybridMMKVPlatformContextSpecSwift.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/swift/HybridMMKVPlatformContextSpec.swift b/node_modules/react-native-mmkv/nitrogen/generated/ios/swift/HybridMMKVPlatformContextSpec.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/ios/swift/HybridMMKVPlatformContextSpec_cxx.swift b/node_modules/react-native-mmkv/nitrogen/generated/ios/swift/HybridMMKVPlatformContextSpec_cxx.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Configuration.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Configuration.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVFactorySpec.cpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVFactorySpec.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVFactorySpec.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVFactorySpec.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVPlatformContextSpec.cpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVPlatformContextSpec.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVPlatformContextSpec.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVPlatformContextSpec.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVSpec.cpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVSpec.cpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVSpec.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/HybridMMKVSpec.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Listener.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Listener.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Mode.hpp b/node_modules/react-native-mmkv/nitrogen/generated/shared/c++/Mode.hpp
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/package.json b/node_modules/react-native-mmkv/package.json
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/react-native.config.js b/node_modules/react-native-mmkv/react-native.config.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/__tests__/hooks.test.tsx b/node_modules/react-native-mmkv/src/__tests__/hooks.test.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.mock.ts b/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.mock.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.ts b/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.web.ts b/node_modules/react-native-mmkv/src/addMemoryWarningListener/addMemoryWarningListener.web.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/createMMKV/createMMKV.ts b/node_modules/react-native-mmkv/src/createMMKV/createMMKV.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/createMMKV/createMMKV.web.ts b/node_modules/react-native-mmkv/src/createMMKV/createMMKV.web.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/createMMKV/createMockMMKV.ts b/node_modules/react-native-mmkv/src/createMMKV/createMockMMKV.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/createMMKV/getDefaultMMKVInstance.ts b/node_modules/react-native-mmkv/src/createMMKV/getDefaultMMKVInstance.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/deleteMMKV/deleteMMKV.ts b/node_modules/react-native-mmkv/src/deleteMMKV/deleteMMKV.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/deleteMMKV/deleteMMKV.web.ts b/node_modules/react-native-mmkv/src/deleteMMKV/deleteMMKV.web.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/existsMMKV/existsMMKV.ts b/node_modules/react-native-mmkv/src/existsMMKV/existsMMKV.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/existsMMKV/existsMMKV.web.ts b/node_modules/react-native-mmkv/src/existsMMKV/existsMMKV.web.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/getMMKVFactory.ts b/node_modules/react-native-mmkv/src/getMMKVFactory.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/createMMKVHook.ts b/node_modules/react-native-mmkv/src/hooks/createMMKVHook.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKV.ts b/node_modules/react-native-mmkv/src/hooks/useMMKV.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVBoolean.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVBoolean.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVBuffer.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVBuffer.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVKeys.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVKeys.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVListener.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVListener.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVNumber.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVNumber.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVObject.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVObject.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/hooks/useMMKVString.ts b/node_modules/react-native-mmkv/src/hooks/useMMKVString.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/index.ts b/node_modules/react-native-mmkv/src/index.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/isTest.ts b/node_modules/react-native-mmkv/src/isTest.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/specs/MMKV.nitro.ts b/node_modules/react-native-mmkv/src/specs/MMKV.nitro.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/specs/MMKVFactory.nitro.ts b/node_modules/react-native-mmkv/src/specs/MMKVFactory.nitro.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/specs/MMKVPlatformContext.nitro.ts b/node_modules/react-native-mmkv/src/specs/MMKVPlatformContext.nitro.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/web/createTextEncoder.ts b/node_modules/react-native-mmkv/src/web/createTextEncoder.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-mmkv/src/web/getLocalStorage.ts b/node_modules/react-native-mmkv/src/web/getLocalStorage.ts
+old mode 100644
+new mode 100755
