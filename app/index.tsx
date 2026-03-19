@@ -8,13 +8,10 @@ import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '..
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 
-import { BundlePicker } from '../src/components/BundlePicker';
-
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-  const { config, chapters, switchBundle } = useActiveBundle();
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const { config, chapters } = useActiveBundle();
 
   function getGreeting(): string {
     const hour = new Date().getHours();
@@ -82,7 +79,7 @@ export default function HomeScreen() {
 
         {/* Language Badge */}
         <View style={styles.badgeRow}>
-          <TouchableOpacity onPress={() => setPickerVisible(true)}>
+          <TouchableOpacity onPress={() => router.push('/deck-picker')}>
             <View
               style={[
                 styles.badge,
@@ -241,14 +238,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BundlePicker
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
-        onBundleChanged={(bundleId) => {
-          switchBundle(bundleId);
-          setPickerVisible(false);
-        }}
-      />
     </SafeAreaView>
   );
 }

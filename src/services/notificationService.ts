@@ -128,10 +128,9 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     return false;
   }
 
-  // Status is 'undetermined' — don't auto-request on first launch.
-  // The Settings screen toggle will call this function explicitly when the user
-  // opts in, giving them context about why notifications are needed first.
-  return false;
+  // Status is 'undetermined' — request permission from the OS.
+  const { status: newStatus } = await Notifications.requestPermissionsAsync();
+  return newStatus === 'granted';
 }
 
 /**

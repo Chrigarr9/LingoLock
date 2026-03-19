@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle } from '../src/theme';
 import {
@@ -21,6 +22,7 @@ import {
 } from '../src/services/storage';
 import {
   setNotificationInterval,
+  scheduleNotificationBatch,
   cancelAllNotifications,
 } from '../src/services/notificationScheduler';
 import { requestNotificationPermissions, setupNotifications } from '../src/services/notificationService';
@@ -33,6 +35,16 @@ const SPEED_OPTIONS: { label: string; value: number }[] = [
   { label: '0.75×', value: 0.75 },
   { label: '1×', value: 1.0 },
   { label: '1.25×', value: 1.25 },
+];
+
+const INTERVAL_OPTIONS = [
+  { seconds: 300, label: '5 minutes' },
+  { seconds: 600, label: '10 minutes' },
+  { seconds: 900, label: '15 minutes' },
+  { seconds: 1800, label: '30 minutes' },
+  { seconds: 3600, label: '1 hour' },
+  { seconds: 7200, label: '2 hours' },
+  { seconds: 14400, label: '4 hours' },
 ];
 
 /** Available hour options for active hours picker (5 AM to 11 PM) */
@@ -72,7 +84,6 @@ export default function SettingsScreen() {
     confirmDeleteDeck(bundleId, displayLabel, {
       activeBundleId,
       onDeleted: (fallbackId) => {
-        // Remove from enabled list
         const newEnabled = enabledBundles.filter(id => id !== bundleId);
         saveEnabledBundles(newEnabled);
         setEnabledBundles(newEnabled);
@@ -124,34 +135,28 @@ export default function SettingsScreen() {
 
   async function handleNotificationsToggle(value: boolean) {
     if (value) {
-      // Enabling: request permissions
       const granted = await requestNotificationPermissions();
       if (granted) {
         setNotificationsEnabled(true);
         saveNotificationsEnabled(true);
-        // Register AppState listener + scheduler so notifications fire on background
         setupNotifications();
       } else {
-        // Permissions not granted, keep disabled
         setNotificationsEnabled(false);
         saveNotificationsEnabled(false);
       }
     } else {
-      // Disabling: cancel all and tear down listeners
       setNotificationsEnabled(false);
       saveNotificationsEnabled(false);
       await cancelAllNotifications();
-      // Next setupNotifications() call will skip setup due to disabled flag
     }
   }
 
   async function handleIntervalChange(seconds: number) {
     setNotificationIntervalState(seconds);
-    await setNotificationInterval(seconds); // saves to storage + reschedules batch
+    await setNotificationInterval(seconds);
   }
 
   async function handleActiveHoursStartChange(hour: number) {
-    // Enforce start < end
     if (hour >= activeHours.endHour) return;
     const updated = { startHour: hour, endHour: activeHours.endHour };
     setActiveHours(updated);
@@ -160,7 +165,6 @@ export default function SettingsScreen() {
   }
 
   async function handleActiveHoursEndChange(hour: number) {
-    // Enforce start < end
     if (hour <= activeHours.startHour) return;
     const updated = { startHour: activeHours.startHour, endHour: hour };
     setActiveHours(updated);
@@ -168,20 +172,25 @@ export default function SettingsScreen() {
     await scheduleNotificationBatch();
   }
 
+  const glassStyle = getGlassStyle(theme);
+  const pickerColor = theme.colors.onSurface;
+
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['bottom']}
     >
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
-        {/* Settings card group */}
-        <View
-          style={[
-            styles.card,
-            getGlassStyle(theme),
-          ]}
-        >
-          {/* Audio Mute Toggle */}
+
+        {/* ── Audio Settings ── */}
+        <View style={[styles.card, glassStyle]}>
+          <Text
+            variant="titleSmall"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
+            Audio
+          </Text>
+
           <View style={styles.settingRow}>
             <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
               Mute Audio
@@ -193,10 +202,8 @@ export default function SettingsScreen() {
             />
           </View>
 
-          {/* Separator */}
           <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
 
-          {/* Audio Playback Speed */}
           <View style={styles.settingColumn}>
             <View style={[styles.settingRow, { marginBottom: 8 }]}>
               <View style={styles.settingLabelGroup}>
@@ -243,258 +250,177 @@ export default function SettingsScreen() {
               })}
             </View>
           </View>
+        </View>
 
-          {/* Separator */}
-          <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+        {/* ── Learning Settings ── */}
+        <View style={[styles.card, glassStyle]}>
+          <Text
+            variant="titleSmall"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
+            Learning
+          </Text>
 
-          {/* New Words Per Day Stepper */}
-          <View style={styles.settingColumn}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLabelGroup}>
+              <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                New Words Per Day
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+              >
+                Maximum new vocabulary introduced each day
+              </Text>
+            </View>
+            <View style={styles.stepper}>
+              <IconButton
+                icon="minus"
+                size={20}
+                iconColor={theme.custom.brandBlue}
+                onPress={handleDecrement}
+                disabled={newWordsPerDay <= 1}
+                style={styles.stepperButton}
+              />
+              <Text
+                variant="titleMedium"
+                style={[styles.stepperValue, { color: theme.colors.onSurface }]}
+              >
+                {newWordsPerDay}
+              </Text>
+              <IconButton
+                icon="plus"
+                size={20}
+                iconColor={theme.custom.brandBlue}
+                onPress={handleIncrement}
+                disabled={newWordsPerDay >= 50}
+                style={styles.stepperButton}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* ── Notification Settings (native only) ── */}
+        {Platform.OS !== 'web' && (
+          <View style={[styles.card, glassStyle]}>
+            <Text
+              variant="titleSmall"
+              style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+            >
+              Notifications
+            </Text>
+
             <View style={styles.settingRow}>
               <View style={styles.settingLabelGroup}>
                 <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                  New Words Per Day
+                  Vocabulary Card Notifications
                 </Text>
                 <Text
                   variant="bodySmall"
                   style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  Maximum new vocabulary introduced each day
+                  Periodic vocabulary cards delivered as notifications
                 </Text>
               </View>
-              <View style={styles.stepper}>
-                <IconButton
-                  icon="minus"
-                  size={20}
-                  iconColor={theme.custom.brandBlue}
-                  onPress={handleDecrement}
-                  disabled={newWordsPerDay <= 1}
-                  style={styles.stepperButton}
-                />
-                <Text
-                  variant="titleMedium"
-                  style={[styles.stepperValue, { color: theme.colors.onSurface }]}
-                >
-                  {newWordsPerDay}
-                </Text>
-                <IconButton
-                  icon="plus"
-                  size={20}
-                  iconColor={theme.custom.brandBlue}
-                  onPress={handleIncrement}
-                  disabled={newWordsPerDay >= 50}
-                  style={styles.stepperButton}
-                />
-              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationsToggle}
+                color={theme.custom.brandBlue}
+              />
             </View>
-          </View>
 
-          {/* Notification Settings - Native Only */}
-          {Platform.OS !== 'web' && (
-            <>
-              {/* Separator */}
-              <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+            {notificationsEnabled && (
+              <>
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
 
-              {/* Notifications Enable/Disable Toggle */}
-              <View style={styles.settingColumn}>
-                <View style={styles.settingRow}>
+                <View style={styles.settingColumn}>
                   <View style={styles.settingLabelGroup}>
                     <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                      Vocabulary Notifications
+                      Interval
                     </Text>
                     <Text
                       variant="bodySmall"
                       style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                     >
-                      Receive reminders when screen is unlocked
+                      How often to send vocabulary cards
                     </Text>
                   </View>
-                  <Switch
-                    value={notificationsEnabled}
-                    onValueChange={handleNotificationsToggle}
-                    color={theme.custom.brandOrange}
-                  />
-                </View>
-              </View>
-
-              {/* Notification Interval Selector - Only visible when enabled */}
-              {notificationsEnabled && (
-                <>
-                  {/* Separator */}
-                  <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
-
-                  <View style={styles.settingColumn}>
-                    <View style={styles.settingLabelGroup}>
-                      <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                        Notification Interval
-                      </Text>
-                      <Text
-                        variant="bodySmall"
-                        style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
-                      >
-                        How often to send vocabulary reminders
-                      </Text>
-                    </View>
-                    <View style={styles.intervalSelector}>
-                      {[
-                        { seconds: 900, label: '15 minutes' },
-                        { seconds: 1800, label: '30 minutes' },
-                      ].map((option) => (
-                        <Pressable
-                          key={option.seconds}
-                          style={[
-                            styles.intervalButton,
-                            {
-                              backgroundColor:
-                                notificationInterval === option.seconds
-                                  ? theme.custom.brandOrange
-                                  : theme.custom.glassBackground,
-                              borderColor:
-                                notificationInterval === option.seconds
-                                  ? theme.custom.brandOrange
-                                  : theme.custom.glassBorder,
-                            },
-                          ]}
-                          onPress={() => handleIntervalChange(option.seconds)}
-                        >
-                          <Text
-                            variant="bodyMedium"
-                            style={[
-                              styles.intervalButtonText,
-                              {
-                                color:
-                                  notificationInterval === option.seconds
-                                    ? '#FFFFFF'
-                                    : theme.colors.onSurface,
-                              },
-                            ]}
-                          >
-                            {option.label}
-                          </Text>
-                        </Pressable>
+                  <View style={[styles.pickerContainer, { borderColor: theme.custom.separator }]}>
+                    <Picker
+                      selectedValue={notificationInterval}
+                      onValueChange={(value) => handleIntervalChange(value as number)}
+                      style={{ color: pickerColor }}
+                      itemStyle={{ color: pickerColor }}
+                    >
+                      {INTERVAL_OPTIONS.map((opt) => (
+                        <Picker.Item key={opt.seconds} label={opt.label} value={opt.seconds} />
                       ))}
-                    </View>
+                    </Picker>
                   </View>
+                </View>
 
-                  {/* Separator */}
-                  <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
 
-                  {/* Active Hours */}
-                  <View style={styles.settingColumn}>
-                    <View style={styles.settingLabelGroup}>
-                      <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                        Active Hours
+                <View style={styles.settingColumn}>
+                  <View style={styles.settingLabelGroup}>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                      Active Hours
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      Notifications only fire within this time window
+                    </Text>
+                  </View>
+                  <View style={styles.activeHoursRow}>
+                    <View style={styles.activeHourPicker}>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                        From
                       </Text>
-                      <Text
-                        variant="bodySmall"
-                        style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
-                      >
-                        Notifications only fire within this time window
-                      </Text>
-                    </View>
-                    <View style={styles.activeHoursRow}>
-                      <View style={styles.activeHourPicker}>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
-                          From
-                        </Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.hourScrollContent}
+                      <View style={[styles.pickerContainer, { borderColor: theme.custom.separator }]}>
+                        <Picker
+                          selectedValue={activeHours.startHour}
+                          onValueChange={(value) => handleActiveHoursStartChange(value as number)}
+                          style={{ color: pickerColor }}
+                          itemStyle={{ color: pickerColor }}
                         >
                           {HOUR_OPTIONS.filter(opt => opt.hour < activeHours.endHour).map((opt) => (
-                            <Pressable
-                              key={opt.hour}
-                              style={[
-                                styles.hourChip,
-                                {
-                                  backgroundColor:
-                                    activeHours.startHour === opt.hour
-                                      ? theme.custom.brandOrange
-                                      : theme.custom.glassBackground,
-                                  borderColor:
-                                    activeHours.startHour === opt.hour
-                                      ? theme.custom.brandOrange
-                                      : theme.custom.glassBorder,
-                                },
-                              ]}
-                              onPress={() => handleActiveHoursStartChange(opt.hour)}
-                            >
-                              <Text
-                                variant="labelSmall"
-                                style={{
-                                  color:
-                                    activeHours.startHour === opt.hour
-                                      ? '#FFFFFF'
-                                      : theme.colors.onSurface,
-                                  fontWeight: activeHours.startHour === opt.hour ? '700' : '500',
-                                }}
-                              >
-                                {opt.label}
-                              </Text>
-                            </Pressable>
+                            <Picker.Item key={opt.hour} label={opt.label} value={opt.hour} />
                           ))}
-                        </ScrollView>
+                        </Picker>
                       </View>
-                      <View style={styles.activeHourPicker}>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
-                          Until
-                        </Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.hourScrollContent}
+                    </View>
+                    <View style={styles.activeHourPicker}>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                        Until
+                      </Text>
+                      <View style={[styles.pickerContainer, { borderColor: theme.custom.separator }]}>
+                        <Picker
+                          selectedValue={activeHours.endHour}
+                          onValueChange={(value) => handleActiveHoursEndChange(value as number)}
+                          style={{ color: pickerColor }}
+                          itemStyle={{ color: pickerColor }}
                         >
                           {HOUR_OPTIONS.filter(opt => opt.hour > activeHours.startHour).map((opt) => (
-                            <Pressable
-                              key={opt.hour}
-                              style={[
-                                styles.hourChip,
-                                {
-                                  backgroundColor:
-                                    activeHours.endHour === opt.hour
-                                      ? theme.custom.brandOrange
-                                      : theme.custom.glassBackground,
-                                  borderColor:
-                                    activeHours.endHour === opt.hour
-                                      ? theme.custom.brandOrange
-                                      : theme.custom.glassBorder,
-                                },
-                              ]}
-                              onPress={() => handleActiveHoursEndChange(opt.hour)}
-                            >
-                              <Text
-                                variant="labelSmall"
-                                style={{
-                                  color:
-                                    activeHours.endHour === opt.hour
-                                      ? '#FFFFFF'
-                                      : theme.colors.onSurface,
-                                  fontWeight: activeHours.endHour === opt.hour ? '700' : '500',
-                                }}
-                              >
-                                {opt.label}
-                              </Text>
-                            </Pressable>
+                            <Picker.Item key={opt.hour} label={opt.label} value={opt.hour} />
                           ))}
-                        </ScrollView>
+                        </Picker>
                       </View>
                     </View>
                   </View>
-                </>
-              )}
-            </>
-          )}
-        </View>
+                </View>
+              </>
+            )}
+          </View>
+        )}
 
-        {/* Decks card group */}
-        <View
-          style={[
-            styles.card,
-            styles.languagePairsCard,
-            getGlassStyle(theme),
-          ]}
-        >
-          <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface, marginBottom: 8 }]}>
+        {/* ── Decks ── */}
+        <View style={[styles.card, glassStyle]}>
+          <Text
+            variant="titleSmall"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
             Decks
           </Text>
 
@@ -589,14 +515,19 @@ const styles = StyleSheet.create({
   contentInner: {
     paddingTop: 16,
     paddingBottom: 24,
+    gap: 16,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,
   },
-  languagePairsCard: {
-    marginTop: 16,
+  sectionTitle: {
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 12,
   },
   settingRow: {
     flexDirection: 'row',
@@ -649,23 +580,17 @@ const styles = StyleSheet.create({
   speedButtonText: {
     fontWeight: '600',
   },
-  intervalSelector: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  intervalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  pickerContainer: {
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
+    marginTop: 8,
   },
-  intervalButtonText: {
-    fontWeight: '600',
+  activeHoursRow: {
+    marginTop: 8,
+    gap: 8,
   },
+  activeHourPicker: {},
   deckActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -673,22 +598,5 @@ const styles = StyleSheet.create({
   deleteButton: {
     margin: 0,
     marginLeft: -4,
-  },
-  activeHoursRow: {
-    marginTop: 8,
-    gap: 8,
-  },
-  activeHourPicker: {
-    // Each picker takes full width with horizontal scroll
-  },
-  hourScrollContent: {
-    gap: 6,
-    paddingVertical: 2,
-  },
-  hourChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
   },
 });

@@ -1,11 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Platform, Animated } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import {
+  View,
+  TouchableOpacity,
+  Modal,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+  Animated,
+} from 'react-native';
+import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAvailableBundles, getBundle } from '../content/bundles';
 import { loadActiveBundle } from '../services/storage';
 import { getCardsDueCount } from '../services/statsService';
 import { useApkgImport } from '../hooks/useApkgImport';
+import { useAppTheme, getGlassStyle } from '../theme';
 import type { BundleConfig } from '../types/bundle';
 
 interface BundlePickerProps {
@@ -15,7 +24,8 @@ interface BundlePickerProps {
 }
 
 export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePickerProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const glassStyle = getGlassStyle(theme);
   const insets = useSafeAreaInsets();
   const activeBundleId = loadActiveBundle();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -70,59 +80,121 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1}>
-        <View style={[styles.sheetContainer]}>
-        <Animated.View style={[styles.sheet, { backgroundColor: theme.colors.surface, paddingBottom: Math.max(20, insets.bottom), transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] }) }] }]}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>Decks</Text>
+        <View style={styles.sheetContainer}>
+          <Animated.View
+            style={[
+              styles.sheet,
+              glassStyle,
+              {
+                paddingBottom: Math.max(20, insets.bottom),
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [300, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Text
+              variant="labelSmall"
+              style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}
+            >
+              Choose Deck
+            </Text>
 
-          {bundles.map((bundle) => {
-            const isActive = bundle.id === activeBundleId;
-            const isImported = bundle.type === 'imported';
+            {bundles.map((bundle, index) => {
+              const isActive = bundle.id === activeBundleId;
+              const isImported = bundle.type === 'imported';
 
-            return (
-              <TouchableOpacity
-                key={bundle.id}
-                style={[styles.row, isActive && { backgroundColor: theme.colors.primaryContainer }]}
-                onPress={() => handleSelect(bundle.id)}
-                onLongPress={isImported ? () => onDeleteDeck(bundle) : undefined}
-              >
-                <View style={styles.labelContainer}>
-                  <Text style={[styles.label, { color: theme.colors.onSurface }]}>
-                    {bundle.displayLabel}
+              return (
+                <TouchableOpacity
+                  key={bundle.id}
+                  style={[
+                    styles.row,
+                    isActive && { backgroundColor: theme.colors.primaryContainer },
+                    index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.custom.separator },
+                  ]}
+                  onPress={() => handleSelect(bundle.id)}
+                  onLongPress={isImported ? () => onDeleteDeck(bundle) : undefined}
+                >
+                  <View style={styles.header}>
+                    <View
+                      style={[
+                        styles.badge,
+                        {
+                          backgroundColor: isActive
+                            ? theme.colors.primary + '30'
+                            : theme.colors.primary + '18',
+                        },
+                      ]}
+                    >
+                      <Text
+                        variant="labelMedium"
+                        style={{ color: theme.colors.primary, fontWeight: '700' }}
+                      >
+                        {bundle.displayLabel.charAt(0)}
+                      </Text>
+                    </View>
+                    <View style={styles.textContent}>
+                      <Text
+                        variant="titleSmall"
+                        style={{ color: theme.colors.onSurface, fontWeight: '600' }}
+                      >
+                        {bundle.displayLabel}
+                      </Text>
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: theme.colors.onSurfaceVariant, lineHeight: 18, marginTop: 2 }}
+                      >
+                        {isActive && isImported
+                          ? `Active · ${bundle.cardCount ?? 0} cards · Imported`
+                          : isActive
+                            ? `Active · ${getDueCount(bundle)} due`
+                            : isImported
+                              ? `${bundle.cardCount ?? 0} cards · Imported`
+                              : `${getDueCount(bundle)} due`}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.custom.separator }}>
+              {importing ? (
+                <View style={[styles.row, styles.importingRow]}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {importProgress}
                   </Text>
-                  {isActive && (
-                    <Text style={[styles.active, { color: theme.colors.primary }]}>Active</Text>
-                  )}
                 </View>
-                <Text style={[styles.due, { color: theme.colors.onSurfaceVariant }]}>
-                  {isImported
-                    ? `${bundle.cardCount ?? 0} cards \u00B7 Imported`
-                    : `${getDueCount(bundle)} due`}
+              ) : (
+                <TouchableOpacity style={styles.row} onPress={onImport}>
+                  <Text
+                    variant="titleSmall"
+                    style={{ color: theme.colors.primary, fontWeight: '500' }}
+                  >
+                    + Import your own deck
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={[styles.row, styles.disabledRow]} disabled>
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  + Download more (coming soon)
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-
-          {importing ? (
-            <View style={[styles.row, styles.importingRow]}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={[styles.importProgress, { color: theme.colors.onSurfaceVariant }]}>
-                {importProgress}
-              </Text>
             </View>
-          ) : (
-            <TouchableOpacity style={styles.row} onPress={onImport}>
-              <Text style={{ color: theme.colors.primary, fontWeight: '500' }}>
-                + Import your own deck
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={[styles.row, styles.disabledRow]}>
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>
-              + Download more (coming soon)
-            </Text>
-          </View>
-        </Animated.View>
+          </Animated.View>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -140,49 +212,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    padding: 16,
     paddingBottom: 20,
     width: '100%',
     ...(Platform.OS === 'web' ? { maxWidth: 480 } : {}),
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
+  sectionTitle: {
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 12,
+    marginBottom: 8,
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 10,
-    marginBottom: 6,
   },
-  labelContainer: {
-    flexShrink: 1,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
+  badge: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
   },
-  active: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  due: {
-    fontSize: 14,
+  textContent: {
+    flex: 1,
   },
   disabledRow: {
     opacity: 0.4,
   },
   importingRow: {
-    justifyContent: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-  },
-  importProgress: {
-    fontSize: 14,
   },
 });
