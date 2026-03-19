@@ -376,7 +376,7 @@ export default function ChallengeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <IconButton
-          icon="close"
+          icon="arrow-left"
           size={22}
           iconColor={theme.colors.onSurface}
           onPress={handleClose}
@@ -510,6 +510,8 @@ export default function ChallengeScreen() {
                   key={currentCard.card.id}
                   card={currentCard.card as SimpleCard}
                   onRate={handleSelfRate}
+                  isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
                 />
               </View>
             )}

@@ -8,16 +8,20 @@
  * Used for imported deck cards (always selfRated) and optionally for
  * builtin cloze cards on the widget.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { Text } from 'react-native-paper';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
+import { useResolvedUri } from '../hooks/useResolvedUri';
 import type { SimpleCard } from '../types/simpleCard';
 import type { ReviewGrade } from '../services/fsrs';
 
 interface SelfRatedCardProps {
   card: SimpleCard;
   onRate: (grade: ReviewGrade) => void;
+  isMuted?: boolean;
+  playbackSpeed?: number;
 }
 
 const GRADE_BUTTONS: Array<{ grade: ReviewGrade; label: string; color: string }> = [
@@ -27,17 +31,64 @@ const GRADE_BUTTONS: Array<{ grade: ReviewGrade; label: string; color: string }>
   { grade: 'easy', label: 'Easy', color: '#42A5F5' },
 ];
 
-export function SelfRatedCard({ card, onRate }: SelfRatedCardProps) {
+export function SelfRatedCard({ card, onRate, isMuted = false, playbackSpeed = 1.0 }: SelfRatedCardProps) {
   const [revealed, setRevealed] = useState(false);
   const theme = useAppTheme();
   const glassStyle = getGlassStyle(theme);
 
+  const imageUri = useResolvedUri(card.image);
+  const audioUri = useResolvedUri(card.audio);
+
+  // --- Audio playback on reveal ---
+  const soundRef = useRef<AudioPlayer | null>(null);
+
+  useEffect(() => {
+    if (!revealed || !audioUri || isMuted) return;
+
+    let cancelled = false;
+
+    try {
+      const player = createAudioPlayer({ uri: audioUri });
+      if (cancelled) {
+        player.remove();
+        return;
+      }
+      soundRef.current = player;
+      if (playbackSpeed !== 1.0) {
+        player.setPlaybackRate(playbackSpeed);
+      }
+      player.play();
+    } catch {
+      // Audio failed to load — no-op for self-rated cards
+    }
+
+    return () => {
+      cancelled = true;
+      if (soundRef.current) {
+        soundRef.current.remove();
+        soundRef.current = null;
+      }
+    };
+  }, [revealed, audioUri, isMuted, playbackSpeed]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.remove();
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  const imageElement = imageUri ? (
+    <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+  ) : null;
+
   if (!revealed) {
     return (
       <View style={styles.container}>
-        {card.image && (
-          <Image source={{ uri: card.image }} style={styles.image} resizeMode="cover" />
-        )}
+        {imageElement}
         <View style={[styles.card, glassStyle]}>
           <Text variant="headlineSmall" style={[styles.frontText, { color: theme.colors.onSurface }]}>
             {card.front}
@@ -59,9 +110,7 @@ export function SelfRatedCard({ card, onRate }: SelfRatedCardProps) {
 
   return (
     <View style={styles.container}>
-      {card.image && (
-        <Image source={{ uri: card.image }} style={styles.image} resizeMode="cover" />
-      )}
+      {imageElement}
       <View style={[styles.card, glassStyle]}>
         <Text variant="bodyLarge" style={[styles.frontTextSmall, { color: theme.colors.onSurfaceVariant }]}>
           {card.front}
@@ -100,9 +149,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 3 / 2,
     borderRadius: 12,
-    maxHeight: 200,
   },
   frontText: {
     textAlign: 'center',

@@ -76,6 +76,10 @@ export async function importApkg(
   const cards = parseAnkiNotes(noteRows, deckId);
   if (cards.length === 0) throw new Error('No valid cards found in deck');
 
+  const cardsWithImage = cards.filter(c => c.image);
+  const cardsWithAudio = cards.filter(c => c.audio);
+  console.log(`[Import] Parsed ${cards.length} cards: ${cardsWithImage.length} with image, ${cardsWithAudio.length} with audio`);
+
   // Parse media mapping and store media as Blobs in IndexedDB
   onProgress?.('Processing media…', 50);
   let mediaMap: Record<string, string> = {};
@@ -87,6 +91,8 @@ export async function importApkg(
   const mediaNames = new Set(Object.values(mediaMap));
   let mediaProcessed = 0;
   const mediaTotal = Object.keys(mediaMap).length;
+  const audioFiles = [...mediaNames].filter(n => /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(n));
+  console.log(`[Import] Media: ${mediaTotal} files (${audioFiles.length} audio)`);
 
   for (const [numericName, realName] of Object.entries(mediaMap)) {
     const entry = zip.file(numericName);
@@ -111,21 +117,71 @@ export async function importApkg(
     }
   }
 
-  // Resolve media references on cards to IndexedDB blob URLs
-  // We store the filename as a marker — the actual blob URL is resolved at display time
-  for (const card of cards) {
-    if (card.audio && mediaNames.has(card.audio)) {
-      // Keep the filename — will be resolved to blob URL when displayed
-      card.audio = `idb://${deckId}/${card.audio}`;
-    } else {
-      delete card.audio;
+  // Try to match orphaned audio files to cards that have no audio ref.
+  // Some decks store audio filenames only in the card template, not in the note fields.
+  // Heuristic: check if any audio filename appears as a substring in the note's raw fields.
+  if (cardsWithAudio.length === 0 && audioFiles.length > 0) {
+    const audioSet = new Set(audioFiles);
+    for (const card of cards) {
+      if (card.audio) continue;
+      const row = noteRows.find(r => String(r.id) === card.id);
+      if (!row) continue;
+      const rawFields = row.flds;
+      // Check if any audio filename appears in the raw field data
+      for (const af of audioSet) {
+        if (rawFields.includes(af)) {
+          card.audio = af;
+          break;
+        }
+      }
+      // If still no match, try matching by field content → filename pattern
+      // e.g. field="/a/" → audio file might be "a fr.mp3" or "a.mp3"
+      if (!card.audio) {
+        const fields = rawFields.split('\x1f');
+        for (const field of fields) {
+          const clean = field.replace(/<[^>]*>/g, '').replace(/[\/\\]/g, '').trim().toLowerCase();
+          if (!clean || clean.length > 50) continue;
+          for (const af of audioSet) {
+            const afLower = af.toLowerCase();
+            const afBase = afLower.replace(/\.(mp3|wav|ogg|m4a|flac|aac)$/i, '');
+            if (afBase === clean || afBase.startsWith(clean + ' ') || afBase.startsWith(clean + '_')) {
+              card.audio = af;
+              break;
+            }
+          }
+          if (card.audio) break;
+        }
+      }
     }
-    if (card.image && mediaNames.has(card.image)) {
-      card.image = `idb://${deckId}/${card.image}`;
-    } else {
-      delete card.image;
+    const heuristicMatched = cards.filter(c => c.audio).length;
+    if (heuristicMatched > 0) {
+      console.log(`[Import] Heuristic matched ${heuristicMatched}/${cards.length} cards to audio files`);
     }
   }
+
+  // Resolve media references on cards to IndexedDB markers
+  let matchedImages = 0, matchedAudio = 0, unmatchedImages = 0, unmatchedAudio = 0;
+  for (const card of cards) {
+    if (card.audio) {
+      if (mediaNames.has(card.audio)) {
+        card.audio = `idb://${deckId}/${card.audio}`;
+        matchedAudio++;
+      } else {
+        unmatchedAudio++;
+        delete card.audio;
+      }
+    }
+    if (card.image) {
+      if (mediaNames.has(card.image)) {
+        card.image = `idb://${deckId}/${card.image}`;
+        matchedImages++;
+      } else {
+        unmatchedImages++;
+        delete card.image;
+      }
+    }
+  }
+  console.log(`[Import] Final: ${matchedImages} images, ${matchedAudio} audio`);
 
   // Save cards to IndexedDB
   onProgress?.('Saving deck…', 90);

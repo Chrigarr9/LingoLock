@@ -44,13 +44,18 @@ export function generateDeckId(name: string): string {
   return `${slug}-${hex}`;
 }
 
+const AUDIO_EXTENSIONS = /\.(mp3|wav|ogg|m4a|flac|aac|wma|opus)$/i;
+
 /**
  * Parse raw Anki note rows into SimpleCard[].
  *
  * - Fields are separated by `\x1f` (ASCII 31, unit separator).
  * - First field = front, second = back.
- * - `[sound:filename]` patterns in either field → card.audio = filename.
- * - `<img src="filename">` patterns in either field → card.image = filename.
+ * - ALL fields are searched for media references:
+ *   `[sound:filename]` → card.audio
+ *   `<audio>`/`<source>` tags → card.audio
+ *   bare audio filenames (e.g. "word.mp3") → card.audio
+ *   `<img src="filename">` → card.image
  * - Notes with fewer than 2 fields are skipped.
  */
 export function parseAnkiNotes(rows: AnkiNoteRow[], deckId: string): SimpleCard[] {
@@ -63,12 +68,32 @@ export function parseAnkiNotes(rows: AnkiNoteRow[], deckId: string): SimpleCard[
     const rawFront = fields[0];
     const rawBack = fields[1];
 
+    // Search ALL fields for media (not just front/back — many decks store media in later fields)
+    const allFieldsRaw = fields.join(' ');
+
+    // Audio: try [sound:], then <audio>/<source>, then bare filenames in fields
     let audio: string | undefined;
-    const soundMatch = (rawFront + rawBack).match(/\[sound:([^\]]+)\]/);
-    if (soundMatch) audio = soundMatch[1];
+    const soundMatch = allFieldsRaw.match(/\[sound:([^\]]+)\]/);
+    if (soundMatch) {
+      audio = soundMatch[1];
+    } else {
+      const audioTagMatch = allFieldsRaw.match(/<(?:audio|source)\s+[^>]*src=["']([^"']+)["'][^>]*>/i);
+      if (audioTagMatch) {
+        audio = audioTagMatch[1];
+      } else {
+        // Check each field for a bare audio filename (common in pronunciation decks)
+        for (const field of fields) {
+          const trimmed = stripHtml(field).trim();
+          if (trimmed && AUDIO_EXTENSIONS.test(trimmed)) {
+            audio = trimmed;
+            break;
+          }
+        }
+      }
+    }
 
     let image: string | undefined;
-    const imgMatch = (rawFront + rawBack).match(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/i);
+    const imgMatch = allFieldsRaw.match(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/i);
     if (imgMatch) image = imgMatch[1];
 
     const front = stripHtml(rawFront.replace(/\[sound:[^\]]+\]/g, ''));

@@ -1,7 +1,7 @@
 import React, { Component, useCallback, useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { Platform, View, useColorScheme, Text, StyleSheet } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
+import { IconButton, PaperProvider } from 'react-native-paper';
 import { useDeepLink } from '../src/hooks/useDeepLink';
 import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
@@ -179,7 +179,18 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="settings"
-        options={{ title: 'Settings' }}
+        options={{
+          title: 'Settings',
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              size={22}
+              iconColor={theme.colors.onSurface}
+              onPress={() => router.back()}
+              accessibilityLabel="Back"
+            />
+          ),
+        }}
       />
       <Stack.Screen
         name="vocabulary"

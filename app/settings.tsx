@@ -18,6 +18,7 @@ import {
   loadActiveBundle,
   loadEnabledBundles,
   saveEnabledBundles,
+  cardStorage,
 } from '../src/services/storage';
 import {
   setNotificationInterval,
@@ -26,11 +27,11 @@ import {
   cancelAllNotifications,
 } from '../src/services/notificationScheduler';
 import { requestNotificationPermissions } from '../src/services/notificationService';
-import { getAvailableBundles, getBundle, registerImportedBundle } from '../src/content/bundles';
+import { getAvailableBundles, getBundle, registerImportedBundle, unregisterImportedBundle } from '../src/content/bundles';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { getCardsDueCount } from '../src/services/statsService';
 import { importApkg } from '../src/services/apkgImporter';
-import { loadImportedDeckCards } from '../src/services/importedDeckStore';
+import { loadImportedDeckCards, removeImportedDeck } from '../src/services/importedDeckStore';
 import type { Bundle } from '../src/types/bundle';
 
 const SPEED_OPTIONS: { label: string; value: number }[] = [
@@ -54,9 +55,56 @@ export default function SettingsScreen() {
     setEnabledBundles(newEnabled);
   };
 
+  const [deckRefreshKey, setDeckRefreshKey] = useState(0);
+
   const setActive = (bundleId: string) => {
     switchBundle(bundleId);
     setActiveBundleId(bundleId);
+  };
+
+  const deleteDeck = (bundleId: string) => {
+    // Remove FSRS card states
+    const allKeys = cardStorage.getAllKeys();
+    const prefix = `${bundleId}:`;
+    for (const key of allKeys) {
+      if (key.startsWith(prefix)) cardStorage.remove(key);
+    }
+
+    // Remove from runtime cache + persistent storage
+    unregisterImportedBundle(bundleId);
+    removeImportedDeck(bundleId);
+
+    // Remove from enabled list
+    const newEnabled = enabledBundles.filter(id => id !== bundleId);
+    saveEnabledBundles(newEnabled);
+    setEnabledBundles(newEnabled);
+
+    // If deleted deck was active, fall back to default
+    if (bundleId === activeBundleId) {
+      const fallback = 'es-de-buenos-aires';
+      switchBundle(fallback);
+      setActiveBundleId(fallback);
+    }
+
+    setDeckRefreshKey(k => k + 1);
+  };
+
+  const handleDeleteDeck = (bundleId: string, displayLabel: string) => {
+    if (Platform.OS === 'web') {
+      // Alert.alert doesn't produce a confirm dialog on Expo web production builds
+      if (window.confirm(`Remove "${displayLabel}" and all its data from this device?`)) {
+        deleteDeck(bundleId);
+      }
+    } else {
+      Alert.alert(
+        'Delete Deck',
+        `Remove "${displayLabel}" and all its data from this device?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: () => deleteDeck(bundleId) },
+        ],
+      );
+    }
   };
 
   const pickFileWeb = (): Promise<{ uri: string; name: string } | null> => {
@@ -446,11 +494,22 @@ export default function SettingsScreen() {
                       {isActive ? 'Active' : isImported ? `${bundle.cardCount ?? 0} cards` : `${dueCount} cards due`}
                     </Text>
                   </View>
-                  <Switch
-                    value={isEnabled}
-                    onValueChange={() => toggleEnabled(bundle.id)}
-                    color={theme.custom.brandBlue}
-                  />
+                  <View style={styles.deckActions}>
+                    <Switch
+                      value={isEnabled}
+                      onValueChange={() => toggleEnabled(bundle.id)}
+                      color={theme.custom.brandBlue}
+                    />
+                    <IconButton
+                      icon="trash-can-outline"
+                      size={18}
+                      iconColor={isImported ? theme.colors.error : theme.colors.onSurfaceVariant}
+                      onPress={isImported ? () => handleDeleteDeck(bundle.id, bundle.displayLabel) : undefined}
+                      disabled={!isImported}
+                      accessibilityLabel={`Delete ${bundle.displayLabel}`}
+                      style={[styles.deleteButton, !isImported && { opacity: 0.25 }]}
+                    />
+                  </View>
                 </Pressable>
               </React.Fragment>
             );
@@ -568,5 +627,13 @@ const styles = StyleSheet.create({
   },
   intervalButtonText: {
     fontWeight: '600',
+  },
+  deckActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    margin: 0,
+    marginLeft: -4,
   },
 });
