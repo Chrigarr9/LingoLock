@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../src/theme';
 import { ClozeCardDisplay } from '../src/components/ClozeCard';
 import { AnswerReveal } from '../src/components/AnswerReveal';
@@ -27,7 +27,7 @@ import {
 } from '../src/services/storage';
 import { updateStatsAfterSession, recordAbort, getStreak, checkAndAdvanceStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
-import { useKeyboardVisible } from '../src/hooks/useKeyboardVisible';
+import { useKeyboard } from '../src/hooks/useKeyboardVisible';
 import { updateWidgetData } from '../src/services/widgetService';
 import type { SessionCard } from '../src/types/vocabulary';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
@@ -44,6 +44,7 @@ export default function ChallengeScreen() {
   }>();
   const router = useRouter();
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { config, chapters } = useActiveBundle();
 
   function getMotivationalMessage(accuracy: number): string {
@@ -82,7 +83,7 @@ export default function ChallengeScreen() {
   const [isEmpty, setIsEmpty] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
   const [hasMoreCards, setHasMoreCards] = useState(false);
-  const keyboardVisible = useKeyboardVisible();
+  const keyboard = useKeyboard();
 
   // --------------------------------------------------------------------------
   // Session initialization
@@ -360,9 +361,8 @@ export default function ChallengeScreen() {
   // Render
   // --------------------------------------------------------------------------
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom']}
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -419,23 +419,20 @@ export default function ChallengeScreen() {
         </View>
       )}
 
-      {/* Content — scrollable so tall cards + MC4 grid + keyboard don't overflow */}
+      {/* Content */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={[styles.contentScroll, styles.content]}>
+
         {!isComplete && currentCard && (
           <>
             {isMC && !isSelfRated && (
               /* Multiple Choice mode (MC4) */
               <View style={styles.mcArea}>
                 <ClozeCardDisplay
+                  key={currentCard.card.id}
                   sessionCard={currentCard}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
@@ -469,6 +466,7 @@ export default function ChallengeScreen() {
               /* Text input mode */
               <View style={styles.textArea}>
                 <ClozeCardDisplay
+                  key={currentCard.card.id}
                   sessionCard={currentCard}
                   showAnswer={showAnswer}
                   isCorrect={isCorrect ?? undefined}
@@ -478,7 +476,7 @@ export default function ChallengeScreen() {
                   hintText={currentHintText}
                   hintUsed={hintUsed}
                   onHintRequest={handleHintRequest}
-                  hideImage={keyboardVisible}
+                  keyboardHeight={keyboard.height}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -489,7 +487,7 @@ export default function ChallengeScreen() {
 
                 {!showAnswer && (
                   <View style={styles.inputArea}>
-                    <AnswerInput onSubmit={handleTextSubmit} hideButton={keyboardVisible} />
+                    <AnswerInput onSubmit={handleTextSubmit} hideButton={keyboard.visible} />
                   </View>
                 )}
               </View>
@@ -614,9 +612,9 @@ export default function ChallengeScreen() {
             )}
           </View>
         )}
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

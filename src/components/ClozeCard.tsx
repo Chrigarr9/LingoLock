@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Image, Pressable, useWindowDimensions, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
 import { useActiveBundle } from '../content/activeBundleProvider';
 import type { SessionCard } from '../types/vocabulary';
@@ -24,8 +24,8 @@ interface ClozeCardDisplayProps {
   onHintRequest?: () => void;
   /** Called when user taps "Already know this?" */
   onAlreadyKnow?: () => void;
-  /** When true, the hero image is hidden (e.g. keyboard is open) */
-  hideImage?: boolean;
+  /** Height of the keyboard in pixels (0 when hidden). Image shrinks to fit remaining space. */
+  keyboardHeight?: number;
 }
 
 /**
@@ -46,7 +46,7 @@ export function ClozeCardDisplay({
   hintUsed,
   onHintRequest,
   onAlreadyKnow,
-  hideImage = false,
+  keyboardHeight = 0,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
@@ -59,12 +59,14 @@ export function ClozeCardDisplay({
   onAudioFinishRef.current = onAudioFinish;
 
   const { height: windowHeight } = useWindowDimensions();
-  // On short screens, shrink the image so the MC grid / input stays visible.
-  // ~440px is the approximate non-image overhead (header ~50 + progress ~30
-  // + card text/hint ~100 + MC grid ~190 + padding/gaps ~70).
-  // Below 60px the image is too small to be useful — hide it entirely.
-  const imageMaxHeight = Math.max(0, Math.min(200, windowHeight - 440));
-  const shouldShowImage = imageMaxHeight >= 60;
+  // Calculate available height for the image:
+  // Total screen minus fixed UI elements minus keyboard.
+  // Fixed overhead: safe area ~55 + header ~50 + progress ~30 + card text/hint ~120
+  //   + MC grid ~190 (or input ~60) + next button ~60 + padding/gaps ~55 = ~560 for MC, ~430 for text
+  const fixedOverhead = answerType === 'text' ? 430 : 560;
+  const availableForImage = windowHeight - fixedOverhead - keyboardHeight;
+  const imageMaxHeight = Math.max(0, Math.min(220, availableForImage));
+  const shouldShowImage = imageMaxHeight >= 40;
 
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
@@ -78,8 +80,10 @@ export function ClozeCardDisplay({
 
     let cancelled = false;
 
-    const playAudio = () => {
+    const playAudio = async () => {
       try {
+        // Use "playback" mode so audio plays even when the iOS silent switch is on
+        await setAudioModeAsync({ playsInSilentMode: true });
         const audioSource = cardAudios[card.audio!] ?? { uri: card.audio! };
         const player = createAudioPlayer(audioSource);
         if (cancelled) {
@@ -140,7 +144,7 @@ export function ClozeCardDisplay({
   useEffect(() => {
     setImageError(false);
   }, [card.id]);
-  const showImage = !!imageSource && !imageError && !hideImage && shouldShowImage;
+  const showImage = !!imageSource && !imageError && shouldShowImage;
 
   // Can the German hint be tapped to reveal a spelling hint? (text mode only)
   const hintIsTappable = answerType === 'text' && !hintUsed && !!onHintRequest;
@@ -178,7 +182,7 @@ export function ClozeCardDisplay({
                 {hintText}
               </Text>
             ) : (
-              <Text style={styles.blankSpan}>{'_____'}</Text>
+              <Text style={[styles.blankSpan, { color: theme.colors.onSurfaceVariant }]}>{'______'}</Text>
             )}
             {sentenceParts[1] ?? ''}
           </Text>
@@ -241,12 +245,12 @@ export function ClozeCardDisplay({
       style={[
         styles.card,
         getGlassStyle(theme),
-        showImage && { padding: 0 },
+        showImage && { paddingVertical: 0, paddingHorizontal: 0, gap: 0 },
       ]}
     >
       {/* Hero image — flush at top, full card width, ratio-enforcing wrapper */}
       {showImage && (
-        <View style={[styles.cardImageWrapper, { maxHeight: imageMaxHeight }]}>
+        <View style={[styles.cardImageWrapper, { height: imageMaxHeight }]}>
           <Image
             source={imageSource!}
             style={styles.cardImage}
@@ -285,8 +289,10 @@ const styles = StyleSheet.create({
   },
   cardImageWrapper: {
     width: '100%',
-    aspectRatio: CARD_IMAGE_RATIO,
+    height: undefined,
     overflow: 'hidden',
+    borderTopLeftRadius: 19,
+    borderTopRightRadius: 19,
   },
   cardImage: {
     width: '100%',
@@ -308,10 +314,9 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
   blankSpan: {
-    textDecorationLine: 'underline',
     fontWeight: '700',
-    color: 'transparent',
-    borderBottomWidth: 2,
+    letterSpacing: -1,
+    fontSize: 20,
   },
   hintInBlank: {
     fontFamily: 'monospace',

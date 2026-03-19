@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { Text } from 'react-native-paper';
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
 import { useResolvedUri } from '../hooks/useResolvedUri';
 import type { SimpleCard } from '../types/simpleCard';
@@ -48,6 +48,7 @@ export function SelfRatedCard({ card, onRate, isMuted = false, playbackSpeed = 1
     let cancelled = false;
 
     try {
+      setAudioModeAsync({ playsInSilentMode: true });
       const player = createAudioPlayer({ uri: audioUri });
       if (cancelled) {
         player.remove();

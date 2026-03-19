@@ -2,6 +2,7 @@ import React, { Component, useCallback, useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { Platform, View, useColorScheme, Text, StyleSheet } from 'react-native';
 import { IconButton, PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useDeepLink } from '../src/hooks/useDeepLink';
 import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
@@ -234,6 +235,13 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
+        name="deck-picker"
+        options={{
+          presentation: 'modal',
+          title: 'Decks',
+        }}
+      />
+      <Stack.Screen
         name="settings"
         options={{
           title: 'Settings',
@@ -266,6 +274,7 @@ export default function RootLayout() {
 
   return (
     <AppErrorBoundary>
+      <SafeAreaProvider>
       <PaperProvider theme={theme}>
         {Platform.OS === 'web' ? (
           <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
@@ -277,6 +286,7 @@ export default function RootLayout() {
           content
         )}
       </PaperProvider>
+      </SafeAreaProvider>
     </AppErrorBoundary>
   );
 }

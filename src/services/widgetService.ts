@@ -234,12 +234,14 @@ export function updateWidgetData(): void {
   if (Platform.OS === 'web') return;
 
   try {
-    // Dynamic import to avoid crashes on web / when expo-widgets is unavailable
-    const { vocabularyWidget } = require('../../widgets/VocabularyWidget');
+    // Use expo-widgets Widget class directly — do NOT import VocabularyWidget.tsx
+    // as it pulls in @expo/ui/swift-ui which only works in the widget extension process.
+    const { Widget } = require('expo-widgets');
+    const widget = new Widget('VocabularyWidget', 'VocabularyWidget');
 
     const cardData = getWidgetCardData();
     if (cardData) {
-      vocabularyWidget.updateSnapshot({
+      widget.updateSnapshot({
         cardId: cardData.cardId,
         sentence: cardData.sentence,
         germanHint: cardData.germanHint,
@@ -255,13 +257,12 @@ export function updateWidgetData(): void {
       });
     } else {
       // No cards due — show empty state with streak
-      vocabularyWidget.updateSnapshot({
+      widget.updateSnapshot({
         streakCount: getStreak(),
       });
     }
   } catch (error) {
-    // Silently no-op if expo-widgets not available
-    console.warn('[WidgetService] Failed to update widget:', error);
+    // Silently no-op if expo-widgets not available (e.g. dev build without widget extension)
   }
 }
 
