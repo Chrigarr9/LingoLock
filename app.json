@@ -15,9 +15,18 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lingolock.app",
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.lingolock.app"]
+      },
       "infoPlist": {
-        "NSNotificationAlwaysDisplayPermission": true,
-        "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals."
+        "UIBackgroundModes": ["fetch"],
+        "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals.",
+        "LSApplicationQueriesSchemes": [
+          "instagram", "twitter", "fb", "tiktok", "youtube",
+          "reddit", "linkedin", "whatsapp", "telegram", "discord",
+          "snapchat", "pinterest", "spotify", "netflix", "googlegmail",
+          "googlechrome", "maps", "sms", "calshow"
+        ]
       }
     },
     "android": {
@@ -53,12 +62,20 @@
                 "name": "VocabularyWidget",
                 "displayName": "LingoLock Practice",
                 "description": "Practice vocabulary directly from your Home Screen or Lock Screen",
-                "families": ["systemSmall", "systemMedium", "accessoryRectangular"]
+                "families": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular"
+                ]
               }
             ]
           }
         }
-      ]
+      ],
+      "expo-sqlite",
+      "react-native-mmkv",
+      "expo-background-fetch",
+      "expo-task-manager"
     ],
     "experiments": {
       "typedRoutes": true

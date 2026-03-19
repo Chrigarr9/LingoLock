@@ -13,8 +13,10 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.0",
     "expo": "~55.0.0",
     "expo-audio": "~55.0.9",
+    "expo-background-fetch": "~13.0.5",
     "expo-constants": "~55.0.7",
     "expo-dev-client": "~55.0.10",
     "expo-document-picker": "~55.0.9",
@@ -22,6 +24,7 @@
     "expo-linking": "~55.0.7",
     "expo-notifications": "~55.0.10",
     "expo-router": "~55.0.3",
+    "expo-task-manager": "~12.0.5",
     "expo-sqlite": "~55.0.11",
     "expo-widgets": "^55.0.5",
     "jszip": "^3.10.1",
@@ -33,7 +36,6 @@
     "react-native-paper": "^5.15.0",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
-    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.21.0",
     "react-native-zip-archive": "^7.0.2",
     "sql.js": "^1.14.1",
