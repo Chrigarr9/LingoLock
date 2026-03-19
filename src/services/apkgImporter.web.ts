@@ -117,48 +117,6 @@ export async function importApkg(
     }
   }
 
-  // Try to match orphaned audio files to cards that have no audio ref.
-  // Some decks store audio filenames only in the card template, not in the note fields.
-  // Heuristic: check if any audio filename appears as a substring in the note's raw fields.
-  if (cardsWithAudio.length === 0 && audioFiles.length > 0) {
-    const audioSet = new Set(audioFiles);
-    for (const card of cards) {
-      if (card.audio) continue;
-      const row = noteRows.find(r => String(r.id) === card.id);
-      if (!row) continue;
-      const rawFields = row.flds;
-      // Check if any audio filename appears in the raw field data
-      for (const af of audioSet) {
-        if (rawFields.includes(af)) {
-          card.audio = af;
-          break;
-        }
-      }
-      // If still no match, try matching by field content → filename pattern
-      // e.g. field="/a/" → audio file might be "a fr.mp3" or "a.mp3"
-      if (!card.audio) {
-        const fields = rawFields.split('\x1f');
-        for (const field of fields) {
-          const clean = field.replace(/<[^>]*>/g, '').replace(/[\/\\]/g, '').trim().toLowerCase();
-          if (!clean || clean.length > 50) continue;
-          for (const af of audioSet) {
-            const afLower = af.toLowerCase();
-            const afBase = afLower.replace(/\.(mp3|wav|ogg|m4a|flac|aac)$/i, '');
-            if (afBase === clean || afBase.startsWith(clean + ' ') || afBase.startsWith(clean + '_')) {
-              card.audio = af;
-              break;
-            }
-          }
-          if (card.audio) break;
-        }
-      }
-    }
-    const heuristicMatched = cards.filter(c => c.audio).length;
-    if (heuristicMatched > 0) {
-      console.log(`[Import] Heuristic matched ${heuristicMatched}/${cards.length} cards to audio files`);
-    }
-  }
-
   // Resolve media references on cards to IndexedDB markers
   let matchedImages = 0, matchedAudio = 0, unmatchedImages = 0, unmatchedAudio = 0;
   for (const card of cards) {

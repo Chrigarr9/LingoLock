@@ -96,36 +96,6 @@ export async function importApkg(
       }
     }
 
-    // Try heuristic audio matching if parser found no audio refs
-    const audioExts = /\.(mp3|wav|ogg|m4a|flac|aac)$/i;
-    const audioFiles = [...mediaNameSet].filter(n => audioExts.test(n));
-    const cardsWithAudio = cards.filter(c => c.audio);
-    if (cardsWithAudio.length === 0 && audioFiles.length > 0) {
-      for (const card of cards) {
-        if (card.audio) continue;
-        const row = noteRows.find(r => String(r.id) === card.id);
-        if (!row) continue;
-        const rawFields = row.flds;
-        for (const af of audioFiles) {
-          if (rawFields.includes(af)) { card.audio = af; break; }
-        }
-        if (!card.audio) {
-          const fields = rawFields.split('\x1f');
-          for (const field of fields) {
-            const clean = field.replace(/<[^>]*>/g, '').replace(/[\/\\]/g, '').trim().toLowerCase();
-            if (!clean || clean.length > 50) continue;
-            for (const af of audioFiles) {
-              const afBase = af.toLowerCase().replace(audioExts, '');
-              if (afBase === clean || afBase.startsWith(clean + ' ') || afBase.startsWith(clean + '_')) {
-                card.audio = af; break;
-              }
-            }
-            if (card.audio) break;
-          }
-        }
-      }
-    }
-
     for (const card of cards) {
       if (card.audio && mediaNameSet.has(card.audio)) {
         card.audio = new File(deckMediaDir, card.audio).uri;
