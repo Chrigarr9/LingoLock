@@ -456,6 +456,7 @@ for (const ch of allChapters) {
 
     cardLines.push(
       `    {\n` +
+      `      kind: "cloze",\n` +
       `      id: ${JSON.stringify(card.id)},\n` +
       `      lemma: ${JSON.stringify(card.lemma)},\n` +
       `      wordInContext: ${JSON.stringify(card.wordInContext)},\n` +

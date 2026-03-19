@@ -237,6 +237,7 @@ export const CHAPTERS: ChapterData[] = [
     chapterNumber: 1,
     cards: [
     {
+      kind: "cloze",
       id: "ser.es-ch01-s00",
       lemma: "ser",
       wordInContext: "es",
@@ -253,6 +254,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ una joven alemana.","sentenceTranslation":"Maria ist eine junge Deutsche.","chapter":1,"sentenceIndex":0},{"sentence":"«¡Bueno, nadie! Sólo _____ el viento», dice Ingrid con una sonrisa.","sentenceTranslation":"„Ach, niemand! Das ist nur der Wind“, sagt Ingrid mit einem Lächeln.","chapter":1,"sentenceIndex":15},{"sentence":"«Ella _____ Sofia, mi mejor amiga».","sentenceTranslation":"„Das ist Sofia, meine beste Freundin.“","chapter":1,"sentenceIndex":17},{"sentence":"«_____ un diario de viaje para escribir cada día».","sentenceTranslation":"„Es ist ein Reisetagebuch, in das du jeden Tag schreiben kannst.“","chapter":1,"sentenceIndex":31},{"sentence":"_____ muy temprano. Todavía está oscuro afuera.","sentenceTranslation":"Es ist sehr früh. Draußen ist es noch dunkel.","chapter":2,"sentenceIndex":0},{"sentence":"«¿Qué _____ lo que más te emociona de Buenos Aires, hija?», pregunta Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11},{"sentence":"«Tu papá _____ un buen hombre», dice Ingrid con calma.","sentenceTranslation":"„Dein Papa ist ein guter Mann“, sagt Ingrid ruhig.","chapter":2,"sentenceIndex":13},{"sentence":"«Él quería estar conmigo, pero su trabajo _____ en otra ciudad.»","sentenceTranslation":"„Er wollte bei mir sein, aber sein Job ist in einer anderen Stadt.“","chapter":2,"sentenceIndex":14},{"sentence":"Ella sonríe. _____ un tipo muy especial.","sentenceTranslation":"Sie lächelt. Er ist ein ganz besonderer Mensch.","chapter":2,"sentenceIndex":18},{"sentence":"El tráfico _____ lento en la autopista.","sentenceTranslation":"Der Verkehr auf der Autobahn stockt.","chapter":2,"sentenceIndex":19},{"sentence":"La maleta _____ muy grande.","sentenceTranslation":"Der Koffer ist sehr groß.","chapter":3,"sentenceIndex":2},{"sentence":"La maleta _____ muy pesada.","sentenceTranslation":"Der Koffer ist sehr schwer.","chapter":3,"sentenceIndex":3},{"sentence":"Maria piensa: «¿_____ demasiado pesada mi maleta?»","sentenceTranslation":"Maria denkt: „Ist mein Koffer zu schwer?“","chapter":3,"sentenceIndex":4},{"sentence":"«¡_____ realmente pesada!», dice ella.","sentenceTranslation":"„Er ist wirklich schwer!“, sagt sie.","chapter":3,"sentenceIndex":5},{"sentence":"«Tu asiento _____ el catorce A», dice la mujer.","sentenceTranslation":"„Ihr Sitzplatz ist 14A“, sagt die Frau.","chapter":3,"sentenceIndex":9},{"sentence":"«_____ en la ventana», dice la mujer amablemente.","sentenceTranslation":"„Es ist ein Fensterplatz“, sagt die Frau freundlich.","chapter":3,"sentenceIndex":10},{"sentence":"«Este asiento _____ mío», dice Maria con una sonrisa.","sentenceTranslation":"„Dieser Platz gehört mir“, sagt Maria lächelnd.","chapter":3,"sentenceIndex":11},{"sentence":"«¡_____ cierto!», dice Maria al escuchar el mensaje.","sentenceTranslation":"„Es stimmt!“, sagt Maria, als sie die Nachricht hört.","chapter":3,"sentenceIndex":30},{"sentence":"«Ese avión no _____ serio», piensa ella.","sentenceTranslation":"„Dieses Flugzeug ist nicht ernst zu nehmen“, denkt sie.","chapter":3,"sentenceIndex":35},{"sentence":"«_____ demasiado pequeño para mi vuelo.»","sentenceTranslation":"„Es ist zu klein für meinen Flug.“","chapter":3,"sentenceIndex":36}],
     },
     {
+      kind: "cloze",
       id: "joven-ch01-s00",
       lemma: "joven",
       wordInContext: "joven",
@@ -268,6 +270,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s00",
     },
     {
+      kind: "cloze",
       id: "alemán.alemana-ch01-s00",
       lemma: "alemán",
       wordInContext: "alemana",
@@ -283,6 +286,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s00",
     },
     {
+      kind: "cloze",
       id: "estar.está-ch01-s01",
       lemma: "estar",
       wordInContext: "está",
@@ -299,6 +303,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella _____ muy emocionada por su viaje.","sentenceTranslation":"Sie ist sehr aufgeregt wegen ihrer Reise.","chapter":1,"sentenceIndex":1},{"sentence":"Maria _____ un poco nerviosa.","sentenceTranslation":"Maria ist ein wenig nervös.","chapter":1,"sentenceIndex":24},{"sentence":"Ella _____ muy feliz por la aventura.","sentenceTranslation":"Sie freut sich sehr auf das Abenteuer.","chapter":1,"sentenceIndex":25},{"sentence":"«¡Ya _____ hecho! Lo puse aquí», dice Ingrid, mostrando el cuaderno rojo.","sentenceTranslation":"„Das ist schon erledigt! Ich habe es hier reingepackt“, sagt Ingrid und zeigt auf das rote Heft.","chapter":1,"sentenceIndex":29},{"sentence":"Ella _____ lista para su gran aventura.","sentenceTranslation":"Sie ist bereit für ihr großes Abenteuer.","chapter":1,"sentenceIndex":39},{"sentence":"Maria _____ nerviosa y emocionada por el viaje.","sentenceTranslation":"Maria ist nervös und aufgeregt wegen der Reise.","chapter":1,"sentenceIndex":40},{"sentence":"Es muy temprano. Todavía _____ oscuro afuera.","sentenceTranslation":"Es ist sehr früh. Draußen ist es noch dunkel.","chapter":2,"sentenceIndex":0},{"sentence":"La gran maleta amarilla _____ en el asiento trasero.","sentenceTranslation":"Der große gelbe Koffer steht auf dem Rücksitz.","chapter":2,"sentenceIndex":4},{"sentence":"El coche _____ parado en la calle principal.","sentenceTranslation":"Das Auto steht auf der Hauptstraße.","chapter":2,"sentenceIndex":10},{"sentence":"Ella _____ feliz de escuchar a su amiga.","sentenceTranslation":"Sie freut sich, von ihrer Freundin zu hören.","chapter":3,"sentenceIndex":29},{"sentence":"Sofia ha dicho que _____ emocionada.","sentenceTranslation":"Sofia hat gesagt, dass sie aufgeregt ist.","chapter":3,"sentenceIndex":31},{"sentence":"Un avión azul enorme _____ en la pista.","sentenceTranslation":"Ein riesiges blaues Flugzeug steht auf der Startbahn.","chapter":3,"sentenceIndex":33}],
     },
     {
+      kind: "cloze",
       id: "mucho.muy-ch01-s01",
       lemma: "mucho",
       wordInContext: "muy",
@@ -315,6 +320,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella está _____ emocionada por su viaje.","sentenceTranslation":"Sie ist sehr aufgeregt wegen ihrer Reise.","chapter":1,"sentenceIndex":1},{"sentence":"Ella está _____ feliz por la aventura.","sentenceTranslation":"Sie freut sich sehr auf das Abenteuer.","chapter":1,"sentenceIndex":25},{"sentence":"Es _____ temprano. Todavía está oscuro afuera.","sentenceTranslation":"Es ist sehr früh. Draußen ist es noch dunkel.","chapter":2,"sentenceIndex":0},{"sentence":"Ella sonríe. Es un tipo _____ especial.","sentenceTranslation":"Sie lächelt. Er ist ein ganz besonderer Mensch.","chapter":2,"sentenceIndex":18},{"sentence":"La maleta es _____ grande.","sentenceTranslation":"Der Koffer ist sehr groß.","chapter":3,"sentenceIndex":2},{"sentence":"La maleta es _____ pesada.","sentenceTranslation":"Der Koffer ist sehr schwer.","chapter":3,"sentenceIndex":3},{"sentence":"«¡Estoy _____ emocionada por tu viaje!», dice Sofia.","sentenceTranslation":"„Ich freue mich so sehr für deine Reise!“, sagt Sofia.","chapter":3,"sentenceIndex":24}],
     },
     {
+      kind: "cloze",
       id: "emocionado.emocionada-ch01-s01",
       lemma: "emocionado",
       wordInContext: "emocionada",
@@ -331,6 +337,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella está muy _____ por su viaje.","sentenceTranslation":"Sie ist sehr aufgeregt wegen ihrer Reise.","chapter":1,"sentenceIndex":1},{"sentence":"Maria está nerviosa y _____ por el viaje.","sentenceTranslation":"Maria ist nervös und aufgeregt wegen der Reise.","chapter":1,"sentenceIndex":40},{"sentence":"«¡Estoy muy _____ por tu viaje!», dice Sofia.","sentenceTranslation":"„Ich freue mich so sehr für deine Reise!“, sagt Sofia.","chapter":3,"sentenceIndex":24},{"sentence":"Sofia ha dicho que está _____.","sentenceTranslation":"Sofia hat gesagt, dass sie aufgeregt ist.","chapter":3,"sentenceIndex":31}],
     },
     {
+      kind: "cloze",
       id: "viaje-ch01-s01",
       lemma: "viaje",
       wordInContext: "viaje",
@@ -347,6 +354,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella está muy emocionada por su _____.","sentenceTranslation":"Sie ist sehr aufgeregt wegen ihrer Reise.","chapter":1,"sentenceIndex":1},{"sentence":"«Es un diario de _____ para escribir cada día».","sentenceTranslation":"„Es ist ein Reisetagebuch, in das du jeden Tag schreiben kannst.“","chapter":1,"sentenceIndex":31},{"sentence":"Maria está nerviosa y emocionada por el _____.","sentenceTranslation":"Maria ist nervös und aufgeregt wegen der Reise.","chapter":1,"sentenceIndex":40},{"sentence":"Maria tiene nervios por el largo _____.","sentenceTranslation":"Maria ist wegen der langen Reise nervös.","chapter":2,"sentenceIndex":1},{"sentence":"«¿Tú tenías miedo en tu primer _____, mamá?», pregunta Maria.","sentenceTranslation":"„Hattest du auf deiner ersten Reise Angst, Mama?“, fragt Maria.","chapter":2,"sentenceIndex":23},{"sentence":"«¡Estoy muy emocionada por tu _____!», dice Sofia.","sentenceTranslation":"„Ich freue mich so sehr für deine Reise!“, sagt Sofia.","chapter":3,"sentenceIndex":24}],
     },
     {
+      kind: "cloze",
       id: "preparar.prepara-ch01-s02",
       lemma: "preparar",
       wordInContext: "prepara",
@@ -362,6 +370,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s02",
     },
     {
+      kind: "cloze",
       id: "enorme-ch01-s02",
       lemma: "enorme",
       wordInContext: "enorme",
@@ -378,6 +387,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria prepara su _____ maleta amarilla.","sentenceTranslation":"Maria packt ihren riesigen gelben Koffer.","chapter":1,"sentenceIndex":2},{"sentence":"Un avión azul _____ está en la pista.","sentenceTranslation":"Ein riesiges blaues Flugzeug steht auf der Startbahn.","chapter":3,"sentenceIndex":33}],
     },
     {
+      kind: "cloze",
       id: "maleta-ch01-s02",
       lemma: "maleta",
       wordInContext: "maleta",
@@ -394,6 +404,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria prepara su enorme _____ amarilla.","sentenceTranslation":"Maria packt ihren riesigen gelben Koffer.","chapter":1,"sentenceIndex":2},{"sentence":"Ingrid decide qué poner en la _____.","sentenceTranslation":"Ingrid entscheidet, was in den Koffer kommt.","chapter":1,"sentenceIndex":10},{"sentence":"Maria cierra la _____.","sentenceTranslation":"Maria schließt den Koffer.","chapter":1,"sentenceIndex":38},{"sentence":"La gran _____ amarilla está en el asiento trasero.","sentenceTranslation":"Der große gelbe Koffer steht auf dem Rücksitz.","chapter":2,"sentenceIndex":4},{"sentence":"Maria lleva su ropa favorita dentro de la _____.","sentenceTranslation":"Maria hat ihre Lieblingskleidung im Koffer.","chapter":2,"sentenceIndex":5},{"sentence":"Ellas llegan al aeropuerto. Ingrid ayuda a Maria con la _____.","sentenceTranslation":"Sie kommen am Flughafen an. Ingrid hilft Maria mit dem Koffer.","chapter":2,"sentenceIndex":27},{"sentence":"Ella tiene su _____ amarilla.","sentenceTranslation":"Sie hat ihren gelben Koffer dabei.","chapter":3,"sentenceIndex":1},{"sentence":"La _____ es muy grande.","sentenceTranslation":"Der Koffer ist sehr groß.","chapter":3,"sentenceIndex":2},{"sentence":"La _____ es muy pesada.","sentenceTranslation":"Der Koffer ist sehr schwer.","chapter":3,"sentenceIndex":3},{"sentence":"Maria piensa: «¿Es demasiado pesada mi _____?»","sentenceTranslation":"Maria denkt: „Ist mein Koffer zu schwer?“","chapter":3,"sentenceIndex":4}],
     },
     {
+      kind: "cloze",
       id: "amarillo.amarilla-ch01-s02",
       lemma: "amarillo",
       wordInContext: "amarilla",
@@ -410,6 +421,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria prepara su enorme maleta _____.","sentenceTranslation":"Maria packt ihren riesigen gelben Koffer.","chapter":1,"sentenceIndex":2},{"sentence":"La gran maleta _____ está en el asiento trasero.","sentenceTranslation":"Der große gelbe Koffer steht auf dem Rücksitz.","chapter":2,"sentenceIndex":4},{"sentence":"Ella tiene su maleta _____.","sentenceTranslation":"Sie hat ihren gelben Koffer dabei.","chapter":3,"sentenceIndex":1}],
     },
     {
+      kind: "cloze",
       id: "ir.va-ch01-s03",
       lemma: "ir",
       wordInContext: "va",
@@ -426,6 +438,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella _____ a Buenos Aires.","sentenceTranslation":"Sie fliegt nach Buenos Aires.","chapter":1,"sentenceIndex":3},{"sentence":"Maria _____ al control de seguridad.","sentenceTranslation":"Maria geht zur Sicherheitskontrolle.","chapter":3,"sentenceIndex":13}],
     },
     {
+      kind: "cloze",
       id: "apartamento-ch01-s04",
       lemma: "apartamento",
       wordInContext: "apartamento",
@@ -442,6 +455,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"En el _____ de Maria, hay mucha ropa sobre la cama.","sentenceTranslation":"In Marias Wohnung liegt jede Menge Kleidung auf dem Bett.","chapter":1,"sentenceIndex":4},{"sentence":"Hay un parque cerca del _____ de Maria.","sentenceTranslation":"In der Nähe von Marias Wohnung gibt es einen Park.","chapter":1,"sentenceIndex":5}],
     },
     {
+      kind: "cloze",
       id: "haber.hay-ch01-s04",
       lemma: "haber",
       wordInContext: "hay",
@@ -458,6 +472,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"En el apartamento de Maria, _____ mucha ropa sobre la cama.","sentenceTranslation":"In Marias Wohnung liegt jede Menge Kleidung auf dem Bett.","chapter":1,"sentenceIndex":4},{"sentence":"_____ un parque cerca del apartamento de Maria.","sentenceTranslation":"In der Nähe von Marias Wohnung gibt es einen Park.","chapter":1,"sentenceIndex":5},{"sentence":"_____ muchas personas esperando el vuelo.","sentenceTranslation":"Es warten viele Leute auf den Flug.","chapter":3,"sentenceIndex":18}],
     },
     {
+      kind: "cloze",
       id: "ropa-ch01-s04",
       lemma: "ropa",
       wordInContext: "ropa",
@@ -474,6 +489,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"En el apartamento de Maria, hay mucha _____ sobre la cama.","sentenceTranslation":"In Marias Wohnung liegt jede Menge Kleidung auf dem Bett.","chapter":1,"sentenceIndex":4},{"sentence":"Maria piensa en su _____ para Argentina.","sentenceTranslation":"Maria überlegt, welche Kleidung sie für Argentinien braucht.","chapter":1,"sentenceIndex":6},{"sentence":"Maria lleva su _____ favorita dentro de la maleta.","sentenceTranslation":"Maria hat ihre Lieblingskleidung im Koffer.","chapter":2,"sentenceIndex":5}],
     },
     {
+      kind: "cloze",
       id: "cama-ch01-s04",
       lemma: "cama",
       wordInContext: "cama",
@@ -489,6 +505,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s04",
     },
     {
+      kind: "cloze",
       id: "parque-ch01-s05",
       lemma: "parque",
       wordInContext: "parque",
@@ -504,6 +521,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s05",
     },
     {
+      kind: "cloze",
       id: "cerca-ch01-s05",
       lemma: "cerca",
       wordInContext: "cerca",
@@ -519,6 +537,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s05",
     },
     {
+      kind: "cloze",
       id: "pensar.piensa-ch01-s06",
       lemma: "pensar",
       wordInContext: "piensa",
@@ -535,6 +554,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ en su ropa para Argentina.","sentenceTranslation":"Maria überlegt, welche Kleidung sie für Argentinien braucht.","chapter":1,"sentenceIndex":6},{"sentence":"Maria _____ un momento. Ella sonríe.","sentenceTranslation":"Maria überlegt einen Moment. Sie lächelt.","chapter":2,"sentenceIndex":12},{"sentence":"Maria _____ en su papá. Él siempre dice: «¡Tú podrías hacer cualquier cosa!»","sentenceTranslation":"Maria denkt an ihren Papa. Er sagt immer: „Du kannst alles schaffen!“","chapter":2,"sentenceIndex":17},{"sentence":"Maria _____: «¿Es demasiado pesada mi maleta?»","sentenceTranslation":"Maria denkt: „Ist mein Koffer zu schwer?“","chapter":3,"sentenceIndex":4},{"sentence":"«Voy a escuchar el mensaje de Sofia otra vez», _____.","sentenceTranslation":"„Ich werde mir Sofias Nachricht noch einmal anhören“, denkt sie.","chapter":3,"sentenceIndex":26},{"sentence":"«Ese avión no es serio», _____ ella.","sentenceTranslation":"„Dieses Flugzeug ist nicht ernst zu nehmen“, denkt sie.","chapter":3,"sentenceIndex":35},{"sentence":"«¡Qué mal!», _____ Maria.","sentenceTranslation":"„Wie ärgerlich!“, denkt Maria.","chapter":3,"sentenceIndex":40},{"sentence":"«Pronto estaré en el avión», _____ Maria.","sentenceTranslation":"„Bald werde ich im Flugzeug sein“, denkt Maria.","chapter":3,"sentenceIndex":43}],
     },
     {
+      kind: "cloze",
       id: "guardar.guarda-ch01-s07",
       lemma: "guardar",
       wordInContext: "guarda",
@@ -551,6 +571,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella _____ una camisa blanca.","sentenceTranslation":"Sie packt ein weißes Hemd ein.","chapter":1,"sentenceIndex":7},{"sentence":"Ella _____ un suéter azul para el avión.","sentenceTranslation":"Sie packt einen blauen Pullover für das Flugzeug ein.","chapter":1,"sentenceIndex":8}],
     },
     {
+      kind: "cloze",
       id: "camisa-ch01-s07",
       lemma: "camisa",
       wordInContext: "camisa",
@@ -566,6 +587,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s07",
     },
     {
+      kind: "cloze",
       id: "blanco.blanca-ch01-s07",
       lemma: "blanco",
       wordInContext: "blanca",
@@ -581,6 +603,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s07",
     },
     {
+      kind: "cloze",
       id: "suéter-ch01-s08",
       lemma: "suéter",
       wordInContext: "suéter",
@@ -596,6 +619,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s08",
     },
     {
+      kind: "cloze",
       id: "azul-ch01-s08",
       lemma: "azul",
       wordInContext: "azul",
@@ -612,6 +636,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella guarda un suéter _____ para el avión.","sentenceTranslation":"Sie packt einen blauen Pullover für das Flugzeug ein.","chapter":1,"sentenceIndex":8},{"sentence":"Ella se sienta en una silla _____.","sentenceTranslation":"Sie setzt sich auf einen blauen Stuhl.","chapter":3,"sentenceIndex":17},{"sentence":"Un avión _____ enorme está en la pista.","sentenceTranslation":"Ein riesiges blaues Flugzeug steht auf der Startbahn.","chapter":3,"sentenceIndex":33}],
     },
     {
+      kind: "cloze",
       id: "avión-ch01-s08",
       lemma: "avión",
       wordInContext: "avión",
@@ -628,6 +653,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella guarda un suéter azul para el _____.","sentenceTranslation":"Sie packt einen blauen Pullover für das Flugzeug ein.","chapter":1,"sentenceIndex":8},{"sentence":"«Necesitas la chaqueta roja para el _____», dice Ingrid.","sentenceTranslation":"„Du brauchst die rote Jacke für das Flugzeug“, sagt Ingrid.","chapter":1,"sentenceIndex":11},{"sentence":"Un _____ azul enorme está en la pista.","sentenceTranslation":"Ein riesiges blaues Flugzeug steht auf der Startbahn.","chapter":3,"sentenceIndex":33},{"sentence":"Maria mira al _____ pequeño.","sentenceTranslation":"Maria schaut auf das kleine Flugzeug.","chapter":3,"sentenceIndex":34},{"sentence":"«Ese _____ no es serio», piensa ella.","sentenceTranslation":"„Dieses Flugzeug ist nicht ernst zu nehmen“, denkt sie.","chapter":3,"sentenceIndex":35},{"sentence":"«Pronto estaré en el _____», piensa Maria.","sentenceTranslation":"„Bald werde ich im Flugzeug sein“, denkt Maria.","chapter":3,"sentenceIndex":43}],
     },
     {
+      kind: "cloze",
       id: "madre-ch01-s09",
       lemma: "madre",
       wordInContext: "madre",
@@ -644,6 +670,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Su _____ Ingrid ayuda a Maria.","sentenceTranslation":"Ihre Mutter Ingrid hilft Maria.","chapter":1,"sentenceIndex":9},{"sentence":"Su _____ Ingrid conduce el coche rojo con cuidado.","sentenceTranslation":"Ihre Mutter Ingrid fährt vorsichtig mit dem roten Auto.","chapter":2,"sentenceIndex":3},{"sentence":"Maria se ríe fuerte. Ella imagina a su _____ perdida.","sentenceTranslation":"Maria lacht laut. Sie stellt sich vor, wie ihre Mutter sich verlaufen hat.","chapter":2,"sentenceIndex":25}],
     },
     {
+      kind: "cloze",
       id: "ayudar.ayuda-ch01-s09",
       lemma: "ayudar",
       wordInContext: "ayuda",
@@ -659,6 +686,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s09",
     },
     {
+      kind: "cloze",
       id: "decidir.decide-ch01-s10",
       lemma: "decidir",
       wordInContext: "decide",
@@ -674,6 +702,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s10",
     },
     {
+      kind: "cloze",
       id: "qué-ch01-s10",
       lemma: "qué",
       wordInContext: "qué",
@@ -690,6 +719,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid decide _____ poner en la maleta.","sentenceTranslation":"Ingrid entscheidet, was in den Koffer kommt.","chapter":1,"sentenceIndex":10},{"sentence":"«¿_____ es lo que más te emociona de Buenos Aires, hija?», pregunta Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "poner-ch01-s10",
       lemma: "poner",
       wordInContext: "poner",
@@ -705,6 +735,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s10",
     },
     {
+      kind: "cloze",
       id: "necesita.necesitas-ch01-s11",
       lemma: "necesita",
       wordInContext: "Necesitas",
@@ -720,6 +751,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s11",
     },
     {
+      kind: "cloze",
       id: "chaqueta-ch01-s11",
       lemma: "chaqueta",
       wordInContext: "chaqueta",
@@ -736,6 +768,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Necesitas la _____ roja para el avión», dice Ingrid.","sentenceTranslation":"„Du brauchst die rote Jacke für das Flugzeug“, sagt Ingrid.","chapter":1,"sentenceIndex":11},{"sentence":"Ella se quita su _____.","sentenceTranslation":"Sie zieht ihre Jacke aus.","chapter":3,"sentenceIndex":14},{"sentence":"Ella pone su _____ en una bandeja.","sentenceTranslation":"Sie legt ihre Jacke in eine Wanne.","chapter":3,"sentenceIndex":15}],
     },
     {
+      kind: "cloze",
       id: "rojo.roja-ch01-s11",
       lemma: "rojo",
       wordInContext: "roja",
@@ -751,6 +784,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s11",
     },
     {
+      kind: "cloze",
       id: "decir.dice-ch01-s11",
       lemma: "decir",
       wordInContext: "dice",
@@ -767,6 +801,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Necesitas la chaqueta roja para el avión», _____ Ingrid.","sentenceTranslation":"„Du brauchst die rote Jacke für das Flugzeug“, sagt Ingrid.","chapter":1,"sentenceIndex":11},{"sentence":"«¡Bueno, nadie! Sólo es el viento», _____ Ingrid con una sonrisa.","sentenceTranslation":"„Ach, niemand! Das ist nur der Wind“, sagt Ingrid mit einem Lächeln.","chapter":1,"sentenceIndex":15},{"sentence":"«¡Ya está hecho! Lo puse aquí», _____ Ingrid, mostrando el cuaderno rojo.","sentenceTranslation":"„Das ist schon erledigt! Ich habe es hier reingepackt“, sagt Ingrid und zeigt auf das rote Heft.","chapter":1,"sentenceIndex":29},{"sentence":"«Llámame cada pocos días», _____ Ingrid.","sentenceTranslation":"„Ruf mich alle paar Tage an“, sagt Ingrid.","chapter":1,"sentenceIndex":37},{"sentence":"«Tu papá es un buen hombre», _____ Ingrid con calma.","sentenceTranslation":"„Dein Papa ist ein guter Mann“, sagt Ingrid ruhig.","chapter":2,"sentenceIndex":13},{"sentence":"«La comida, la música y hablar español todos los días», _____ Maria.","sentenceTranslation":"„Das Essen, die Musik und jeden Tag Spanisch zu sprechen“, sagt Maria.","chapter":2,"sentenceIndex":15},{"sentence":"Maria piensa en su papá. Él siempre _____: «¡Tú podrías hacer cualquier cosa!»","sentenceTranslation":"Maria denkt an ihren Papa. Er sagt immer: „Du kannst alles schaffen!“","chapter":2,"sentenceIndex":17},{"sentence":"«Yo fui a Italia. Me perdí completamente», _____ Ingrid.","sentenceTranslation":"„Ich war in Italien. Ich habe mich völlig verlaufen“, sagt Ingrid.","chapter":2,"sentenceIndex":22},{"sentence":"«Te quiero, mamá», _____ Maria con voz quebrada.","sentenceTranslation":"„Ich hab dich lieb, Mama“, sagt Maria mit brüchiger Stimme.","chapter":2,"sentenceIndex":29},{"sentence":"«¡Es realmente pesada!», _____ ella.","sentenceTranslation":"„Er ist wirklich schwer!“, sagt sie.","chapter":3,"sentenceIndex":5},{"sentence":"«Tu asiento es el catorce A», _____ la mujer.","sentenceTranslation":"„Ihr Sitzplatz ist 14A“, sagt die Frau.","chapter":3,"sentenceIndex":9},{"sentence":"«Es en la ventana», _____ la mujer amablemente.","sentenceTranslation":"„Es ist ein Fensterplatz“, sagt die Frau freundlich.","chapter":3,"sentenceIndex":10},{"sentence":"«Este asiento es mío», _____ Maria con una sonrisa.","sentenceTranslation":"„Dieser Platz gehört mir“, sagt Maria lächelnd.","chapter":3,"sentenceIndex":11},{"sentence":"«¡Estoy muy emocionada por tu viaje!», _____ Sofia.","sentenceTranslation":"„Ich freue mich so sehr für deine Reise!“, sagt Sofia.","chapter":3,"sentenceIndex":24},{"sentence":"«¡Es cierto!», _____ Maria al escuchar el mensaje.","sentenceTranslation":"„Es stimmt!“, sagt Maria, als sie die Nachricht hört.","chapter":3,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "olvidser.olvides-ch01-s12",
       lemma: "olvidser",
       wordInContext: "olvides",
@@ -782,6 +817,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s12",
     },
     {
+      kind: "cloze",
       id: "zapato.zapatos-ch01-s12",
       lemma: "zapato",
       wordInContext: "zapatos",
@@ -797,6 +833,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s12",
     },
     {
+      kind: "cloze",
       id: "cómodo.cómodos-ch01-s12",
       lemma: "cómodo",
       wordInContext: "cómodos",
@@ -812,6 +849,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s12",
     },
     {
+      kind: "cloze",
       id: "caminar-ch01-s12",
       lemma: "caminar",
       wordInContext: "caminar",
@@ -827,6 +865,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s12",
     },
     {
+      kind: "cloze",
       id: "mucho-ch01-s12",
       lemma: "mucho",
       wordInContext: "mucho",
@@ -842,6 +881,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s12",
     },
     {
+      kind: "cloze",
       id: "tener.tienes-ch01-s13",
       lemma: "tener",
       wordInContext: "Tienes",
@@ -857,6 +897,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s13",
     },
     {
+      kind: "cloze",
       id: "razón-ch01-s13",
       lemma: "razón",
       wordInContext: "razón",
@@ -872,6 +913,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s13",
     },
     {
+      kind: "cloze",
       id: "mamá-ch01-s13",
       lemma: "mamá",
       wordInContext: "mamá",
@@ -888,6 +930,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Tienes razón, _____!», responde Maria con una sonrisa.","sentenceTranslation":"„Du hast recht, Mama!“, antwortet Maria lächelnd.","chapter":1,"sentenceIndex":13},{"sentence":"«¿Tú tenías miedo en tu primer viaje, _____?», pregunta Maria.","sentenceTranslation":"„Hattest du auf deiner ersten Reise Angst, Mama?“, fragt Maria.","chapter":2,"sentenceIndex":23},{"sentence":"«Te quiero, _____», dice Maria con voz quebrada.","sentenceTranslation":"„Ich hab dich lieb, Mama“, sagt Maria mit brüchiger Stimme.","chapter":2,"sentenceIndex":29}],
     },
     {
+      kind: "cloze",
       id: "responder.responde-ch01-s13",
       lemma: "responder",
       wordInContext: "responde",
@@ -904,6 +947,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Tienes razón, mamá!», _____ Maria con una sonrisa.","sentenceTranslation":"„Du hast recht, Mama!“, antwortet Maria lächelnd.","chapter":1,"sentenceIndex":13},{"sentence":"«Sea lo que sea, lo llevas en el corazón», _____ Ingrid.","sentenceTranslation":"„Was auch immer es ist, du trägst es im Herzen“, antwortet Ingrid.","chapter":1,"sentenceIndex":27},{"sentence":"«Sí, un poco. Pero todo salió bien», _____ Ingrid.","sentenceTranslation":"„Ja, ein bisschen. Aber alles ist gut gegangen“, antwortet Ingrid.","chapter":2,"sentenceIndex":24},{"sentence":"«Yo también te quiero, mi amor», _____ Ingrid con tristeza.","sentenceTranslation":"„Ich hab dich auch lieb, mein Schatz“, antwortet Ingrid traurig.","chapter":2,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "sonrisa-ch01-s13",
       lemma: "sonrisa",
       wordInContext: "sonrisa",
@@ -920,6 +964,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Tienes razón, mamá!», responde Maria con una _____.","sentenceTranslation":"„Du hast recht, Mama!“, antwortet Maria lächelnd.","chapter":1,"sentenceIndex":13},{"sentence":"«¡Bueno, nadie! Sólo es el viento», dice Ingrid con una _____.","sentenceTranslation":"„Ach, niemand! Das ist nur der Wind“, sagt Ingrid mit einem Lächeln.","chapter":1,"sentenceIndex":15},{"sentence":"«Este asiento es mío», dice Maria con una _____.","sentenceTranslation":"„Dieser Platz gehört mir“, sagt Maria lächelnd.","chapter":3,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "oh-ch01-s14",
       lemma: "oh",
       wordInContext: "Oh",
@@ -935,6 +980,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s14",
     },
     {
+      kind: "cloze",
       id: "quién-ch01-s14",
       lemma: "quién",
       wordInContext: "Quién",
@@ -950,6 +996,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s14",
     },
     {
+      kind: "cloze",
       id: "llamar.llama-ch01-s14",
       lemma: "llamar",
       wordInContext: "llama",
@@ -965,6 +1012,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s14",
     },
     {
+      kind: "cloze",
       id: "puerta-ch01-s14",
       lemma: "puerta",
       wordInContext: "puerta",
@@ -981,6 +1029,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Oh! ¿Quién llama a la _____?», pregunta Maria.","sentenceTranslation":"„Oh! Wer klopft denn da an der Tür?“, fragt Maria.","chapter":1,"sentenceIndex":14},{"sentence":"Maria encuentra la _____ B doce.","sentenceTranslation":"Maria findet das Gate B12.","chapter":3,"sentenceIndex":16},{"sentence":"Ella camina hacia la _____ de embarque.","sentenceTranslation":"Sie geht zum Flugsteig.","chapter":3,"sentenceIndex":42}],
     },
     {
+      kind: "cloze",
       id: "preguntar.pregunta-ch01-s14",
       lemma: "preguntar",
       wordInContext: "pregunta",
@@ -997,6 +1046,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Oh! ¿Quién llama a la puerta?», _____ Maria.","sentenceTranslation":"„Oh! Wer klopft denn da an der Tür?“, fragt Maria.","chapter":1,"sentenceIndex":14},{"sentence":"«Entonces, ¿qué necesito más?», _____ Maria.","sentenceTranslation":"„Was brauche ich sonst noch?“, fragt Maria.","chapter":1,"sentenceIndex":26},{"sentence":"«¿Crees que papá me escribirá desde Berlín?», _____ Maria.","sentenceTranslation":"„Glaubst du, Papa wird mir aus Berlin schreiben?“, fragt Maria.","chapter":2,"sentenceIndex":8},{"sentence":"«¿Qué es lo que más te emociona de Buenos Aires, hija?», _____ Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11},{"sentence":"«¿Tú tenías miedo en tu primer viaje, mamá?», _____ Maria.","sentenceTranslation":"„Hattest du auf deiner ersten Reise Angst, Mama?“, fragt Maria.","chapter":2,"sentenceIndex":23}],
     },
     {
+      kind: "cloze",
       id: "bueno-ch01-s15",
       lemma: "bueno",
       wordInContext: "Bueno",
@@ -1012,6 +1062,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s15",
     },
     {
+      kind: "cloze",
       id: "nadie-ch01-s15",
       lemma: "nadie",
       wordInContext: "nadie",
@@ -1027,6 +1078,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s15",
     },
     {
+      kind: "cloze",
       id: "sólo-ch01-s15",
       lemma: "sólo",
       wordInContext: "Sólo",
@@ -1042,6 +1094,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s15",
     },
     {
+      kind: "cloze",
       id: "viento-ch01-s15",
       lemma: "viento",
       wordInContext: "viento",
@@ -1057,6 +1110,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s15",
     },
     {
+      kind: "cloze",
       id: "mostrar.muestra-ch01-s16",
       lemma: "mostrar",
       wordInContext: "muestra",
@@ -1073,6 +1127,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ una foto en su teléfono.","sentenceTranslation":"Maria zeigt ein Foto auf ihrem Handy.","chapter":1,"sentenceIndex":16},{"sentence":"Ella _____ su pasaporte.","sentenceTranslation":"Sie zeigt ihren Reisepass.","chapter":3,"sentenceIndex":7}],
     },
     {
+      kind: "cloze",
       id: "foto-ch01-s16",
       lemma: "foto",
       wordInContext: "foto",
@@ -1088,6 +1143,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s16",
     },
     {
+      kind: "cloze",
       id: "teléfono-ch01-s16",
       lemma: "teléfono",
       wordInContext: "teléfono",
@@ -1104,6 +1160,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria muestra una foto en su _____.","sentenceTranslation":"Maria zeigt ein Foto auf ihrem Handy.","chapter":1,"sentenceIndex":16},{"sentence":"Maria revisa su _____.","sentenceTranslation":"Maria prüft ihr Telefon.","chapter":3,"sentenceIndex":22}],
     },
     {
+      kind: "cloze",
       id: "mejor-ch01-s17",
       lemma: "mejor",
       wordInContext: "mejor",
@@ -1119,6 +1176,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s17",
     },
     {
+      kind: "cloze",
       id: "amiga-ch01-s17",
       lemma: "amiga",
       wordInContext: "amiga",
@@ -1135,6 +1193,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Ella es Sofia, mi mejor _____».","sentenceTranslation":"„Das ist Sofia, meine beste Freundin.“","chapter":1,"sentenceIndex":17},{"sentence":"Ella está feliz de escuchar a su _____.","sentenceTranslation":"Sie freut sich, von ihrer Freundin zu hören.","chapter":3,"sentenceIndex":29}],
     },
     {
+      kind: "cloze",
       id: "ir.voy-ch01-s18",
       lemma: "ir",
       wordInContext: "Voy",
@@ -1151,6 +1210,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«_____ a visitar a Sofia», explica Maria.","sentenceTranslation":"„Ich werde Sofia besuchen“, erklärt Maria.","chapter":1,"sentenceIndex":18},{"sentence":"«_____ a escuchar el mensaje de Sofia otra vez», piensa.","sentenceTranslation":"„Ich werde mir Sofias Nachricht noch einmal anhören“, denkt sie.","chapter":3,"sentenceIndex":26}],
     },
     {
+      kind: "cloze",
       id: "visitar-ch01-s18",
       lemma: "visitar",
       wordInContext: "visitar",
@@ -1166,6 +1226,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s18",
     },
     {
+      kind: "cloze",
       id: "explicar.explica-ch01-s18",
       lemma: "explicar",
       wordInContext: "explica",
@@ -1181,6 +1242,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s18",
     },
     {
+      kind: "cloze",
       id: "ser.fue-ch01-s19",
       lemma: "ser",
       wordInContext: "fue",
@@ -1196,6 +1258,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s19",
     },
     {
+      kind: "cloze",
       id: "estudiante-ch01-s19",
       lemma: "estudiante",
       wordInContext: "estudiante",
@@ -1211,6 +1274,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s19",
     },
     {
+      kind: "cloze",
       id: "intercambio-ch01-s19",
       lemma: "intercambio",
       wordInContext: "intercambio",
@@ -1226,6 +1290,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s19",
     },
     {
+      kind: "cloze",
       id: "vivir.vive-ch01-s20",
       lemma: "vivir",
       wordInContext: "vive",
@@ -1241,6 +1306,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s20",
     },
     {
+      kind: "cloze",
       id: "ahora-ch01-s20",
       lemma: "ahora",
       wordInContext: "ahora",
@@ -1256,6 +1322,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s20",
     },
     {
+      kind: "cloze",
       id: "fin-ch01-s21",
       lemma: "fin",
       wordInContext: "fin",
@@ -1271,6 +1338,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s21",
     },
     {
+      kind: "cloze",
       id: "visito-ch01-s21",
       lemma: "visito",
       wordInContext: "visito",
@@ -1286,6 +1354,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s21",
     },
     {
+      kind: "cloze",
       id: "contar.cuenta-ch01-s21",
       lemma: "contar",
       wordInContext: "cuenta",
@@ -1302,6 +1371,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Por fin visito a Sofia», _____ Maria.","sentenceTranslation":"„Endlich besuche ich Sofia“, erzählt Maria.","chapter":1,"sentenceIndex":21},{"sentence":"Ingrid sonríe. Ella _____ una historia de su juventud.","sentenceTranslation":"Ingrid lächelt. Sie erzählt eine Geschichte aus ihrer Jugend.","chapter":2,"sentenceIndex":21}],
     },
     {
+      kind: "cloze",
       id: "escuchar.escucha-ch01-s22",
       lemma: "escuchar",
       wordInContext: "escucha",
@@ -1318,6 +1388,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid _____ a su hija.","sentenceTranslation":"Ingrid hört ihrer Tochter zu.","chapter":1,"sentenceIndex":22},{"sentence":"Ella _____ el mensaje dos veces.","sentenceTranslation":"Sie hört sich die Nachricht zweimal an.","chapter":3,"sentenceIndex":28}],
     },
     {
+      kind: "cloze",
       id: "hija-ch01-s22",
       lemma: "hija",
       wordInContext: "hija",
@@ -1334,6 +1405,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid escucha a su _____.","sentenceTranslation":"Ingrid hört ihrer Tochter zu.","chapter":1,"sentenceIndex":22},{"sentence":"Ingrid da un pequeño regalo a su _____.","sentenceTranslation":"Ingrid gibt ihrer Tochter ein kleines Geschenk.","chapter":1,"sentenceIndex":30},{"sentence":"«¿Qué es lo que más te emociona de Buenos Aires, _____?», pregunta Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "llevar.llevo-ch01-s23",
       lemma: "llevar",
       wordInContext: "Llevo",
@@ -1349,6 +1421,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s23",
     },
     {
+      kind: "cloze",
       id: "cuaderno-ch01-s23",
       lemma: "cuaderno",
       wordInContext: "cuaderno",
@@ -1365,6 +1438,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Llevo mi _____ de español para practicar».","sentenceTranslation":"„Ich nehme mein Spanischheft zum Üben mit.“","chapter":1,"sentenceIndex":23},{"sentence":"«¡Señor! ¡Mi _____!», exclama Maria de repente.","sentenceTranslation":"„Oh nein! Mein Heft!“, ruft Maria plötzlich.","chapter":1,"sentenceIndex":28},{"sentence":"«¡Ya está hecho! Lo puse aquí», dice Ingrid, mostrando el _____ rojo.","sentenceTranslation":"„Das ist schon erledigt! Ich habe es hier reingepackt“, sagt Ingrid und zeigt auf das rote Heft.","chapter":1,"sentenceIndex":29}],
     },
     {
+      kind: "cloze",
       id: "español-ch01-s23",
       lemma: "español",
       wordInContext: "español",
@@ -1381,6 +1455,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Llevo mi cuaderno de _____ para practicar».","sentenceTranslation":"„Ich nehme mein Spanischheft zum Üben mit.“","chapter":1,"sentenceIndex":23},{"sentence":"«La comida, la música y hablar _____ todos los días», dice Maria.","sentenceTranslation":"„Das Essen, die Musik und jeden Tag Spanisch zu sprechen“, sagt Maria.","chapter":2,"sentenceIndex":15}],
     },
     {
+      kind: "cloze",
       id: "practicar-ch01-s23",
       lemma: "practicar",
       wordInContext: "practicar",
@@ -1396,6 +1471,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s23",
     },
     {
+      kind: "cloze",
       id: "poco-ch01-s24",
       lemma: "poco",
       wordInContext: "poco",
@@ -1412,6 +1488,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria está un _____ nerviosa.","sentenceTranslation":"Maria ist ein wenig nervös.","chapter":1,"sentenceIndex":24},{"sentence":"«Sí, un _____. Pero todo salió bien», responde Ingrid.","sentenceTranslation":"„Ja, ein bisschen. Aber alles ist gut gegangen“, antwortet Ingrid.","chapter":2,"sentenceIndex":24}],
     },
     {
+      kind: "cloze",
       id: "nervioso.nerviosa-ch01-s24",
       lemma: "nervioso",
       wordInContext: "nerviosa",
@@ -1428,6 +1505,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria está un poco _____.","sentenceTranslation":"Maria ist ein wenig nervös.","chapter":1,"sentenceIndex":24},{"sentence":"Maria está _____ y emocionada por el viaje.","sentenceTranslation":"Maria ist nervös und aufgeregt wegen der Reise.","chapter":1,"sentenceIndex":40}],
     },
     {
+      kind: "cloze",
       id: "feliz-ch01-s25",
       lemma: "feliz",
       wordInContext: "feliz",
@@ -1444,6 +1522,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella está muy _____ por la aventura.","sentenceTranslation":"Sie freut sich sehr auf das Abenteuer.","chapter":1,"sentenceIndex":25},{"sentence":"Ella está _____ de escuchar a su amiga.","sentenceTranslation":"Sie freut sich, von ihrer Freundin zu hören.","chapter":3,"sentenceIndex":29}],
     },
     {
+      kind: "cloze",
       id: "aventura-ch01-s25",
       lemma: "aventura",
       wordInContext: "aventura",
@@ -1460,6 +1539,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella está muy feliz por la _____.","sentenceTranslation":"Sie freut sich sehr auf das Abenteuer.","chapter":1,"sentenceIndex":25},{"sentence":"Ella está lista para su gran _____.","sentenceTranslation":"Sie ist bereit für ihr großes Abenteuer.","chapter":1,"sentenceIndex":39},{"sentence":"Ingrid se ríe también. Ella recuerda esa primera _____.","sentenceTranslation":"Ingrid lacht ebenfalls. Sie erinnert sich an dieses erste Abenteuer.","chapter":2,"sentenceIndex":26},{"sentence":"Una nueva _____ empieza en ese momento de la mañana.","sentenceTranslation":"Ein neues Abenteuer beginnt in diesem Moment des Morgens.","chapter":2,"sentenceIndex":32}],
     },
     {
+      kind: "cloze",
       id: "entonces-ch01-s26",
       lemma: "entonces",
       wordInContext: "Entonces",
@@ -1475,6 +1555,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s26",
     },
     {
+      kind: "cloze",
       id: "necesitar.necesito-ch01-s26",
       lemma: "necesitar",
       wordInContext: "necesito",
@@ -1490,6 +1571,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s26",
     },
     {
+      kind: "cloze",
       id: "más-ch01-s26",
       lemma: "más",
       wordInContext: "más",
@@ -1506,6 +1588,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Entonces, ¿qué necesito _____?», pregunta Maria.","sentenceTranslation":"„Was brauche ich sonst noch?“, fragt Maria.","chapter":1,"sentenceIndex":26},{"sentence":"«¿Qué es lo que _____ te emociona de Buenos Aires, hija?», pregunta Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "ser.sea-ch01-s27",
       lemma: "ser",
       wordInContext: "Sea",
@@ -1521,6 +1604,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s27",
     },
     {
+      kind: "cloze",
       id: "que-ch01-s27",
       lemma: "que",
       wordInContext: "que",
@@ -1537,6 +1621,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Sea lo _____ sea, lo llevas en el corazón», responde Ingrid.","sentenceTranslation":"„Was auch immer es ist, du trägst es im Herzen“, antwortet Ingrid.","chapter":1,"sentenceIndex":27},{"sentence":"«¿Crees _____ papá me escribirá desde Berlín?», pregunta Maria.","sentenceTranslation":"„Glaubst du, Papa wird mir aus Berlin schreiben?“, fragt Maria.","chapter":2,"sentenceIndex":8},{"sentence":"«¿Qué es lo _____ más te emociona de Buenos Aires, hija?», pregunta Ingrid.","sentenceTranslation":"„Worauf freust du dich in Buenos Aires am meisten, meine Kleine?“, fragt Ingrid.","chapter":2,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "lleva.llevas-ch01-s27",
       lemma: "lleva",
       wordInContext: "llevas",
@@ -1552,6 +1637,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s27",
     },
     {
+      kind: "cloze",
       id: "corazón-ch01-s27",
       lemma: "corazón",
       wordInContext: "corazón",
@@ -1567,6 +1653,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s27",
     },
     {
+      kind: "cloze",
       id: "señor-ch01-s28",
       lemma: "señor",
       wordInContext: "Señor",
@@ -1582,6 +1669,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s28",
     },
     {
+      kind: "cloze",
       id: "exclamar.exclama-ch01-s28",
       lemma: "exclamar",
       wordInContext: "exclama",
@@ -1598,6 +1686,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Señor! ¡Mi cuaderno!», _____ Maria de repente.","sentenceTranslation":"„Oh nein! Mein Heft!“, ruft Maria plötzlich.","chapter":1,"sentenceIndex":28},{"sentence":"«¡Eso suena maravilloso!», _____ Ingrid con alegría.","sentenceTranslation":"„Das klingt wunderbar!“, ruft Ingrid fröhlich.","chapter":2,"sentenceIndex":16}],
     },
     {
+      kind: "cloze",
       id: "repente-ch01-s28",
       lemma: "repente",
       wordInContext: "repente",
@@ -1613,6 +1702,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s28",
     },
     {
+      kind: "cloze",
       id: "ya-ch01-s29",
       lemma: "ya",
       wordInContext: "Ya",
@@ -1628,6 +1718,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s29",
     },
     {
+      kind: "cloze",
       id: "hecho-ch01-s29",
       lemma: "hecho",
       wordInContext: "hecho",
@@ -1643,6 +1734,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s29",
     },
     {
+      kind: "cloze",
       id: "poner.puse-ch01-s29",
       lemma: "poner",
       wordInContext: "puse",
@@ -1658,6 +1750,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s29",
     },
     {
+      kind: "cloze",
       id: "aquí-ch01-s29",
       lemma: "aquí",
       wordInContext: "aquí",
@@ -1673,6 +1766,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s29",
     },
     {
+      kind: "cloze",
       id: "mostrar.mostrando-ch01-s29",
       lemma: "mostrar",
       wordInContext: "mostrando",
@@ -1688,6 +1782,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s29",
     },
     {
+      kind: "cloze",
       id: "rojo-ch01-s29",
       lemma: "rojo",
       wordInContext: "rojo",
@@ -1704,6 +1799,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Ya está hecho! Lo puse aquí», dice Ingrid, mostrando el cuaderno _____.","sentenceTranslation":"„Das ist schon erledigt! Ich habe es hier reingepackt“, sagt Ingrid und zeigt auf das rote Heft.","chapter":1,"sentenceIndex":29},{"sentence":"Su madre Ingrid conduce el coche _____ con cuidado.","sentenceTranslation":"Ihre Mutter Ingrid fährt vorsichtig mit dem roten Auto.","chapter":2,"sentenceIndex":3},{"sentence":"Un semáforo _____ para el coche.","sentenceTranslation":"Eine rote Ampel stoppt das Auto.","chapter":2,"sentenceIndex":9}],
     },
     {
+      kind: "cloze",
       id: "dar.da-ch01-s30",
       lemma: "dar",
       wordInContext: "da",
@@ -1720,6 +1816,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid _____ un pequeño regalo a su hija.","sentenceTranslation":"Ingrid gibt ihrer Tochter ein kleines Geschenk.","chapter":1,"sentenceIndex":30},{"sentence":"La mujer en el mostrador _____ la tarjeta a Maria.","sentenceTranslation":"Die Frau am Schalter gibt Maria die Bordkarte.","chapter":3,"sentenceIndex":8}],
     },
     {
+      kind: "cloze",
       id: "pequeño-ch01-s30",
       lemma: "pequeño",
       wordInContext: "pequeño",
@@ -1736,6 +1833,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid da un _____ regalo a su hija.","sentenceTranslation":"Ingrid gibt ihrer Tochter ein kleines Geschenk.","chapter":1,"sentenceIndex":30},{"sentence":"Maria mira al avión _____.","sentenceTranslation":"Maria schaut auf das kleine Flugzeug.","chapter":3,"sentenceIndex":34},{"sentence":"«Es demasiado _____ para mi vuelo.»","sentenceTranslation":"„Es ist zu klein für meinen Flug.“","chapter":3,"sentenceIndex":36}],
     },
     {
+      kind: "cloze",
       id: "regalo-ch01-s30",
       lemma: "regalo",
       wordInContext: "regalo",
@@ -1751,6 +1849,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s30",
     },
     {
+      kind: "cloze",
       id: "diario-ch01-s31",
       lemma: "diario",
       wordInContext: "diario",
@@ -1766,6 +1865,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s31",
     },
     {
+      kind: "cloze",
       id: "escribir-ch01-s31",
       lemma: "escribir",
       wordInContext: "escribir",
@@ -1781,6 +1881,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s31",
     },
     {
+      kind: "cloze",
       id: "día-ch01-s31",
       lemma: "día",
       wordInContext: "día",
@@ -1796,6 +1897,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s31",
     },
     {
+      kind: "cloze",
       id: "sonreír.sonríe-ch01-s32",
       lemma: "sonreír",
       wordInContext: "sonríe",
@@ -1812,6 +1914,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____.","sentenceTranslation":"Maria lächelt.","chapter":1,"sentenceIndex":32},{"sentence":"Maria piensa un momento. Ella _____.","sentenceTranslation":"Maria überlegt einen Moment. Sie lächelt.","chapter":2,"sentenceIndex":12},{"sentence":"Ella _____. Es un tipo muy especial.","sentenceTranslation":"Sie lächelt. Er ist ein ganz besonderer Mensch.","chapter":2,"sentenceIndex":18},{"sentence":"Ingrid _____. Ella cuenta una historia de su juventud.","sentenceTranslation":"Ingrid lächelt. Sie erzählt eine Geschichte aus ihrer Jugend.","chapter":2,"sentenceIndex":21},{"sentence":"Maria _____.","sentenceTranslation":"Maria lächelt.","chapter":3,"sentenceIndex":27}],
     },
     {
+      kind: "cloze",
       id: "enviar.envía-ch01-s33",
       lemma: "enviar",
       wordInContext: "envía",
@@ -1827,6 +1930,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s33",
     },
     {
+      kind: "cloze",
       id: "mensaje-ch01-s33",
       lemma: "mensaje",
       wordInContext: "mensaje",
@@ -1843,6 +1947,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella envía un _____ a Sofia.","sentenceTranslation":"Sie schickt Sofia eine Nachricht.","chapter":1,"sentenceIndex":33},{"sentence":"Ella ve un _____ de Sofia.","sentenceTranslation":"Sie sieht eine Nachricht von Sofia.","chapter":3,"sentenceIndex":23},{"sentence":"«Voy a escuchar el _____ de Sofia otra vez», piensa.","sentenceTranslation":"„Ich werde mir Sofias Nachricht noch einmal anhören“, denkt sie.","chapter":3,"sentenceIndex":26},{"sentence":"Ella escucha el _____ dos veces.","sentenceTranslation":"Sie hört sich die Nachricht zweimal an.","chapter":3,"sentenceIndex":28},{"sentence":"«¡Es cierto!», dice Maria al escuchar el _____.","sentenceTranslation":"„Es stimmt!“, sagt Maria, als sie die Nachricht hört.","chapter":3,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "viajar.viajo-ch01-s34",
       lemma: "viajar",
       wordInContext: "Viajo",
@@ -1858,6 +1963,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s34",
     },
     {
+      kind: "cloze",
       id: "mañana-ch01-s34",
       lemma: "mañana",
       wordInContext: "mañana",
@@ -1874,6 +1980,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Viajo _____!», escribe Maria con entusiasmo.","sentenceTranslation":"„Ich reise morgen ab!“, schreibt Maria begeistert.","chapter":1,"sentenceIndex":34},{"sentence":"Una nueva aventura empieza en ese momento de la _____.","sentenceTranslation":"Ein neues Abenteuer beginnt in diesem Moment des Morgens.","chapter":2,"sentenceIndex":32}],
     },
     {
+      kind: "cloze",
       id: "escribir.escribe-ch01-s34",
       lemma: "escribir",
       wordInContext: "escribe",
@@ -1889,6 +1996,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s34",
     },
     {
+      kind: "cloze",
       id: "entusiasmo-ch01-s34",
       lemma: "entusiasmo",
       wordInContext: "entusiasmo",
@@ -1904,6 +2012,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s34",
     },
     {
+      kind: "cloze",
       id: "dos-ch01-s35",
       lemma: "dos",
       wordInContext: "dos",
@@ -1920,6 +2029,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Las _____ dan un abrazo fuerte.","sentenceTranslation":"Die beiden umarmen sich fest.","chapter":1,"sentenceIndex":35},{"sentence":"Ella escucha el mensaje _____ veces.","sentenceTranslation":"Sie hört sich die Nachricht zweimal an.","chapter":3,"sentenceIndex":28}],
     },
     {
+      kind: "cloze",
       id: "dar.dan-ch01-s35",
       lemma: "dar",
       wordInContext: "dan",
@@ -1935,6 +2045,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s35",
     },
     {
+      kind: "cloze",
       id: "abrazo-ch01-s35",
       lemma: "abrazo",
       wordInContext: "abrazo",
@@ -1951,6 +2062,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Las dos dan un _____ fuerte.","sentenceTranslation":"Die beiden umarmen sich fest.","chapter":1,"sentenceIndex":35},{"sentence":"Ellas tienen un _____ largo y fuerte de despedida.","sentenceTranslation":"Sie umarmen sich zum Abschied lange und fest.","chapter":2,"sentenceIndex":28}],
     },
     {
+      kind: "cloze",
       id: "fuerte-ch01-s35",
       lemma: "fuerte",
       wordInContext: "fuerte",
@@ -1967,6 +2079,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Las dos dan un abrazo _____.","sentenceTranslation":"Die beiden umarmen sich fest.","chapter":1,"sentenceIndex":35},{"sentence":"Maria se ríe _____. Ella imagina a su madre perdida.","sentenceTranslation":"Maria lacht laut. Sie stellt sich vor, wie ihre Mutter sich verlaufen hat.","chapter":2,"sentenceIndex":25},{"sentence":"Ellas tienen un abrazo largo y _____ de despedida.","sentenceTranslation":"Sie umarmen sich zum Abschied lange und fest.","chapter":2,"sentenceIndex":28}],
     },
     {
+      kind: "cloze",
       id: "ten-ch01-s36",
       lemma: "ten",
       wordInContext: "Ten",
@@ -1982,6 +2095,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s36",
     },
     {
+      kind: "cloze",
       id: "cuidado-ch01-s36",
       lemma: "cuidado",
       wordInContext: "cuidado",
@@ -1998,6 +2112,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Ten mucho _____», pide Ingrid a Maria.","sentenceTranslation":"„Pass gut auf dich auf“, bittet Ingrid Maria.","chapter":1,"sentenceIndex":36},{"sentence":"Su madre Ingrid conduce el coche rojo con _____.","sentenceTranslation":"Ihre Mutter Ingrid fährt vorsichtig mit dem roten Auto.","chapter":2,"sentenceIndex":3}],
     },
     {
+      kind: "cloze",
       id: "pedir.pide-ch01-s36",
       lemma: "pedir",
       wordInContext: "pide",
@@ -2013,6 +2128,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s36",
     },
     {
+      kind: "cloze",
       id: "llámamir.llámame-ch01-s37",
       lemma: "llámamir",
       wordInContext: "Llámame",
@@ -2028,6 +2144,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s37",
     },
     {
+      kind: "cloze",
       id: "día.días-ch01-s37",
       lemma: "día",
       wordInContext: "días",
@@ -2044,6 +2161,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Llámame cada pocos _____», dice Ingrid.","sentenceTranslation":"„Ruf mich alle paar Tage an“, sagt Ingrid.","chapter":1,"sentenceIndex":37},{"sentence":"«La comida, la música y hablar español todos los _____», dice Maria.","sentenceTranslation":"„Das Essen, die Musik und jeden Tag Spanisch zu sprechen“, sagt Maria.","chapter":2,"sentenceIndex":15}],
     },
     {
+      kind: "cloze",
       id: "cerrar.cierra-ch01-s38",
       lemma: "cerrar",
       wordInContext: "cierra",
@@ -2059,6 +2177,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s38",
     },
     {
+      kind: "cloze",
       id: "listo.lista-ch01-s39",
       lemma: "listo",
       wordInContext: "lista",
@@ -2074,6 +2193,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch01_s39",
     },
     {
+      kind: "cloze",
       id: "gran-ch01-s39",
       lemma: "gran",
       wordInContext: "gran",
@@ -2095,6 +2215,7 @@ export const CHAPTERS: ChapterData[] = [
     chapterNumber: 2,
     cards: [
     {
+      kind: "cloze",
       id: "temprano-ch02-s00",
       lemma: "temprano",
       wordInContext: "temprano",
@@ -2110,6 +2231,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s00",
     },
     {
+      kind: "cloze",
       id: "todavía-ch02-s00",
       lemma: "todavía",
       wordInContext: "Todavía",
@@ -2125,6 +2247,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s00",
     },
     {
+      kind: "cloze",
       id: "oscuro-ch02-s00",
       lemma: "oscuro",
       wordInContext: "oscuro",
@@ -2140,6 +2263,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s00",
     },
     {
+      kind: "cloze",
       id: "afuero.afuera-ch02-s00",
       lemma: "afuero",
       wordInContext: "afuera",
@@ -2155,6 +2279,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s00",
     },
     {
+      kind: "cloze",
       id: "tener.tiene-ch02-s01",
       lemma: "tener",
       wordInContext: "tiene",
@@ -2171,6 +2296,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ nervios por el largo viaje.","sentenceTranslation":"Maria ist wegen der langen Reise nervös.","chapter":2,"sentenceIndex":1},{"sentence":"Ella _____ su maleta amarilla.","sentenceTranslation":"Sie hat ihren gelben Koffer dabei.","chapter":3,"sentenceIndex":1},{"sentence":"Maria _____ sed.","sentenceTranslation":"Maria hat Durst.","chapter":3,"sentenceIndex":19},{"sentence":"Maria _____ hambre.","sentenceTranslation":"Maria hat Hunger.","chapter":3,"sentenceIndex":20},{"sentence":"Maria _____ una idea.","sentenceTranslation":"Maria hat eine Idee.","chapter":3,"sentenceIndex":25}],
     },
     {
+      kind: "cloze",
       id: "nervio.nervios-ch02-s01",
       lemma: "nervio",
       wordInContext: "nervios",
@@ -2186,6 +2312,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s01",
     },
     {
+      kind: "cloze",
       id: "largo-ch02-s01",
       lemma: "largo",
       wordInContext: "largo",
@@ -2202,6 +2329,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria tiene nervios por el _____ viaje.","sentenceTranslation":"Maria ist wegen der langen Reise nervös.","chapter":2,"sentenceIndex":1},{"sentence":"Ellas tienen un abrazo _____ y fuerte de despedida.","sentenceTranslation":"Sie umarmen sich zum Abschied lange und fest.","chapter":2,"sentenceIndex":28}],
     },
     {
+      kind: "cloze",
       id: "mirar.mira-ch02-s02",
       lemma: "mirar",
       wordInContext: "mira",
@@ -2218,6 +2346,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ la calle oscura. La calle pasa rápidamente.","sentenceTranslation":"Maria schaut auf die dunkle Straße. Die Straße zieht schnell an ihr vorbei.","chapter":2,"sentenceIndex":2},{"sentence":"Maria _____ los edificios familiares por la ventana.","sentenceTranslation":"Maria schaut aus dem Fenster auf die vertrauten Gebäude.","chapter":2,"sentenceIndex":6},{"sentence":"Maria camina hacia las puertas del aeropuerto. Ella no _____ atrás.","sentenceTranslation":"Maria geht in Richtung der Flughafentüren. Sie schaut nicht zurück.","chapter":2,"sentenceIndex":31},{"sentence":"Ella _____ su tarjeta de embarque.","sentenceTranslation":"Sie schaut auf ihre Bordkarte.","chapter":3,"sentenceIndex":12},{"sentence":"Maria _____ por la ventana grande.","sentenceTranslation":"Maria schaut aus dem großen Fenster.","chapter":3,"sentenceIndex":32},{"sentence":"Maria _____ al avión pequeño.","sentenceTranslation":"Maria schaut auf das kleine Flugzeug.","chapter":3,"sentenceIndex":34}],
     },
     {
+      kind: "cloze",
       id: "calle-ch02-s02",
       lemma: "calle",
       wordInContext: "calle",
@@ -2234,6 +2363,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria mira la _____ oscura. La calle pasa rápidamente.","sentenceTranslation":"Maria schaut auf die dunkle Straße. Die Straße zieht schnell an ihr vorbei.","chapter":2,"sentenceIndex":2},{"sentence":"El coche está parado en la _____ principal.","sentenceTranslation":"Das Auto steht auf der Hauptstraße.","chapter":2,"sentenceIndex":10}],
     },
     {
+      kind: "cloze",
       id: "oscuro.oscura-ch02-s02",
       lemma: "oscuro",
       wordInContext: "oscura",
@@ -2249,6 +2379,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s02",
     },
     {
+      kind: "cloze",
       id: "pasar.pasa-ch02-s02",
       lemma: "pasar",
       wordInContext: "pasa",
@@ -2264,6 +2395,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s02",
     },
     {
+      kind: "cloze",
       id: "rápidamente-ch02-s02",
       lemma: "rápidamente",
       wordInContext: "rápidamente",
@@ -2279,6 +2411,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s02",
     },
     {
+      kind: "cloze",
       id: "conducir.conduce-ch02-s03",
       lemma: "conducir",
       wordInContext: "conduce",
@@ -2294,6 +2427,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s03",
     },
     {
+      kind: "cloze",
       id: "coche-ch02-s03",
       lemma: "coche",
       wordInContext: "coche",
@@ -2310,6 +2444,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Su madre Ingrid conduce el _____ rojo con cuidado.","sentenceTranslation":"Ihre Mutter Ingrid fährt vorsichtig mit dem roten Auto.","chapter":2,"sentenceIndex":3},{"sentence":"Un semáforo rojo para el _____.","sentenceTranslation":"Eine rote Ampel stoppt das Auto.","chapter":2,"sentenceIndex":9},{"sentence":"El _____ está parado en la calle principal.","sentenceTranslation":"Das Auto steht auf der Hauptstraße.","chapter":2,"sentenceIndex":10}],
     },
     {
+      kind: "cloze",
       id: "asiento-ch02-s04",
       lemma: "asiento",
       wordInContext: "asiento",
@@ -2326,6 +2461,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"La gran maleta amarilla está en el _____ trasero.","sentenceTranslation":"Der große gelbe Koffer steht auf dem Rücksitz.","chapter":2,"sentenceIndex":4},{"sentence":"«Tu _____ es el catorce A», dice la mujer.","sentenceTranslation":"„Ihr Sitzplatz ist 14A“, sagt die Frau.","chapter":3,"sentenceIndex":9},{"sentence":"«Este _____ es mío», dice Maria con una sonrisa.","sentenceTranslation":"„Dieser Platz gehört mir“, sagt Maria lächelnd.","chapter":3,"sentenceIndex":11}],
     },
     {
+      kind: "cloze",
       id: "trasero-ch02-s04",
       lemma: "trasero",
       wordInContext: "trasero",
@@ -2341,6 +2477,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s04",
     },
     {
+      kind: "cloze",
       id: "llevar.lleva-ch02-s05",
       lemma: "llevar",
       wordInContext: "lleva",
@@ -2356,6 +2493,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s05",
     },
     {
+      kind: "cloze",
       id: "favoritar.favorita-ch02-s05",
       lemma: "favoritar",
       wordInContext: "favorita",
@@ -2371,6 +2509,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s05",
     },
     {
+      kind: "cloze",
       id: "dentro-ch02-s05",
       lemma: "dentro",
       wordInContext: "dentro",
@@ -2386,6 +2525,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s05",
     },
     {
+      kind: "cloze",
       id: "edificio.edificios-ch02-s06",
       lemma: "edificio",
       wordInContext: "edificios",
@@ -2401,6 +2541,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s06",
     },
     {
+      kind: "cloze",
       id: "familiar.familiares-ch02-s06",
       lemma: "familiar",
       wordInContext: "familiares",
@@ -2416,6 +2557,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s06",
     },
     {
+      kind: "cloze",
       id: "ventana-ch02-s06",
       lemma: "ventana",
       wordInContext: "ventana",
@@ -2432,6 +2574,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria mira los edificios familiares por la _____.","sentenceTranslation":"Maria schaut aus dem Fenster auf die vertrauten Gebäude.","chapter":2,"sentenceIndex":6},{"sentence":"«Es en la _____», dice la mujer amablemente.","sentenceTranslation":"„Es ist ein Fensterplatz“, sagt die Frau freundlich.","chapter":3,"sentenceIndex":10},{"sentence":"Maria mira por la _____ grande.","sentenceTranslation":"Maria schaut aus dem großen Fenster.","chapter":3,"sentenceIndex":32}],
     },
     {
+      kind: "cloze",
       id: "ver.ve-ch02-s07",
       lemma: "ver",
       wordInContext: "ve",
@@ -2448,6 +2591,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella _____ la escuela. Ella estudia allí muchos años.","sentenceTranslation":"Sie sieht die Schule. Sie geht dort schon seit vielen Jahren zur Schule.","chapter":2,"sentenceIndex":7},{"sentence":"Ella _____ un mensaje de Sofia.","sentenceTranslation":"Sie sieht eine Nachricht von Sofia.","chapter":3,"sentenceIndex":23}],
     },
     {
+      kind: "cloze",
       id: "escuela-ch02-s07",
       lemma: "escuela",
       wordInContext: "escuela",
@@ -2463,6 +2607,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s07",
     },
     {
+      kind: "cloze",
       id: "estudiar.estudia-ch02-s07",
       lemma: "estudiar",
       wordInContext: "estudia",
@@ -2478,6 +2623,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s07",
     },
     {
+      kind: "cloze",
       id: "allí-ch02-s07",
       lemma: "allí",
       wordInContext: "allí",
@@ -2493,6 +2639,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s07",
     },
     {
+      kind: "cloze",
       id: "año.años-ch02-s07",
       lemma: "año",
       wordInContext: "años",
@@ -2508,6 +2655,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s07",
     },
     {
+      kind: "cloze",
       id: "crees-ch02-s08",
       lemma: "crees",
       wordInContext: "Crees",
@@ -2523,6 +2671,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s08",
     },
     {
+      kind: "cloze",
       id: "papá-ch02-s08",
       lemma: "papá",
       wordInContext: "papá",
@@ -2539,6 +2688,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¿Crees que _____ me escribirá desde Berlín?», pregunta Maria.","sentenceTranslation":"„Glaubst du, Papa wird mir aus Berlin schreiben?“, fragt Maria.","chapter":2,"sentenceIndex":8},{"sentence":"«Tu _____ es un buen hombre», dice Ingrid con calma.","sentenceTranslation":"„Dein Papa ist ein guter Mann“, sagt Ingrid ruhig.","chapter":2,"sentenceIndex":13},{"sentence":"Maria piensa en su _____. Él siempre dice: «¡Tú podrías hacer cualquier cosa!»","sentenceTranslation":"Maria denkt an ihren Papa. Er sagt immer: „Du kannst alles schaffen!“","chapter":2,"sentenceIndex":17}],
     },
     {
+      kind: "cloze",
       id: "escribir.escribirá-ch02-s08",
       lemma: "escribir",
       wordInContext: "escribirá",
@@ -2554,6 +2704,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s08",
     },
     {
+      kind: "cloze",
       id: "semáforo-ch02-s09",
       lemma: "semáforo",
       wordInContext: "semáforo",
@@ -2569,6 +2720,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s09",
     },
     {
+      kind: "cloze",
       id: "parado-ch02-s10",
       lemma: "parado",
       wordInContext: "parado",
@@ -2584,6 +2736,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s10",
     },
     {
+      kind: "cloze",
       id: "principal-ch02-s10",
       lemma: "principal",
       wordInContext: "principal",
@@ -2599,6 +2752,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s10",
     },
     {
+      kind: "cloze",
       id: "emocionar.emociona-ch02-s11",
       lemma: "emocionar",
       wordInContext: "emociona",
@@ -2614,6 +2768,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s11",
     },
     {
+      kind: "cloze",
       id: "momento-ch02-s12",
       lemma: "momento",
       wordInContext: "momento",
@@ -2630,6 +2785,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria piensa un _____. Ella sonríe.","sentenceTranslation":"Maria überlegt einen Moment. Sie lächelt.","chapter":2,"sentenceIndex":12},{"sentence":"Una nueva aventura empieza en ese _____ de la mañana.","sentenceTranslation":"Ein neues Abenteuer beginnt in diesem Moment des Morgens.","chapter":2,"sentenceIndex":32}],
     },
     {
+      kind: "cloze",
       id: "buen-ch02-s13",
       lemma: "buen",
       wordInContext: "buen",
@@ -2645,6 +2801,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s13",
     },
     {
+      kind: "cloze",
       id: "hombre-ch02-s13",
       lemma: "hombre",
       wordInContext: "hombre",
@@ -2660,6 +2817,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s13",
     },
     {
+      kind: "cloze",
       id: "calma-ch02-s13",
       lemma: "calma",
       wordInContext: "calma",
@@ -2675,6 +2833,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s13",
     },
     {
+      kind: "cloze",
       id: "querer.quería-ch02-s14",
       lemma: "querer",
       wordInContext: "quería",
@@ -2690,6 +2849,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s14",
     },
     {
+      kind: "cloze",
       id: "estar-ch02-s14",
       lemma: "estar",
       wordInContext: "estar",
@@ -2705,6 +2865,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s14",
     },
     {
+      kind: "cloze",
       id: "trabajo-ch02-s14",
       lemma: "trabajo",
       wordInContext: "trabajo",
@@ -2720,6 +2881,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s14",
     },
     {
+      kind: "cloze",
       id: "ciudad-ch02-s14",
       lemma: "ciudad",
       wordInContext: "ciudad",
@@ -2735,6 +2897,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s14",
     },
     {
+      kind: "cloze",
       id: "comida-ch02-s15",
       lemma: "comida",
       wordInContext: "comida",
@@ -2750,6 +2913,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s15",
     },
     {
+      kind: "cloze",
       id: "música-ch02-s15",
       lemma: "música",
       wordInContext: "música",
@@ -2765,6 +2929,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s15",
     },
     {
+      kind: "cloze",
       id: "hablar-ch02-s15",
       lemma: "hablar",
       wordInContext: "hablar",
@@ -2780,6 +2945,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s15",
     },
     {
+      kind: "cloze",
       id: "ese.eso-ch02-s16",
       lemma: "ese",
       wordInContext: "Eso",
@@ -2795,6 +2961,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s16",
     },
     {
+      kind: "cloze",
       id: "sonar.suena-ch02-s16",
       lemma: "sonar",
       wordInContext: "suena",
@@ -2811,6 +2978,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«¡Eso _____ maravilloso!», exclama Ingrid con alegría.","sentenceTranslation":"„Das klingt wunderbar!“, ruft Ingrid fröhlich.","chapter":2,"sentenceIndex":16},{"sentence":"El anuncio de embarque _____ por los altavoces.","sentenceTranslation":"Die Boarding-Durchsage ertönt aus den Lautsprechern.","chapter":3,"sentenceIndex":37}],
     },
     {
+      kind: "cloze",
       id: "maravilloso-ch02-s16",
       lemma: "maravilloso",
       wordInContext: "maravilloso",
@@ -2826,6 +2994,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s16",
     },
     {
+      kind: "cloze",
       id: "alegría-ch02-s16",
       lemma: "alegría",
       wordInContext: "alegría",
@@ -2841,6 +3010,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s16",
     },
     {
+      kind: "cloze",
       id: "siempre-ch02-s17",
       lemma: "siempre",
       wordInContext: "siempre",
@@ -2856,6 +3026,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s17",
     },
     {
+      kind: "cloze",
       id: "podría.podrías-ch02-s17",
       lemma: "podría",
       wordInContext: "podrías",
@@ -2871,6 +3042,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s17",
     },
     {
+      kind: "cloze",
       id: "hacer-ch02-s17",
       lemma: "hacer",
       wordInContext: "hacer",
@@ -2886,6 +3058,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s17",
     },
     {
+      kind: "cloze",
       id: "cosa-ch02-s17",
       lemma: "cosa",
       wordInContext: "cosa",
@@ -2901,6 +3074,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s17",
     },
     {
+      kind: "cloze",
       id: "tipo-ch02-s18",
       lemma: "tipo",
       wordInContext: "tipo",
@@ -2916,6 +3090,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s18",
     },
     {
+      kind: "cloze",
       id: "especial-ch02-s18",
       lemma: "especial",
       wordInContext: "especial",
@@ -2931,6 +3106,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s18",
     },
     {
+      kind: "cloze",
       id: "tráfico-ch02-s19",
       lemma: "tráfico",
       wordInContext: "tráfico",
@@ -2946,6 +3122,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s19",
     },
     {
+      kind: "cloze",
       id: "lento-ch02-s19",
       lemma: "lento",
       wordInContext: "lento",
@@ -2961,6 +3138,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s19",
     },
     {
+      kind: "cloze",
       id: "autopista-ch02-s19",
       lemma: "autopista",
       wordInContext: "autopista",
@@ -2976,6 +3154,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s19",
     },
     {
+      kind: "cloze",
       id: "coche.coches-ch02-s20",
       lemma: "coche",
       wordInContext: "coches",
@@ -2991,6 +3170,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s20",
     },
     {
+      kind: "cloze",
       id: "mover.mueven-ch02-s20",
       lemma: "mover",
       wordInContext: "mueven",
@@ -3006,6 +3186,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s20",
     },
     {
+      kind: "cloze",
       id: "caracol.caracoles-ch02-s20",
       lemma: "caracol",
       wordInContext: "caracoles",
@@ -3021,6 +3202,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s20",
     },
     {
+      kind: "cloze",
       id: "color.colores-ch02-s20",
       lemma: "color",
       wordInContext: "colores",
@@ -3036,6 +3218,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s20",
     },
     {
+      kind: "cloze",
       id: "historia-ch02-s21",
       lemma: "historia",
       wordInContext: "historia",
@@ -3051,6 +3234,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s21",
     },
     {
+      kind: "cloze",
       id: "juventud-ch02-s21",
       lemma: "juventud",
       wordInContext: "juventud",
@@ -3066,6 +3250,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s21",
     },
     {
+      kind: "cloze",
       id: "ir.fui-ch02-s22",
       lemma: "ir",
       wordInContext: "fui",
@@ -3081,6 +3266,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s22",
     },
     {
+      kind: "cloze",
       id: "perder.perdí-ch02-s22",
       lemma: "perder",
       wordInContext: "perdí",
@@ -3096,6 +3282,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s22",
     },
     {
+      kind: "cloze",
       id: "completamente-ch02-s22",
       lemma: "completamente",
       wordInContext: "completamente",
@@ -3111,6 +3298,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s22",
     },
     {
+      kind: "cloze",
       id: "teniar.tenías-ch02-s23",
       lemma: "teniar",
       wordInContext: "tenías",
@@ -3126,6 +3314,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s23",
     },
     {
+      kind: "cloze",
       id: "miedo-ch02-s23",
       lemma: "miedo",
       wordInContext: "miedo",
@@ -3141,6 +3330,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s23",
     },
     {
+      kind: "cloze",
       id: "primero.primer-ch02-s23",
       lemma: "primero",
       wordInContext: "primer",
@@ -3156,6 +3346,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s23",
     },
     {
+      kind: "cloze",
       id: "sí-ch02-s24",
       lemma: "sí",
       wordInContext: "Sí",
@@ -3171,6 +3362,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s24",
     },
     {
+      kind: "cloze",
       id: "todo-ch02-s24",
       lemma: "todo",
       wordInContext: "todo",
@@ -3186,6 +3378,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s24",
     },
     {
+      kind: "cloze",
       id: "salir.salió-ch02-s24",
       lemma: "salir",
       wordInContext: "salió",
@@ -3201,6 +3394,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s24",
     },
     {
+      kind: "cloze",
       id: "bien-ch02-s24",
       lemma: "bien",
       wordInContext: "bien",
@@ -3216,6 +3410,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s24",
     },
     {
+      kind: "cloze",
       id: "reír.ríe-ch02-s25",
       lemma: "reír",
       wordInContext: "ríe",
@@ -3232,6 +3427,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria se _____ fuerte. Ella imagina a su madre perdida.","sentenceTranslation":"Maria lacht laut. Sie stellt sich vor, wie ihre Mutter sich verlaufen hat.","chapter":2,"sentenceIndex":25},{"sentence":"Ingrid se _____ también. Ella recuerda esa primera aventura.","sentenceTranslation":"Ingrid lacht ebenfalls. Sie erinnert sich an dieses erste Abenteuer.","chapter":2,"sentenceIndex":26}],
     },
     {
+      kind: "cloze",
       id: "imaginar.imagina-ch02-s25",
       lemma: "imaginar",
       wordInContext: "imagina",
@@ -3247,6 +3443,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s25",
     },
     {
+      kind: "cloze",
       id: "perdido.perdida-ch02-s25",
       lemma: "perdido",
       wordInContext: "perdida",
@@ -3262,6 +3459,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s25",
     },
     {
+      kind: "cloze",
       id: "también-ch02-s26",
       lemma: "también",
       wordInContext: "también",
@@ -3278,6 +3476,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ingrid se ríe _____. Ella recuerda esa primera aventura.","sentenceTranslation":"Ingrid lacht ebenfalls. Sie erinnert sich an dieses erste Abenteuer.","chapter":2,"sentenceIndex":26},{"sentence":"«Yo _____ te quiero, mi amor», responde Ingrid con tristeza.","sentenceTranslation":"„Ich hab dich auch lieb, mein Schatz“, antwortet Ingrid traurig.","chapter":2,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "recordar.recuerda-ch02-s26",
       lemma: "recordar",
       wordInContext: "recuerda",
@@ -3293,6 +3492,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s26",
     },
     {
+      kind: "cloze",
       id: "primero.primera-ch02-s26",
       lemma: "primero",
       wordInContext: "primera",
@@ -3308,6 +3508,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s26",
     },
     {
+      kind: "cloze",
       id: "llegar.llegan-ch02-s27",
       lemma: "llegar",
       wordInContext: "llegan",
@@ -3323,6 +3524,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s27",
     },
     {
+      kind: "cloze",
       id: "aeropuerto-ch02-s27",
       lemma: "aeropuerto",
       wordInContext: "aeropuerto",
@@ -3339,6 +3541,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ellas llegan al _____. Ingrid ayuda a Maria con la maleta.","sentenceTranslation":"Sie kommen am Flughafen an. Ingrid hilft Maria mit dem Koffer.","chapter":2,"sentenceIndex":27},{"sentence":"Maria camina hacia las puertas del _____. Ella no mira atrás.","sentenceTranslation":"Maria geht in Richtung der Flughafentüren. Sie schaut nicht zurück.","chapter":2,"sentenceIndex":31},{"sentence":"Maria camina por el _____.","sentenceTranslation":"Maria geht durch den Flughafen.","chapter":3,"sentenceIndex":0}],
     },
     {
+      kind: "cloze",
       id: "ayuda-ch02-s27",
       lemma: "ayuda",
       wordInContext: "ayuda",
@@ -3354,6 +3557,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s27",
     },
     {
+      kind: "cloze",
       id: "tener.tienen-ch02-s28",
       lemma: "tener",
       wordInContext: "tienen",
@@ -3369,6 +3573,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s28",
     },
     {
+      kind: "cloze",
       id: "despedida-ch02-s28",
       lemma: "despedida",
       wordInContext: "despedida",
@@ -3384,6 +3589,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s28",
     },
     {
+      kind: "cloze",
       id: "te-ch02-s29",
       lemma: "te",
       wordInContext: "Te",
@@ -3399,6 +3605,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s29",
     },
     {
+      kind: "cloze",
       id: "querer.quiero-ch02-s29",
       lemma: "querer",
       wordInContext: "quiero",
@@ -3415,6 +3622,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Te _____, mamá», dice Maria con voz quebrada.","sentenceTranslation":"„Ich hab dich lieb, Mama“, sagt Maria mit brüchiger Stimme.","chapter":2,"sentenceIndex":29},{"sentence":"«Yo también te _____, mi amor», responde Ingrid con tristeza.","sentenceTranslation":"„Ich hab dich auch lieb, mein Schatz“, antwortet Ingrid traurig.","chapter":2,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "voz-ch02-s29",
       lemma: "voz",
       wordInContext: "voz",
@@ -3430,6 +3638,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s29",
     },
     {
+      kind: "cloze",
       id: "quebrado.quebrada-ch02-s29",
       lemma: "quebrado",
       wordInContext: "quebrada",
@@ -3445,6 +3654,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s29",
     },
     {
+      kind: "cloze",
       id: "amor-ch02-s30",
       lemma: "amor",
       wordInContext: "amor",
@@ -3460,6 +3670,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s30",
     },
     {
+      kind: "cloze",
       id: "tristeza-ch02-s30",
       lemma: "tristeza",
       wordInContext: "tristeza",
@@ -3475,6 +3686,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s30",
     },
     {
+      kind: "cloze",
       id: "caminar.camina-ch02-s31",
       lemma: "caminar",
       wordInContext: "camina",
@@ -3491,6 +3703,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria _____ hacia las puertas del aeropuerto. Ella no mira atrás.","sentenceTranslation":"Maria geht in Richtung der Flughafentüren. Sie schaut nicht zurück.","chapter":2,"sentenceIndex":31},{"sentence":"Maria _____ por el aeropuerto.","sentenceTranslation":"Maria geht durch den Flughafen.","chapter":3,"sentenceIndex":0},{"sentence":"Ella _____ hacia la puerta de embarque.","sentenceTranslation":"Sie geht zum Flugsteig.","chapter":3,"sentenceIndex":42}],
     },
     {
+      kind: "cloze",
       id: "puerta.puertas-ch02-s31",
       lemma: "puerta",
       wordInContext: "puertas",
@@ -3506,6 +3719,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s31",
     },
     {
+      kind: "cloze",
       id: "atrás-ch02-s31",
       lemma: "atrás",
       wordInContext: "atrás",
@@ -3521,6 +3735,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s31",
     },
     {
+      kind: "cloze",
       id: "nuevo.nueva-ch02-s32",
       lemma: "nuevo",
       wordInContext: "nueva",
@@ -3536,6 +3751,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch02_s32",
     },
     {
+      kind: "cloze",
       id: "empezar.empieza-ch02-s32",
       lemma: "empezar",
       wordInContext: "empieza",
@@ -3556,6 +3772,7 @@ export const CHAPTERS: ChapterData[] = [
     chapterNumber: 3,
     cards: [
     {
+      kind: "cloze",
       id: "grande-ch03-s02",
       lemma: "grande",
       wordInContext: "grande",
@@ -3572,6 +3789,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"La maleta es muy _____.","sentenceTranslation":"Der Koffer ist sehr groß.","chapter":3,"sentenceIndex":2},{"sentence":"Maria mira por la ventana _____.","sentenceTranslation":"Maria schaut aus dem großen Fenster.","chapter":3,"sentenceIndex":32}],
     },
     {
+      kind: "cloze",
       id: "pesado.pesada-ch03-s03",
       lemma: "pesado",
       wordInContext: "pesada",
@@ -3588,6 +3806,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"La maleta es muy _____.","sentenceTranslation":"Der Koffer ist sehr schwer.","chapter":3,"sentenceIndex":3},{"sentence":"Maria piensa: «¿Es demasiado _____ mi maleta?»","sentenceTranslation":"Maria denkt: „Ist mein Koffer zu schwer?“","chapter":3,"sentenceIndex":4},{"sentence":"«¡Es realmente _____!», dice ella.","sentenceTranslation":"„Er ist wirklich schwer!“, sagt sie.","chapter":3,"sentenceIndex":5}],
     },
     {
+      kind: "cloze",
       id: "demasiado-ch03-s04",
       lemma: "demasiado",
       wordInContext: "demasiado",
@@ -3604,6 +3823,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Maria piensa: «¿Es _____ pesada mi maleta?»","sentenceTranslation":"Maria denkt: „Ist mein Koffer zu schwer?“","chapter":3,"sentenceIndex":4},{"sentence":"«Es _____ pequeño para mi vuelo.»","sentenceTranslation":"„Es ist zu klein für meinen Flug.“","chapter":3,"sentenceIndex":36}],
     },
     {
+      kind: "cloze",
       id: "realmente-ch03-s05",
       lemma: "realmente",
       wordInContext: "realmente",
@@ -3619,6 +3839,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s05",
     },
     {
+      kind: "cloze",
       id: "buscar.busca-ch03-s06",
       lemma: "buscar",
       wordInContext: "busca",
@@ -3634,6 +3855,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s06",
     },
     {
+      kind: "cloze",
       id: "mostrador-ch03-s06",
       lemma: "mostrador",
       wordInContext: "mostrador",
@@ -3650,6 +3872,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella busca el _____ de su aerolínea.","sentenceTranslation":"Sie sucht den Schalter ihrer Fluggesellschaft.","chapter":3,"sentenceIndex":6},{"sentence":"La mujer en el _____ da la tarjeta a Maria.","sentenceTranslation":"Die Frau am Schalter gibt Maria die Bordkarte.","chapter":3,"sentenceIndex":8}],
     },
     {
+      kind: "cloze",
       id: "aerolínea-ch03-s06",
       lemma: "aerolínea",
       wordInContext: "aerolínea",
@@ -3665,6 +3888,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s06",
     },
     {
+      kind: "cloze",
       id: "pasaporte-ch03-s07",
       lemma: "pasaporte",
       wordInContext: "pasaporte",
@@ -3680,6 +3904,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s07",
     },
     {
+      kind: "cloze",
       id: "mujer-ch03-s08",
       lemma: "mujer",
       wordInContext: "mujer",
@@ -3696,6 +3921,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"La _____ en el mostrador da la tarjeta a Maria.","sentenceTranslation":"Die Frau am Schalter gibt Maria die Bordkarte.","chapter":3,"sentenceIndex":8},{"sentence":"«Tu asiento es el catorce A», dice la _____.","sentenceTranslation":"„Ihr Sitzplatz ist 14A“, sagt die Frau.","chapter":3,"sentenceIndex":9},{"sentence":"«Es en la ventana», dice la _____ amablemente.","sentenceTranslation":"„Es ist ein Fensterplatz“, sagt die Frau freundlich.","chapter":3,"sentenceIndex":10}],
     },
     {
+      kind: "cloze",
       id: "tarjeta-ch03-s08",
       lemma: "tarjeta",
       wordInContext: "tarjeta",
@@ -3712,6 +3938,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"La mujer en el mostrador da la _____ a Maria.","sentenceTranslation":"Die Frau am Schalter gibt Maria die Bordkarte.","chapter":3,"sentenceIndex":8},{"sentence":"Ella mira su _____ de embarque.","sentenceTranslation":"Sie schaut auf ihre Bordkarte.","chapter":3,"sentenceIndex":12}],
     },
     {
+      kind: "cloze",
       id: "catorce-ch03-s09",
       lemma: "catorce",
       wordInContext: "catorce",
@@ -3727,6 +3954,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s09",
     },
     {
+      kind: "cloze",
       id: "amablemente-ch03-s10",
       lemma: "amablemente",
       wordInContext: "amablemente",
@@ -3742,6 +3970,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s10",
     },
     {
+      kind: "cloze",
       id: "embarque-ch03-s12",
       lemma: "embarque",
       wordInContext: "embarque",
@@ -3758,6 +3987,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Ella mira su tarjeta de _____.","sentenceTranslation":"Sie schaut auf ihre Bordkarte.","chapter":3,"sentenceIndex":12},{"sentence":"El anuncio de _____ suena por los altavoces.","sentenceTranslation":"Die Boarding-Durchsage ertönt aus den Lautsprechern.","chapter":3,"sentenceIndex":37},{"sentence":"Ella camina hacia la puerta de _____.","sentenceTranslation":"Sie geht zum Flugsteig.","chapter":3,"sentenceIndex":42}],
     },
     {
+      kind: "cloze",
       id: "control-ch03-s13",
       lemma: "control",
       wordInContext: "control",
@@ -3773,6 +4003,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s13",
     },
     {
+      kind: "cloze",
       id: "seguridad-ch03-s13",
       lemma: "seguridad",
       wordInContext: "seguridad",
@@ -3788,6 +4019,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s13",
     },
     {
+      kind: "cloze",
       id: "quitar.quita-ch03-s14",
       lemma: "quitar",
       wordInContext: "quita",
@@ -3803,6 +4035,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s14",
     },
     {
+      kind: "cloze",
       id: "poner.pone-ch03-s15",
       lemma: "poner",
       wordInContext: "pone",
@@ -3818,6 +4051,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s15",
     },
     {
+      kind: "cloze",
       id: "bandeja-ch03-s15",
       lemma: "bandeja",
       wordInContext: "bandeja",
@@ -3833,6 +4067,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s15",
     },
     {
+      kind: "cloze",
       id: "encontrar.encuentra-ch03-s16",
       lemma: "encontrar",
       wordInContext: "encuentra",
@@ -3848,6 +4083,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s16",
     },
     {
+      kind: "cloze",
       id: "b-ch03-s16",
       lemma: "b",
       wordInContext: "B",
@@ -3863,6 +4099,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s16",
     },
     {
+      kind: "cloze",
       id: "doce-ch03-s16",
       lemma: "doce",
       wordInContext: "doce",
@@ -3878,6 +4115,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s16",
     },
     {
+      kind: "cloze",
       id: "sentar.sienta-ch03-s17",
       lemma: "sentar",
       wordInContext: "sienta",
@@ -3893,6 +4131,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s17",
     },
     {
+      kind: "cloze",
       id: "silla-ch03-s17",
       lemma: "silla",
       wordInContext: "silla",
@@ -3908,6 +4147,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s17",
     },
     {
+      kind: "cloze",
       id: "persona.personas-ch03-s18",
       lemma: "persona",
       wordInContext: "personas",
@@ -3923,6 +4163,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s18",
     },
     {
+      kind: "cloze",
       id: "esperar.esperando-ch03-s18",
       lemma: "esperar",
       wordInContext: "esperando",
@@ -3938,6 +4179,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s18",
     },
     {
+      kind: "cloze",
       id: "vuelo-ch03-s18",
       lemma: "vuelo",
       wordInContext: "vuelo",
@@ -3954,6 +4196,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Hay muchas personas esperando el _____.","sentenceTranslation":"Es warten viele Leute auf den Flug.","chapter":3,"sentenceIndex":18},{"sentence":"«Es demasiado pequeño para mi _____.»","sentenceTranslation":"„Es ist zu klein für meinen Flug.“","chapter":3,"sentenceIndex":36}],
     },
     {
+      kind: "cloze",
       id: "sed-ch03-s19",
       lemma: "sed",
       wordInContext: "sed",
@@ -3969,6 +4212,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s19",
     },
     {
+      kind: "cloze",
       id: "hambre-ch03-s20",
       lemma: "hambre",
       wordInContext: "hambre",
@@ -3984,6 +4228,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s20",
     },
     {
+      kind: "cloze",
       id: "comprar.compra-ch03-s21",
       lemma: "comprar",
       wordInContext: "compra",
@@ -3999,6 +4244,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s21",
     },
     {
+      kind: "cloze",
       id: "agua-ch03-s21",
       lemma: "agua",
       wordInContext: "agua",
@@ -4014,6 +4260,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s21",
     },
     {
+      kind: "cloze",
       id: "sándwich-ch03-s21",
       lemma: "sándwich",
       wordInContext: "sándwich",
@@ -4029,6 +4276,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s21",
     },
     {
+      kind: "cloze",
       id: "tienda-ch03-s21",
       lemma: "tienda",
       wordInContext: "tienda",
@@ -4044,6 +4292,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s21",
     },
     {
+      kind: "cloze",
       id: "revisar.revisa-ch03-s22",
       lemma: "revisar",
       wordInContext: "revisa",
@@ -4059,6 +4308,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s22",
     },
     {
+      kind: "cloze",
       id: "estar.estoy-ch03-s24",
       lemma: "estar",
       wordInContext: "Estoy",
@@ -4074,6 +4324,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s24",
     },
     {
+      kind: "cloze",
       id: "idea-ch03-s25",
       lemma: "idea",
       wordInContext: "idea",
@@ -4089,6 +4340,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s25",
     },
     {
+      kind: "cloze",
       id: "escuchar-ch03-s26",
       lemma: "escuchar",
       wordInContext: "escuchar",
@@ -4105,6 +4357,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"«Voy a _____ el mensaje de Sofia otra vez», piensa.","sentenceTranslation":"„Ich werde mir Sofias Nachricht noch einmal anhören“, denkt sie.","chapter":3,"sentenceIndex":26},{"sentence":"Ella está feliz de _____ a su amiga.","sentenceTranslation":"Sie freut sich, von ihrer Freundin zu hören.","chapter":3,"sentenceIndex":29},{"sentence":"«¡Es cierto!», dice Maria al _____ el mensaje.","sentenceTranslation":"„Es stimmt!“, sagt Maria, als sie die Nachricht hört.","chapter":3,"sentenceIndex":30}],
     },
     {
+      kind: "cloze",
       id: "vez-ch03-s26",
       lemma: "vez",
       wordInContext: "vez",
@@ -4120,6 +4373,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s26",
     },
     {
+      kind: "cloze",
       id: "vez.veces-ch03-s28",
       lemma: "vez",
       wordInContext: "veces",
@@ -4135,6 +4389,7 @@ export const CHAPTERS: ChapterData[] = [
     audio: "ch03_s28",
     },
     {
+      kind: "cloze",
       id: "cierto-ch03-s30",
       lemma: "cierto",
       wordInContext: "cierto",
@@ -4149,6 +4404,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s30",
     },
     {
+      kind: "cloze",
       id: "haber.ha-ch03-s31",
       lemma: "haber",
       wordInContext: "ha",
@@ -4164,6 +4420,7 @@ export const CHAPTERS: ChapterData[] = [
     sentenceVariants: [{"sentence":"Sofia _____ dicho que está emocionada.","sentenceTranslation":"Sofia hat gesagt, dass sie aufgeregt ist.","chapter":3,"sentenceIndex":31},{"sentence":"_____ visto un retraso en la pantalla.","sentenceTranslation":"Sie hat eine Verspätung auf dem Bildschirm gesehen.","chapter":3,"sentenceIndex":41}],
     },
     {
+      kind: "cloze",
       id: "decir.dicho-ch03-s31",
       lemma: "decir",
       wordInContext: "dicho",
@@ -4178,6 +4435,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s31",
     },
     {
+      kind: "cloze",
       id: "pista-ch03-s33",
       lemma: "pista",
       wordInContext: "pista",
@@ -4192,6 +4450,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s33",
     },
     {
+      kind: "cloze",
       id: "serio-ch03-s35",
       lemma: "serio",
       wordInContext: "serio",
@@ -4206,6 +4465,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s35",
     },
     {
+      kind: "cloze",
       id: "anuncio-ch03-s37",
       lemma: "anuncio",
       wordInContext: "anuncio",
@@ -4220,6 +4480,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s37",
     },
     {
+      kind: "cloze",
       id: "altavoz.altavoces-ch03-s37",
       lemma: "altavoz",
       wordInContext: "altavoces",
@@ -4234,6 +4495,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s37",
     },
     {
+      kind: "cloze",
       id: "levantar.levanta-ch03-s38",
       lemma: "levantar",
       wordInContext: "levanta",
@@ -4248,6 +4510,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s38",
     },
     {
+      kind: "cloze",
       id: "tomar.toma-ch03-s39",
       lemma: "tomar",
       wordInContext: "toma",
@@ -4262,6 +4525,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s39",
     },
     {
+      kind: "cloze",
       id: "respiración-ch03-s39",
       lemma: "respiración",
       wordInContext: "respiración",
@@ -4276,6 +4540,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s39",
     },
     {
+      kind: "cloze",
       id: "profundo.profunda-ch03-s39",
       lemma: "profundo",
       wordInContext: "profunda",
@@ -4290,6 +4555,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s39",
     },
     {
+      kind: "cloze",
       id: "mal-ch03-s40",
       lemma: "mal",
       wordInContext: "mal",
@@ -4304,6 +4570,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s40",
     },
     {
+      kind: "cloze",
       id: "ver.visto-ch03-s41",
       lemma: "ver",
       wordInContext: "visto",
@@ -4318,6 +4585,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s41",
     },
     {
+      kind: "cloze",
       id: "retraso-ch03-s41",
       lemma: "retraso",
       wordInContext: "retraso",
@@ -4332,6 +4600,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s41",
     },
     {
+      kind: "cloze",
       id: "pantalla-ch03-s41",
       lemma: "pantalla",
       wordInContext: "pantalla",
@@ -4346,6 +4615,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s41",
     },
     {
+      kind: "cloze",
       id: "pronto-ch03-s43",
       lemma: "pronto",
       wordInContext: "Pronto",
@@ -4360,6 +4630,7 @@ export const CHAPTERS: ChapterData[] = [
     image: "ch03_s43",
     },
     {
+      kind: "cloze",
       id: "estar.estaré-ch03-s43",
       lemma: "estar",
       wordInContext: "estaré",
@@ -4377,17 +4648,17 @@ export const CHAPTERS: ChapterData[] = [
   },
 ];
 
-/** Flat array of all cards across chapters */
-export const ALL_CARDS: ClozeCard[] = CHAPTERS.flatMap(ch => ch.cards);
+/** Flat array of all cards across chapters (builtin chapters contain only ClozeCards) */
+export const ALL_CARDS: ClozeCard[] = CHAPTERS.flatMap(ch => ch.cards) as ClozeCard[];
 
 /** Look up card by ID */
 export function getCardById(id: string): ClozeCard | undefined {
   return ALL_CARDS.find(c => c.id === id);
 }
 
-/** Get cards for a specific chapter */
+/** Get cards for a specific chapter (builtin chapters contain only ClozeCards) */
 export function getChapterCards(chapterNumber: number): ClozeCard[] {
-  return CHAPTERS.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
+  return (CHAPTERS.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? []) as ClozeCard[];
 }
 
 /** Total card count */

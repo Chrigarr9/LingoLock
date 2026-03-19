@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, useEf
 import type { BundleConfig } from '../types/bundle';
 import type { ChapterData } from '../types/vocabulary';
 import type { SimpleCard } from '../types/simpleCard';
-import { getBundle, registerImportedBundle } from './bundles';
+import { getBundle, registerImportedBundle, createImportedBundle } from './bundles';
 import { loadActiveBundle, saveActiveBundle, migrateCardIdsToNamespaced } from '../services/storage';
 import { getImportedDecks, loadImportedDeckCards } from '../services/importedDeckStore';
 
@@ -32,26 +32,7 @@ export function ActiveBundleProvider({ children }: { children: React.ReactNode }
       for (const meta of metas) {
         try {
           const cards = await loadImportedDeckCards(meta.id);
-          registerImportedBundle(meta.id, {
-            config: {
-              id: meta.id,
-              type: 'imported',
-              nativeLanguage: '',
-              targetLanguage: '',
-              displayLabel: meta.name,
-              greetings: { morning: '', afternoon: '', evening: '' },
-              motivational: { perfect: '', great: '', good: '', encouragement: '' },
-              spellCharacters: [],
-              searchPlaceholder: '',
-              cardCount: meta.cardCount,
-              importedAt: meta.importedAt,
-            },
-            // Wrap imported cards in a single chapter so buildSession/getCardsDueCount work unchanged
-            chapters: [{ chapterNumber: 1, cards: cards as any }],
-            simpleCards: cards,
-            cardImages: {},
-            cardAudios: {},
-          });
+          registerImportedBundle(meta.id, createImportedBundle(meta, cards));
         } catch (error) {
           console.error(`[ActiveBundle] Failed to load imported deck ${meta.id}:`, error);
         }

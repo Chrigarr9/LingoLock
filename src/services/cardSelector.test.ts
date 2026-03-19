@@ -35,6 +35,7 @@ jest.mock('./fsrs', () => ({
 jest.mock('../content/bundle', () => {
   // Minimal stub of the content bundle with 2 chapters
   const makeCard = (id: string, lemma: string, chapter: number, distractors: string[]) => ({
+    kind: 'cloze' as const,
     id,
     lemma,
     wordInContext: lemma,
@@ -280,8 +281,10 @@ describe('buildSession', () => {
     expect(session).toHaveLength(1);
     const sc = session[0];
     expect(sc.answerType).toBe('mc4');
-    expect(sc.choices).toHaveLength(4);
-    expect(sc.choices).toContain(asCloze(sc.card).wordInContext);
+    if (sc.answerType === 'mc4') {
+      expect(sc.choices).toHaveLength(4);
+      expect(sc.choices).toContain(sc.card.wordInContext);
+    }
   });
 
   test('Text card has no choices', () => {
@@ -293,7 +296,7 @@ describe('buildSession', () => {
     expect(session).toHaveLength(1);
     const sc = session[0];
     expect(sc.answerType).toBe('text');
-    expect(sc.choices).toBeUndefined();
+    expect('choices' in sc).toBe(false);
   });
 });
 
@@ -305,6 +308,7 @@ describe('handleWrongAnswer', () => {
   function makeSessionCard(id: string): import('../types/vocabulary').SessionCard {
     return {
       card: {
+        kind: 'cloze' as const,
         id,
         lemma: id,
         wordInContext: id,

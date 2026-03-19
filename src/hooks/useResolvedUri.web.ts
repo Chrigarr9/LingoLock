@@ -39,8 +39,14 @@ export function useResolvedUri(uri: string | undefined): string | undefined {
     }
 
     let revoke: string | undefined;
+    let cancelled = false;
 
     getMediaBlobUrl(parsed.deckId, parsed.filename).then((blobUrl) => {
+      if (cancelled) {
+        // Component unmounted before resolve — revoke immediately to prevent leak
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        return;
+      }
       if (blobUrl) {
         revoke = blobUrl;
         setResolved(blobUrl);
@@ -48,6 +54,7 @@ export function useResolvedUri(uri: string | undefined): string | undefined {
     });
 
     return () => {
+      cancelled = true;
       if (revoke) URL.revokeObjectURL(revoke);
     };
   }, [uri]);

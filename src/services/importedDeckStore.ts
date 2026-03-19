@@ -50,7 +50,8 @@ export function getImportedDecks(): ImportedDeckMeta[] {
   if (!raw) return [];
   try {
     return JSON.parse(raw) as ImportedDeckMeta[];
-  } catch {
+  } catch (e) {
+    console.error('[ImportedDeckStore] Corrupted deck registry, returning empty list:', e);
     return [];
   }
 }

@@ -45,10 +45,14 @@ export async function importApkg(
     onProgress?.('Reading database…', 20);
     const anki21 = new File(unzipDir, 'collection.anki21');
     const anki2 = new File(unzipDir, 'collection.anki2');
-    const dbPath = anki21.exists ? anki21.uri : anki2.uri;
+    const dbFile = anki21.exists ? anki21 : anki2;
+
+    // expo-sqlite's openDatabaseAsync expects (filename, options, directory) —
+    // NOT a full file:// URI. Strip the scheme to get a POSIX directory path.
+    const dbDir = unzipDir.uri.replace(/^file:\/\//, '');
 
     const { openDatabaseAsync } = await import('expo-sqlite');
-    const db = await openDatabaseAsync(dbPath);
+    const db = await openDatabaseAsync(dbFile.name, {}, dbDir);
 
     onProgress?.('Reading deck info…', 30);
     let deckName = 'Imported Deck';
@@ -62,8 +66,8 @@ export async function importApkg(
         const nonDefault = entries.find((d) => d.name !== 'Default');
         deckName = nonDefault?.name ?? entries[0]?.name ?? deckName;
       }
-    } catch {
-      // col table may not exist in all schema versions
+    } catch (e) {
+      console.warn('[ApkgImporter] Could not read deck name from col table, using default:', e);
     }
 
     const deckId = generateDeckId(deckName);
@@ -85,7 +89,10 @@ export async function importApkg(
       try {
         const raw = await mediaJsonFile.text();
         mediaMap = JSON.parse(raw) as Record<string, string>;
-      } catch { /* proceed without media */ }
+      } catch (e) {
+        console.warn('[ApkgImporter] Failed to parse media mapping, continuing without media:', e);
+        onProgress?.('Warning: media mapping unreadable', 65);
+      }
     }
 
     const mediaNameSet = new Set(Object.values(mediaMap));

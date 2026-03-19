@@ -91,7 +91,9 @@ export interface SentenceVariant {
  * must produce the Spanish word.
  */
 export interface ClozeCard {
-  /** Unique ID: "{lemma}-ch{chapter}-s{sentenceIndex}" */
+  kind: 'cloze';
+  /** Unique ID: "{lemma}-ch{chapter}-s{sentenceIndex}", namespaced at runtime
+   *  by getBundle() to "bundleId:{lemma}-ch{chapter}-s{sentenceIndex}" */
   id: string;
   /** Base form of the word (e.g., "habitación") */
   lemma: string;
@@ -123,10 +125,10 @@ export interface ClozeCard {
   sentenceVariants?: SentenceVariant[];
 }
 
-/** Chapter data with its cards */
+/** Chapter data with its cards (ClozeCard for builtin, SimpleCard for imported) */
 export interface ChapterData {
   chapterNumber: number;
-  cards: ClozeCard[];
+  cards: (ClozeCard | import('./simpleCard').SimpleCard)[];
 }
 
 /** FSRS card state stored in MMKV — extends ts-fsrs Card with our card ID */
@@ -145,17 +147,11 @@ export interface CardState {
   last_review?: string;  // ISO date string
 }
 
-/** Card in the active session queue — combines content + state + answer type */
-export interface SessionCard {
-  card: ClozeCard | import('./simpleCard').SimpleCard;
-  answerType: 'mc4' | 'text' | 'selfRated';
-  /** Choices for MC mode (includes correct answer + 3 distractors) */
-  choices?: string[];
-  /** True when card has never been seen before (cardState was null) */
-  isFirstEncounter?: boolean;
-  /** Hint level for text mode — controls progressive hint generosity */
-  hintLevel?: 'full' | 'medium' | 'minimal';
-}
+/** Card in the active session queue — discriminated union ties card type to answer mode */
+export type SessionCard =
+  | { answerType: 'mc4'; card: ClozeCard; choices: string[]; isFirstEncounter?: boolean }
+  | { answerType: 'text'; card: ClozeCard; hintLevel?: 'full' | 'medium' | 'minimal'; isFirstEncounter?: boolean }
+  | { answerType: 'selfRated'; card: import('./simpleCard').SimpleCard; isFirstEncounter?: boolean };
 
 /** Mastery status for display in vocabulary screens. */
 export type MasteryStatus = 'New' | 'Learning' | 'Mastered';
@@ -163,7 +159,8 @@ export type MasteryStatus = 'New' | 'Learning' | 'Mastered';
 /** Stats persisted in MMKV */
 export interface PersistedStats {
   currentStreak: number;
-  lastSessionDate: string | null;  // ISO date string
+  /** Date when the streak was last advanced (YYYY-MM-DD) — set only when all due cards are completed */
+  lastStreakDate: string | null;
   totalCorrect: number;
   totalAnswered: number;
   /** Per-app session tracking: source app name → { sessions, cards } */

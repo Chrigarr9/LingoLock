@@ -57,7 +57,9 @@ export async function importApkg(
       const nonDefault = entries.find((d: { name: string }) => d.name !== 'Default');
       deckName = nonDefault?.name ?? entries[0]?.name ?? deckName;
     }
-  } catch { /* fallback */ }
+  } catch (e) {
+    console.warn('[ApkgImporter] Could not read deck name from col table, using default:', e);
+  }
 
   const deckId = generateDeckId(deckName);
 
@@ -85,11 +87,17 @@ export async function importApkg(
   let mediaMap: Record<string, string> = {};
   const mediaFile = zip.file('media');
   if (mediaFile) {
-    try { mediaMap = JSON.parse(await mediaFile.async('text')); } catch { /* skip */ }
+    try {
+      mediaMap = JSON.parse(await mediaFile.async('text'));
+    } catch (e) {
+      console.warn('[ApkgImporter] Failed to parse media mapping, continuing without media:', e);
+      onProgress?.('Warning: media mapping unreadable', 65);
+    }
   }
 
   const mediaNames = new Set(Object.values(mediaMap));
   let mediaProcessed = 0;
+  let mediaErrors = 0;
   const mediaTotal = Object.keys(mediaMap).length;
   const audioFiles = [...mediaNames].filter(n => /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(n));
   console.log(`[Import] Media: ${mediaTotal} files (${audioFiles.length} audio)`);
@@ -108,13 +116,20 @@ export async function importApkg(
         const mime = mimeMap[ext] ?? 'application/octet-stream';
         const blob = new Blob([data], { type: mime });
         await saveMediaBlob(deckId, realName, blob);
-      } catch { /* skip individual media files */ }
+      } catch (e) {
+        mediaErrors++;
+        console.warn(`[Import] Failed to save media "${realName}":`, e);
+      }
     }
     mediaProcessed++;
     if (mediaTotal > 0) {
       const pct = 50 + Math.round((mediaProcessed / mediaTotal) * 35);
       onProgress?.(`Processing media… ${mediaProcessed}/${mediaTotal}`, pct);
     }
+  }
+
+  if (mediaErrors > 0) {
+    console.warn(`[Import] ${mediaErrors}/${mediaTotal} media files failed to save`);
   }
 
   // Resolve media references on cards to IndexedDB markers

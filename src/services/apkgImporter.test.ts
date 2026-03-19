@@ -109,6 +109,7 @@ describe('parseAnkiNotes', () => {
 
     expect(cards).toHaveLength(1);
     expect(cards[0]).toEqual({
+      kind: 'simple',
       id: '1',
       front: 'hola',
       back: 'hello',

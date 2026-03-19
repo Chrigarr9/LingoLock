@@ -23,7 +23,7 @@ const params = generatorParameters({
   request_retention: 0.9,   // Target 90% recall probability
   maximum_interval: 365,     // Cap intervals at 1 year
   enable_fuzz: true,         // Add ±randomness to intervals (prevents batch bunching)
-  enable_short_term: true,   // Intra-day learning steps (1min → 10min → 1day for new cards)
+  enable_short_term: true,   // Intra-day learning step (10min before graduating to Review)
 });
 
 const scheduler = fsrs(params);
@@ -109,18 +109,21 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
 }
 
 /**
- * Determine the answer input type based on FSRS stability.
+ * Determine the answer input type based on FSRS state and stability.
  *
- * Thresholds:
- *   stability < 2.0  → 'mc4'  (new/fragile: 4 choices, vocabulary introduction)
- *   stability >= 2.0 → 'text' (recall: free text with optional hint)
+ * - Graduated (Review) cards always use active recall (text).
+ * - Learning/Relearning cards use stability as the MC→text signal:
+ *   after a correct MC answer stability crosses ~2.0, meaning the card
+ *   is ready for active recall even within the learning phase.
+ * - Wrong answers drop stability back below the threshold → MC again.
  *
  * New cards (null state) default to 'mc4'.
  */
 export function getAnswerType(cardState: CardState | null): 'mc4' | 'text' {
   if (cardState === null) return 'mc4';
-  if (cardState.stability < 2.0) return 'mc4';
-  return 'text';
+  if (cardState.state === (State.Review as number)) return 'text';
+  if (cardState.stability >= 1.0) return 'text';
+  return 'mc4';
 }
 
 /** Hint level for text mode — controls how many letters are revealed */

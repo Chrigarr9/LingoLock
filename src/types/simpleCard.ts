@@ -4,8 +4,9 @@
  * Always reviewed in self-rated mode (user reveals back, then rates recall).
  */
 export interface SimpleCard {
-  /** Unique ID: just the note ID (e.g., "42"). Namespacing with bundleId
-   *  happens at the storage layer, same as ClozeCard. */
+  kind: 'simple';
+  /** Unique ID: note ID (e.g., "42"), namespaced at runtime by getBundle()
+   *  to "bundleId:42" so storage keys are unique across decks. */
   id: string;
   /** Front side text (plain text, HTML stripped during import) */
   front: string;

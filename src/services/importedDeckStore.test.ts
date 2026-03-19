@@ -113,6 +113,7 @@ function makeMeta(overrides: Partial<ImportedDeckMeta> = {}): ImportedDeckMeta {
 
 function makeCard(overrides: Partial<SimpleCard> = {}): SimpleCard {
   return {
+    kind: 'simple',
     id: '1',
     front: 'hello',
     back: 'hola',

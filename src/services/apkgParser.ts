@@ -101,7 +101,7 @@ export function parseAnkiNotes(rows: AnkiNoteRow[], deckId: string): SimpleCard[
 
     if (!front && !back) continue;
 
-    const card: SimpleCard = { id: String(row.id), front, back, deckId };
+    const card: SimpleCard = { kind: 'simple', id: String(row.id), front, back, deckId };
     if (audio) card.audio = audio;
     if (image) card.image = image;
 

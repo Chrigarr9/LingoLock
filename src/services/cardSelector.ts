@@ -13,38 +13,13 @@
 
 import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
 import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
+import { shuffle } from '../utils/shuffle';
+import { buildMcChoices } from '../utils/cardChoices';
 import type { SessionCard, ClozeCard, ChapterData } from '../types/vocabulary';
+import type { SimpleCard } from '../types/simpleCard';
 
-function getChapterCards(chapters: ChapterData[], chapterNumber: number): ClozeCard[] {
+function getChapterCards(chapters: ChapterData[], chapterNumber: number): (ClozeCard | SimpleCard)[] {
   return chapters.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
-}
-
-// ---------------------------------------------------------------------------
-// Fisher-Yates shuffle (in-place, returns same array)
-// ---------------------------------------------------------------------------
-
-function shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// ---------------------------------------------------------------------------
-// MC choice generation
-// ---------------------------------------------------------------------------
-
-/**
- * Build MC4 choices for a card: correct word + 3 distractors, shuffled.
- */
-function buildChoices(card: ClozeCard): string[] {
-  const distractors = card.distractors.slice(0, 3);
-  if (distractors.length < 3) {
-    console.warn(`[CardSelector] Card ${card.id} has only ${distractors.length} distractors`);
-  }
-  const choices = [card.wordInContext, ...distractors];
-  return shuffle(choices);
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +103,7 @@ function pickVariant(
 // ---------------------------------------------------------------------------
 
 function toSessionCard(
-  card: ClozeCard,
+  card: ClozeCard | SimpleCard,
   currentChapter: number,
   seenByChapter: Map<number, number>,
 ): SessionCard {
@@ -136,7 +111,7 @@ function toSessionCard(
   const isFirstEncounter = cardState === null;
 
   // SimpleCard (imported deck) — always self-rated
-  if (!('wordInContext' in card)) {
+  if (card.kind === 'simple') {
     return { card, answerType: 'selfRated', isFirstEncounter };
   }
 
@@ -155,7 +130,7 @@ function toSessionCard(
   return {
     card: activeCard,
     answerType,
-    choices: buildChoices(activeCard),
+    choices: buildMcChoices(activeCard),
     isFirstEncounter,
   };
 }
@@ -267,7 +242,7 @@ export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number
 
   // --- Collect ALL due review cards -------------------------------------
   // No fixed limit — continuous sessions review everything that is due.
-  const dueCards: ClozeCard[] = [];
+  const dueCards: (ClozeCard | SimpleCard)[] = [];
   for (const chapter of chapters) {
     for (const card of chapter.cards) {
       const state = loadCardState(card.id);
@@ -279,7 +254,7 @@ export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number
 
   // --- Collect new words (no CardState) -----------------------------------
   // Source: current chapter first, then subsequent chapters in order.
-  const newCards: ClozeCard[] = [];
+  const newCards: (ClozeCard | SimpleCard)[] = [];
   const currentChapterIndex = chapters.findIndex(
     (ch) => ch.chapterNumber === currentChapterNumber,
   );

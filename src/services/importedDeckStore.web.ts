@@ -127,7 +127,8 @@ export function getImportedDecks(): ImportedDeckMeta[] {
   if (!raw) return [];
   try {
     return JSON.parse(raw) as ImportedDeckMeta[];
-  } catch {
+  } catch (e) {
+    console.error('[ImportedDeckStore] Corrupted deck registry, returning empty list:', e);
     return [];
   }
 }
@@ -149,7 +150,9 @@ export function removeImportedDeck(deckId: string): void {
     await idbDelete(db, CARDS_STORE, deckId);
     await idbDeleteByPrefix(db, MEDIA_STORE, `${deckId}/`);
     db.close();
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error(`[ImportedDeckStore] Failed to clean up IndexedDB for deck ${deckId}:`, err);
+  });
 }
 
 // ---------------------------------------------------------------------------
