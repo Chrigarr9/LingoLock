@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Platform, Animated } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import * as DocumentPicker from 'expo-document-picker';
-import { getAvailableBundles, getBundle, registerImportedBundle, unregisterImportedBundle } from '../content/bundles';
-import { loadActiveBundle, cardStorage } from '../services/storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getAvailableBundles, getBundle } from '../content/bundles';
+import { loadActiveBundle } from '../services/storage';
 import { getCardsDueCount } from '../services/statsService';
-import { importApkg } from '../services/apkgImporter';
-import { removeImportedDeck, loadImportedDeckCards } from '../services/importedDeckStore';
-import type { BundleConfig, Bundle } from '../types/bundle';
+import { useApkgImport } from '../hooks/useApkgImport';
+import type { BundleConfig } from '../types/bundle';
 
 interface BundlePickerProps {
   visible: boolean;
@@ -15,18 +14,25 @@ interface BundlePickerProps {
   onBundleChanged: (bundleId: string) => void;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePickerProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const activeBundleId = loadActiveBundle();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState('');
+  const { importing, importProgress, handleImport, confirmDeleteDeck } = useApkgImport();
+
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(0);
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    }
+  }, [visible]);
 
   const bundles = getAvailableBundles();
 
@@ -35,124 +41,22 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
     onClose();
   };
 
-  const pickFileWeb = (): Promise<{ uri: string; name: string } | null> => {
-    return new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.apkg';
-      input.onchange = () => {
-        const f = input.files?.[0];
-        if (!f) { resolve(null); return; }
-        resolve({ uri: URL.createObjectURL(f), name: f.name });
-      };
-      input.click();
+  const onImport = () => {
+    handleImport((deckId) => {
+      onBundleChanged(deckId);
+      setRefreshKey((k) => k + 1);
+      onClose();
     });
   };
 
-  const handleImport = async () => {
-    try {
-      let fileUri: string;
-      let fileName: string;
-
-      if (Platform.OS === 'web') {
-        const picked = await pickFileWeb();
-        if (!picked) return;
-        fileUri = picked.uri;
-        fileName = picked.name;
-      } else {
-        const result = await DocumentPicker.getDocumentAsync({
-          type: '*/*',
-          copyToCacheDirectory: true,
-        });
-        if (result.canceled || !result.assets?.length) return;
-        fileUri = result.assets[0].uri;
-        fileName = result.assets[0].name ?? '';
-      }
-
-      if (!fileName.toLowerCase().endsWith('.apkg')) {
-        Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
-        return;
-      }
-
-      setImporting(true);
-      setImportProgress('Starting import...');
-
-      const meta = await importApkg(fileUri, (stage, _pct) => {
-        setImportProgress(stage);
-      });
-
-      // Load cards into memory and register the bundle
-      const cards = await loadImportedDeckCards(meta.id);
-      const bundle: Bundle = {
-        config: {
-          id: meta.id,
-          type: 'imported',
-          nativeLanguage: '',
-          targetLanguage: '',
-          displayLabel: meta.name,
-          greetings: { morning: '', afternoon: '', evening: '' },
-          motivational: { perfect: '', great: '', good: '', encouragement: '' },
-          spellCharacters: [],
-          searchPlaceholder: '',
-          cardCount: meta.cardCount,
-          importedAt: meta.importedAt,
-        },
-        chapters: [{ chapterNumber: 1, cards: cards as any }],
-        simpleCards: cards,
-        cardImages: {},
-        cardAudios: {},
-      };
-      registerImportedBundle(meta.id, bundle);
-
-      // Switch to the newly imported deck
-      onBundleChanged(meta.id);
-      setRefreshKey((k) => k + 1);
-      setImporting(false);
-      setImportProgress('');
-      onClose();
-    } catch (error) {
-      setImporting(false);
-      setImportProgress('');
-      Alert.alert(
-        'Import failed',
-        error instanceof Error ? error.message : 'An unknown error occurred.',
-      );
-    }
-  };
-
-  const handleDeleteDeck = (bundle: BundleConfig) => {
-    Alert.alert(
-      'Delete deck',
-      `Remove "${bundle.displayLabel}" and all its progress? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            // Delete FSRS card states for this deck
-            const allKeys = cardStorage.getAllKeys();
-            const prefix = `${bundle.id}:`;
-            for (const key of allKeys) {
-              if (key.startsWith(prefix)) {
-                cardStorage.remove(key);
-              }
-            }
-
-            // Unregister from runtime cache and remove from disk/MMKV
-            unregisterImportedBundle(bundle.id);
-            removeImportedDeck(bundle.id);
-
-            // If the deleted deck was active, fall back to default
-            if (bundle.id === activeBundleId) {
-              onBundleChanged('es-de-buenos-aires');
-            }
-
-            setRefreshKey((k) => k + 1);
-          },
-        },
-      ],
-    );
+  const onDeleteDeck = (bundle: BundleConfig) => {
+    confirmDeleteDeck(bundle.id, bundle.displayLabel, {
+      activeBundleId,
+      onDeleted: (fallbackId) => {
+        if (fallbackId) onBundleChanged(fallbackId);
+        setRefreshKey((k) => k + 1);
+      },
+    });
   };
 
   const getDueCount = (bundle: BundleConfig): number => {
@@ -164,10 +68,10 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1}>
         <View style={[styles.sheetContainer]}>
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
+        <Animated.View style={[styles.sheet, { backgroundColor: theme.colors.surface, paddingBottom: Math.max(20, insets.bottom), transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] }) }] }]}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Decks</Text>
 
           {bundles.map((bundle) => {
@@ -179,7 +83,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
                 key={bundle.id}
                 style={[styles.row, isActive && { backgroundColor: theme.colors.primaryContainer }]}
                 onPress={() => handleSelect(bundle.id)}
-                onLongPress={isImported ? () => handleDeleteDeck(bundle) : undefined}
+                onLongPress={isImported ? () => onDeleteDeck(bundle) : undefined}
               >
                 <View style={styles.labelContainer}>
                   <Text style={[styles.label, { color: theme.colors.onSurface }]}>
@@ -206,7 +110,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
               </Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.row} onPress={handleImport}>
+            <TouchableOpacity style={styles.row} onPress={onImport}>
               <Text style={{ color: theme.colors.primary, fontWeight: '500' }}>
                 + Import your own deck
               </Text>
@@ -218,7 +122,7 @@ export function BundlePicker({ visible, onClose, onBundleChanged }: BundlePicker
               + Download more (coming soon)
             </Text>
           </View>
-        </View>
+        </Animated.View>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -239,7 +143,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
     width: '100%',
     ...(Platform.OS === 'web' ? { maxWidth: 480 } : {}),
   },

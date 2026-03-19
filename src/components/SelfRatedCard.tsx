@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
+    aspectRatio: 3 / 2,
     borderRadius: 12,
   },
   frontText: {

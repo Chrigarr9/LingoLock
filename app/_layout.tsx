@@ -7,7 +7,10 @@ import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
 import { setupNotifications } from '../src/services/notificationService';
 import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWidgetRate, updateWidgetData } from '../src/services/widgetService';
+// Import early so TaskManager.defineTask runs at module level (required by iOS)
+import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
+import { addUserInteractionListener, type UserInteractionEvent } from 'expo-widgets';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -81,14 +84,66 @@ export default function RootLayout() {
       });
     }
 
-    // Native: Setup notifications
+    // Native: Setup notifications, initialize widget, and listen for widget interactions
     let cleanupNotifications: (() => void) | undefined;
+    let cleanupWidgetListener: (() => void) | undefined;
     if (Platform.OS !== 'web') {
       cleanupNotifications = setupNotifications();
+      // Register background fetch so notifications keep firing even when app isn't opened
+      registerBackgroundNotificationTask().catch((err) => {
+        console.warn('[App] Background fetch registration failed:', err);
+      });
+      // Push current card data to the widget so it has content on launch
+      updateWidgetData();
+
+      // Listen for widget button taps (target strings from expo-widgets Button)
+      const widgetSub = addUserInteractionListener((event: UserInteractionEvent) => {
+        const { target } = event;
+        if (!target) return;
+
+        console.log('[App] Widget interaction:', target);
+        const parts = target.split(':');
+        const action = parts[0];
+
+        try {
+          if (action === 'answer' && parts.length >= 3) {
+            const cardId = parts[1];
+            // Choice may contain colons, so rejoin everything after cardId
+            const choice = parts.slice(2).join(':');
+            const result = processWidgetAnswer(cardId, choice);
+            console.log('[App] Widget answer processed:', result);
+            updateWidgetData();
+          } else if (action === 'spell' && parts.length >= 3) {
+            const cardId = parts[1];
+            const spellAction = parts[2] as 'char' | 'back' | 'submit';
+            const char = parts[3]; // only present for 'char' action
+            const result = processSpellAction(cardId, spellAction, char);
+            if (result.submitted) {
+              console.log('[App] Spell submitted:', result);
+            }
+            updateWidgetData();
+          } else if (action === 'reveal' && parts.length >= 2) {
+            const cardId = parts[1];
+            processWidgetReveal(cardId);
+            updateWidgetData();
+          } else if (action === 'rate' && parts.length >= 3) {
+            const cardId = parts[1];
+            const rating = parts[2] as '1' | '3';
+            processWidgetRate(cardId, rating);
+            updateWidgetData();
+          } else {
+            console.warn('[App] Unknown widget target:', target);
+          }
+        } catch (error) {
+          console.error('[App] Failed to handle widget interaction:', error);
+        }
+      });
+      cleanupWidgetListener = () => widgetSub.remove();
     }
 
     return () => {
       cleanupNotifications?.();
+      cleanupWidgetListener?.();
     };
   }, []);
 
@@ -168,6 +223,7 @@ export default function RootLayout() {
           presentation: 'fullScreenModal',
           headerShown: false,
           animation: 'fade',
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen

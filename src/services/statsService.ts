@@ -2,7 +2,7 @@
  * Stats Service — streak, success rate, chapter mastery, per-app tracking
  *
  * Computes and persists all user-facing progress metrics:
- *   - Streak: consecutive days with sessions (resets on gaps)
+ *   - Streak: consecutive days with ALL due cards completed (not just any session)
  *   - Success rate: global correct/answered percentage
  *   - Chapter mastery: percentage of chapter cards in FSRS Review state
  *   - Per-app stats: sessions and cards answered per source app
@@ -12,27 +12,13 @@
  * All comparisons are pure string comparisons after slicing to date portion.
  */
 
-import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday } from './storage';
+import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday, loadEnabledBundles } from './storage';
 import { isCardMastered, isDue } from './fsrs';
+import { getTodayString, getYesterdayString } from '../utils/dateHelpers';
 import type { ChapterData } from '../types/vocabulary';
 import type { SimpleCard } from '../types/simpleCard';
 import { getCurrentChapter } from './cardSelector';
-
-// ---------------------------------------------------------------------------
-// Date helpers (no external library needed)
-// ---------------------------------------------------------------------------
-
-/** Returns today's date as YYYY-MM-DD string */
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-/** Returns yesterday's date as YYYY-MM-DD string */
-function getYesterdayString(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
+import { getBundle, isImportedBundle } from '../content/bundles';
 
 // ---------------------------------------------------------------------------
 // updateStatsAfterSession
@@ -41,10 +27,9 @@ function getYesterdayString(): string {
 /**
  * Update persisted stats after completing a session.
  *
- * Streak logic:
- *   - lastSessionDate == today  → streak unchanged (already counted today)
- *   - lastSessionDate == yesterday → streak++  (consecutive day)
- *   - lastSessionDate is older OR null → streak = 1 (new streak starts)
+ * Tracks cards reviewed, session counts, and per-app stats.
+ * Does NOT touch streak — streak is only advanced by checkAndAdvanceStreak()
+ * when all due cards have been completed.
  *
  * @param correctCount  Number of cards answered correctly
  * @param totalCount    Total number of cards in the session
@@ -56,20 +41,6 @@ export function updateStatsAfterSession(
   sourceApp: string,
 ): void {
   const stats = loadStats();
-  const todayStr = getTodayString();
-  const yesterdayStr = getYesterdayString();
-
-  // --- Streak update -------------------------------------------------------
-  if (stats.lastSessionDate === todayStr) {
-    // Already did a session today — streak stays the same
-  } else if (stats.lastSessionDate === yesterdayStr) {
-    // Consecutive day — increment
-    stats.currentStreak += 1;
-  } else {
-    // Gap (or first session ever) — start fresh
-    stats.currentStreak = 1;
-  }
-  stats.lastSessionDate = todayStr;
 
   // --- Totals update -------------------------------------------------------
   stats.totalCorrect += correctCount;
@@ -87,24 +58,102 @@ export function updateStatsAfterSession(
 }
 
 // ---------------------------------------------------------------------------
+// checkAndAdvanceStreak
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if all due cards have been completed and advance the streak if so.
+ *
+ * Reads the total due card count across all enabled bundles (builtin + imported).
+ * If due count === 0:
+ *   - lastStreakDate == today  → already counted today, no change
+ *   - lastStreakDate == yesterday → streak++ (consecutive day)
+ *   - lastStreakDate is older OR null → streak = 1 (new streak)
+ * If due count > 0: do nothing (streak unchanged).
+ *
+ * Call this after every card review (in-app, notification, widget).
+ */
+export function checkAndAdvanceStreak(): void {
+  const totalDue = getTotalDueCount();
+  if (totalDue > 0) return; // Still cards remaining — no streak advance
+
+  const stats = loadStats();
+  const todayStr = getTodayString();
+  const yesterdayStr = getYesterdayString();
+
+  if (stats.lastStreakDate === todayStr) {
+    // Already advanced streak today — nothing to do
+    return;
+  }
+
+  if (stats.lastStreakDate === yesterdayStr) {
+    stats.currentStreak += 1;
+  } else {
+    // Gap or first time — start fresh
+    stats.currentStreak = 1;
+  }
+  stats.lastStreakDate = todayStr;
+
+  saveStats(stats);
+}
+
+/**
+ * Get total due card count across all enabled bundles (builtin + imported).
+ * Used by checkAndAdvanceStreak to determine if all due work is done.
+ *
+ * Card IDs are pre-namespaced by getBundle() (e.g. "es-de-buenos-aires:gato-ch01-s03"),
+ * so we just use card.id directly for storage lookups.
+ */
+function getTotalDueCount(): number {
+  const enabledIds = loadEnabledBundles();
+  let totalDue = 0;
+
+  for (const bundleId of enabledIds) {
+    const bundle = getBundle(bundleId);
+
+    if (isImportedBundle(bundleId)) {
+      // Imported decks: scan simpleCards
+      for (const card of bundle.simpleCards) {
+        const state = loadCardState(card.id);
+        if (state !== null && isDue(state)) {
+          totalDue++;
+        }
+      }
+    } else {
+      // Builtin decks: scan chapters
+      for (const chapter of bundle.chapters) {
+        for (const card of chapter.cards) {
+          const state = loadCardState(card.id);
+          if (state !== null && isDue(state)) {
+            totalDue++;
+          }
+        }
+      }
+    }
+  }
+
+  return totalDue;
+}
+
+// ---------------------------------------------------------------------------
 // getStreak
 // ---------------------------------------------------------------------------
 
 /**
  * Returns the current streak count.
  *
- * A streak is only valid if the last session was today or yesterday.
- * If the last session was more than a day ago, the streak has broken — return 0.
- * (updateStatsAfterSession will reset and restart the streak on next session.)
+ * A streak is only valid if the last streak date was today or yesterday.
+ * If it was more than a day ago, the streak has broken — return 0.
+ * (checkAndAdvanceStreak will reset and restart the streak when all due cards are done.)
  */
 export function getStreak(): number {
   const stats = loadStats();
-  if (!stats.lastSessionDate) return 0;
+  if (!stats.lastStreakDate) return 0;
 
   const todayStr = getTodayString();
   const yesterdayStr = getYesterdayString();
 
-  if (stats.lastSessionDate === todayStr || stats.lastSessionDate === yesterdayStr) {
+  if (stats.lastStreakDate === todayStr || stats.lastStreakDate === yesterdayStr) {
     return stats.currentStreak;
   }
 
@@ -198,13 +247,15 @@ export function getCardsDueCount(chapters: ChapterData[]): number {
 /**
  * Returns due card count for an imported deck (SimpleCard[]).
  * Same logic as getCardsDueCount but for flat card arrays without chapters.
+ *
+ * Card IDs are pre-namespaced by getBundle() (e.g. "imported-1:card-42"),
+ * so we just use card.id directly.
  */
-export function getImportedCardsDueCount(cards: SimpleCard[], bundleId: string): number {
+export function getImportedCardsDueCount(cards: SimpleCard[], _bundleId: string): number {
   let dueReviews = 0;
   let newCardsAvailable = 0;
   for (const card of cards) {
-    const namespacedId = `${bundleId}:${card.id}`;
-    const state = loadCardState(namespacedId);
+    const state = loadCardState(card.id);
     if (state === null) {
       newCardsAvailable++;
     } else if (isDue(state)) {
@@ -219,9 +270,6 @@ export function getImportedCardsDueCount(cards: SimpleCard[], bundleId: string):
 // ---------------------------------------------------------------------------
 // Abort tracking
 // ---------------------------------------------------------------------------
-
-/** Max allowed forced-session aborts per day before streak breaks */
-const MAX_DAILY_ABORTS = 2;
 
 /**
  * Ensure abort counters are for today. If lastAbortDate is not today, reset.
@@ -241,38 +289,22 @@ function normalizeAbortStats(stats: import('../types/vocabulary').PersistedStats
 }
 
 /**
- * Record a forced-session abort. If this is the 3rd abort today, streak resets to 0.
+ * Record a forced-session abort. Tracks abort count for analytics.
+ * Does NOT affect streak — streak is purely about completing all due cards.
  *
  * Only call this for forced sessions (type: 'unlock' | 'app_open').
  * Voluntary practice aborts should NOT call this.
  *
  * @param sourceApp  The app that triggered the session (for per-app tracking)
- * @returns true if streak was broken by this abort
  */
-export function recordAbort(sourceApp: string): boolean {
+export function recordAbort(sourceApp: string): void {
   const stats = loadStats();
   normalizeAbortStats(stats);
 
   stats.abortsToday += 1;
   stats.totalAborts += 1;
 
-  const streakBroken = stats.abortsToday >= MAX_DAILY_ABORTS + 1; // 3rd abort breaks it
-  if (streakBroken) {
-    stats.currentStreak = 0;
-  }
-
   saveStats(stats);
-  return streakBroken;
-}
-
-/**
- * Returns whether the user can still abort without losing their streak.
- * true = safe to abort (under the daily limit), false = next abort breaks streak.
- */
-export function canAbortSafely(): boolean {
-  const stats = loadStats();
-  normalizeAbortStats(stats);
-  return stats.abortsToday < MAX_DAILY_ABORTS;
 }
 
 /**

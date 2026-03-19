@@ -1,25 +1,53 @@
-'use client';
 /**
  * VocabularyWidget - Home Screen and Lock Screen widget component
  *
- * Displays vocabulary cards for on-widget practice (iOS 17+ interactive widgets).
+ * Renders using expo-widgets SwiftUI bridge (@expo/ui/swift-ui components).
+ * The JSX compiles to {type, props} objects that DynamicView.swift maps to
+ * native SwiftUI views. Styling uses `modifiers` arrays, NOT CSS/RN styles.
  *
  * Widget behavior by card type:
- *   - MC cards (mc2/mc4): Shows A/B/C/D answer buttons directly on widget
- *   - Text cards: Shows character-picker "spell" keyboard (4 char buttons + back + submit)
+ *   - MC cards (mc2/mc4): Shows answer buttons directly on widget
+ *   - Text cards: Shows character-picker "spell" keyboard (char buttons + back + submit)
+ *   - Self-rated cards: Shows front text with reveal button, then front/back with rating buttons
  *   - Empty state: Shows "All caught up!" message when no cards due
  *
  * Widget sizes:
- *   - systemMedium (Home Screen): Full sentence + hint + spell/MC buttons + progress
- *   - systemSmall (Home Screen): Sentence + spell/MC buttons (compact)
+ *   - systemMedium (Home Screen): Full sentence + hint + buttons + progress
+ *   - systemSmall (Home Screen): Sentence + buttons (compact)
  *   - accessoryRectangular (Lock Screen): Compact char buttons + input display
+ *
+ * Button interactions use `target` strings. The main app registers an
+ * `addUserInteractionListener` that parses the target and dispatches
+ * to the same handlers the deep link system uses.
+ *
+ * Target string format: "action:param1:param2:..."
+ *   - "answer:<cardId>:<choice>"
+ *   - "spell:<cardId>:char:<char>"
+ *   - "spell:<cardId>:back"
+ *   - "spell:<cardId>:submit"
+ *   - "reveal:<cardId>"
+ *   - "rate:<cardId>:<rating>"
  */
 
 import React from 'react';
-import { createWidget } from 'expo-widgets';
+import { createWidget, type WidgetEnvironment } from 'expo-widgets';
+import { VStack, HStack, Text, Button, Spacer, Divider } from '@expo/ui/swift-ui';
+import {
+  padding,
+  frame,
+  font,
+  foregroundStyle,
+  buttonStyle,
+  tint,
+  lineLimit,
+  multilineTextAlignment,
+} from '@expo/ui/swift-ui/modifiers';
 import { getWidgetCardData } from '../src/services/widgetService';
 
-// Widget props type (data passed via timeline)
+// ---------------------------------------------------------------------------
+// Widget props — data passed via timeline snapshots
+// ---------------------------------------------------------------------------
+
 interface VocabularyWidgetProps {
   cardId?: string;
   sentence?: string;
@@ -28,475 +56,483 @@ interface VocabularyWidgetProps {
   choices?: string[];
   cardsLeft?: number;
   streakCount?: number;
-  // Spell mode fields (character-picker keyboard for text cards)
+  // Spell mode fields
   spellInput?: string;
   spellChoices?: string[];
-  // Self-rated mode fields (imported deck cards)
+  // Self-rated mode fields
   frontText?: string;
   backText?: string;
   isRevealed?: boolean;
 }
 
-/**
- * Determine how many character buttons to show based on widget family.
- * Larger widgets get more buttons; Lock Screen gets fewer.
- */
-function getCharButtonCount(family?: string): number {
-  switch (family) {
-    case 'accessoryRectangular': return 4;
-    case 'systemSmall': return 4;
-    case 'systemMedium':
-    default: return 4;
-  }
+// ---------------------------------------------------------------------------
+// Brand colors
+// ---------------------------------------------------------------------------
+
+const BRAND_ORANGE = '#FFA056';
+const COLOR_RED = '#EF5350';
+const COLOR_GREEN = '#66BB6A';
+const COLOR_BLUE = '#5B8EC4';
+
+// ---------------------------------------------------------------------------
+// Shared sub-components
+// ---------------------------------------------------------------------------
+
+/** Progress text shown at the bottom of Home Screen widgets */
+function ProgressFooter({ cardsLeft }: { cardsLeft?: number }) {
+  if (cardsLeft === undefined || cardsLeft <= 0) return null;
+  return (
+    <Text modifiers={[
+      font({ size: 12 }),
+      foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+      padding({ top: 4 }),
+    ]}>
+      {cardsLeft} cards left today
+    </Text>
+  );
 }
 
-/**
- * Widget component - displays vocabulary card with interactive elements.
- *
- * IMPORTANT: expo-widgets is very new (SDK 55, January 2026). The exact API surface
- * and rendering behavior may differ from research examples. This component uses the
- * documented createWidget pattern, but may require adjustments when testing on device.
- *
- * The critical pieces are:
- *   1. Data layer (widgetService.ts) - provides card content and answer processing
- *   2. Deep linking (lingolock://widget-answer, lingolock://widget-spell) - connects buttons to app
- *   3. Widget configuration (app.json) - registers widget with iOS
- */
-function VocabularyWidgetComponent(props: VocabularyWidgetProps & { family?: string }) {
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+function EmptyState({ streakCount }: { streakCount?: number }) {
+  return (
+    <VStack alignment="center" spacing={8} modifiers={[
+      padding({ all: 16 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      <Text modifiers={[font({ size: 20, weight: 'bold' })]}>
+        All caught up!
+      </Text>
+      {streakCount && streakCount > 0 ? (
+        <Text modifiers={[
+          font({ size: 14 }),
+          foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+        ]}>
+          {streakCount} day streak
+        </Text>
+      ) : null}
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Self-rated card (imported deck) — revealed state
+// ---------------------------------------------------------------------------
+
+function SelfRatedRevealed({
+  cardId,
+  frontText,
+  backText,
+  isLockScreen,
+}: {
+  cardId: string;
+  frontText: string;
+  backText?: string;
+  isLockScreen: boolean;
+}) {
+  return (
+    <VStack alignment="leading" spacing={4} modifiers={[
+      padding({ all: isLockScreen ? 4 : 16 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      <Text modifiers={[
+        font({ size: isLockScreen ? 12 : 14 }),
+        foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+        lineLimit(2),
+      ]}>
+        {frontText}
+      </Text>
+      <Divider />
+      <Text modifiers={[
+        font({ size: isLockScreen ? 12 : 16, weight: 'semibold' }),
+        lineLimit(3),
+      ]}>
+        {backText}
+      </Text>
+      <Spacer />
+      <HStack spacing={8}>
+        <Button
+          target={`rate:${cardId}:1`}
+          label="Again"
+          modifiers={[
+            buttonStyle('borderedProminent'),
+            tint(COLOR_RED),
+          ]}
+        />
+        <Button
+          target={`rate:${cardId}:3`}
+          label="Good"
+          modifiers={[
+            buttonStyle('borderedProminent'),
+            tint(COLOR_GREEN),
+          ]}
+        />
+      </HStack>
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Self-rated card — unrevealed state
+// ---------------------------------------------------------------------------
+
+function SelfRatedHidden({
+  cardId,
+  frontText,
+  cardsLeft,
+  isLockScreen,
+}: {
+  cardId: string;
+  frontText: string;
+  cardsLeft?: number;
+  isLockScreen: boolean;
+}) {
+  return (
+    <VStack alignment="leading" spacing={8} modifiers={[
+      padding({ all: isLockScreen ? 4 : 16 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      <Text modifiers={[
+        font({ size: isLockScreen ? 12 : 18, weight: 'semibold' }),
+        lineLimit(4),
+      ]}>
+        {frontText}
+      </Text>
+      <Spacer />
+      <Button
+        target={`reveal:${cardId}`}
+        label="Reveal"
+        modifiers={[
+          buttonStyle('borderedProminent'),
+          tint(COLOR_BLUE),
+        ]}
+      />
+      {!isLockScreen ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MC card display
+// ---------------------------------------------------------------------------
+
+function MCCard({
+  cardId,
+  sentence,
+  germanHint,
+  choices,
+  cardsLeft,
+  isLockScreen,
+  isSmall,
+}: {
+  cardId: string;
+  sentence: string;
+  germanHint?: string;
+  choices: string[];
+  cardsLeft?: number;
+  isLockScreen: boolean;
+  isSmall: boolean;
+}) {
+  return (
+    <VStack alignment="leading" spacing={4} modifiers={[
+      padding({ all: isLockScreen ? 4 : 16 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      {/* Sentence */}
+      <Text modifiers={[
+        font({ size: isLockScreen ? 12 : isSmall ? 14 : 16, weight: 'semibold' }),
+        lineLimit(isLockScreen ? 2 : 3),
+      ]}>
+        {sentence}
+      </Text>
+
+      {/* Hint (not on lock screen or small) */}
+      {!isLockScreen && !isSmall && germanHint ? (
+        <Text modifiers={[
+          font({ size: 13 }),
+          foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+          lineLimit(1),
+        ]}>
+          {germanHint}
+        </Text>
+      ) : null}
+
+      <Spacer />
+
+      {/* MC answer buttons */}
+      <VStack spacing={4}>
+        {choices.map((choice: string, index: number) => {
+          const letter = String.fromCharCode(65 + index);
+          return (
+            <Button
+              key={index}
+              target={`answer:${cardId}:${choice}`}
+              label={`${letter}) ${choice}`}
+              modifiers={[
+                buttonStyle('borderedProminent'),
+                tint(BRAND_ORANGE),
+              ]}
+            />
+          );
+        })}
+      </VStack>
+
+      {/* Progress */}
+      {!isLockScreen ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Spell mode — Lock Screen (accessoryRectangular)
+// ---------------------------------------------------------------------------
+
+function SpellLockScreen({
+  cardId,
+  spellInput,
+  spellChoices,
+}: {
+  cardId: string;
+  spellInput: string;
+  spellChoices: string[];
+}) {
+  return (
+    <HStack spacing={3} modifiers={[
+      padding({ all: 4 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      <Text modifiers={[
+        font({ size: 12, weight: 'semibold', design: 'monospaced' }),
+        frame({ minWidth: 28 }),
+        multilineTextAlignment('center'),
+      ]}>
+        {spellInput || '...'}
+      </Text>
+      {spellChoices.map((char: string, index: number) => (
+        <Button
+          key={index}
+          target={`spell:${cardId}:char:${char}`}
+          label={char}
+          modifiers={[
+            buttonStyle('borderedProminent'),
+            tint(BRAND_ORANGE),
+          ]}
+        />
+      ))}
+      <Button
+        target={`spell:${cardId}:back`}
+        label="\u2190"
+        modifiers={[buttonStyle('bordered')]}
+      />
+      <Button
+        target={`spell:${cardId}:submit`}
+        label="\u2713"
+        modifiers={[
+          buttonStyle('borderedProminent'),
+          tint(COLOR_GREEN),
+        ]}
+      />
+    </HStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Spell mode — Home Screen (systemSmall / systemMedium)
+// ---------------------------------------------------------------------------
+
+function SpellHomeScreen({
+  cardId,
+  sentence,
+  germanHint,
+  spellInput,
+  spellChoices,
+  cardsLeft,
+  isSmall,
+}: {
+  cardId: string;
+  sentence: string;
+  germanHint?: string;
+  spellInput: string;
+  spellChoices: string[];
+  cardsLeft?: number;
+  isSmall: boolean;
+}) {
+  return (
+    <VStack alignment="leading" spacing={4} modifiers={[
+      padding({ all: 16 }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    ]}>
+      {/* Sentence */}
+      <Text modifiers={[
+        font({ size: isSmall ? 14 : 16, weight: 'semibold' }),
+        lineLimit(isSmall ? 2 : 3),
+      ]}>
+        {sentence}
+      </Text>
+
+      {/* Hint */}
+      {!isSmall && germanHint ? (
+        <Text modifiers={[
+          font({ size: 13 }),
+          foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+          lineLimit(1),
+        ]}>
+          {germanHint}
+        </Text>
+      ) : null}
+
+      <Spacer />
+
+      {/* Input display */}
+      <Text modifiers={[
+        font({ size: 20, weight: 'semibold', design: 'monospaced' }),
+        multilineTextAlignment('center'),
+        frame({ maxWidth: Infinity }),
+        padding({ vertical: 4 }),
+      ]}>
+        {spellInput || '_'}
+      </Text>
+
+      {/* Char buttons row */}
+      <HStack spacing={6}>
+        {spellChoices.map((char: string, index: number) => (
+          <Button
+            key={index}
+            target={`spell:${cardId}:char:${char}`}
+            label={char}
+            modifiers={[
+              buttonStyle('borderedProminent'),
+              tint(BRAND_ORANGE),
+            ]}
+          />
+        ))}
+      </HStack>
+
+      {/* Back / Submit row */}
+      <HStack spacing={8}>
+        <Button
+          target={`spell:${cardId}:back`}
+          label="\u2190"
+          modifiers={[buttonStyle('bordered')]}
+        />
+        <Button
+          target={`spell:${cardId}:submit`}
+          label="\u2713 Submit"
+          modifiers={[
+            buttonStyle('borderedProminent'),
+            tint(COLOR_GREEN),
+          ]}
+        />
+      </HStack>
+
+      {/* Progress */}
+      {!isSmall ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main widget component
+// ---------------------------------------------------------------------------
+
+function VocabularyWidgetComponent(
+  props: VocabularyWidgetProps,
+  env: WidgetEnvironment,
+) {
   const {
-    family, cardId, sentence, germanHint, answerType,
+    cardId, sentence, germanHint, answerType,
     choices, cardsLeft, streakCount,
     spellInput, spellChoices,
     frontText, backText, isRevealed,
   } = props;
 
+  const family = env.widgetFamily;
   const isLockScreen = family === 'accessoryRectangular';
   const isSmall = family === 'systemSmall';
 
-  // Self-rated mode — must come BEFORE empty state check (sentence is empty for these)
+  // Self-rated mode (imported deck cards)
   if (cardId && frontText) {
     if (isRevealed) {
       return (
-        <View style={styles.container}>
-          <View style={styles.cardContent}>
-            <Text style={isLockScreen ? styles.sentenceCompact : styles.selfRatedFrontSmall}>{frontText}</Text>
-            <View style={styles.selfRatedDivider} />
-            <Text style={isLockScreen ? styles.sentenceCompact : styles.sentence}>{backText}</Text>
-          </View>
-          <View style={styles.selfRatedButtons}>
-            <Button
-              url={`lingolock://widget-rate?cardId=${cardId}&rating=1`}
-              style={styles.againButton}
-              label="✗"
-            />
-            <Button
-              url={`lingolock://widget-rate?cardId=${cardId}&rating=3`}
-              style={styles.goodButton}
-              label="✓"
-            />
-          </View>
-        </View>
+        <SelfRatedRevealed
+          cardId={cardId}
+          frontText={frontText}
+          backText={backText}
+          isLockScreen={isLockScreen}
+        />
       );
     }
-
     return (
-      <View style={styles.container}>
-        <View style={styles.cardContent}>
-          <Text style={isLockScreen ? styles.sentenceCompact : styles.sentence}>{frontText}</Text>
-        </View>
-        <Button
-          url={`lingolock://widget-reveal?cardId=${cardId}`}
-          style={styles.revealWidgetButton}
-          label="Reveal"
-        />
-        {!isLockScreen && cardsLeft !== undefined && cardsLeft > 0 ? (
-          <Text style={styles.progress}>{cardsLeft} cards left today</Text>
-        ) : null}
-      </View>
+      <SelfRatedHidden
+        cardId={cardId}
+        frontText={frontText}
+        cardsLeft={cardsLeft}
+        isLockScreen={isLockScreen}
+      />
     );
   }
 
-  // Empty state (no cards due)
+  // Empty state
   if (!cardId || !sentence) {
+    return <EmptyState streakCount={streakCount} />;
+  }
+
+  // MC card display
+  if ((answerType === 'mc2' || answerType === 'mc4') && choices && choices.length > 0) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyTitle}>All caught up!</Text>
-        {streakCount && streakCount > 0 ? (
-          <Text style={styles.emptyStreak}>🔥 {streakCount} day streak</Text>
-        ) : null}
-      </View>
+      <MCCard
+        cardId={cardId}
+        sentence={sentence}
+        germanHint={germanHint}
+        choices={choices}
+        cardsLeft={cardsLeft}
+        isLockScreen={isLockScreen}
+        isSmall={isSmall}
+      />
     );
   }
 
-  // MC card display mode (mc2/mc4) - user can answer directly on widget
-  if (answerType === 'mc2' || answerType === 'mc4') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.cardContent}>
-          <Text style={isLockScreen ? styles.sentenceCompact : styles.sentence}>{sentence}</Text>
-          {!isLockScreen ? <Text style={styles.hint}>{germanHint}</Text> : null}
-        </View>
-
-        {/* MC answer buttons - iOS 17+ Button support */}
-        <View style={styles.buttonContainer}>
-          {choices?.map((choice: string, index: number) => {
-            const label = String.fromCharCode(65 + index); // A, B, C, D
-            const deepLinkUrl = `lingolock://widget-answer?cardId=${cardId}&choice=${encodeURIComponent(choice)}`;
-            return (
-              <Button
-                key={index}
-                url={deepLinkUrl}
-                style={styles.choiceButton}
-                label={`${label}) ${choice}`}
-              />
-            );
-          })}
-        </View>
-
-        {/* Progress indicator */}
-        {!isLockScreen && cardsLeft !== undefined && cardsLeft > 0 ? (
-          <Text style={styles.progress}>{cardsLeft} cards left today</Text>
-        ) : null}
-      </View>
-    );
-  }
-
-  // Spell mode — character-picker keyboard for text cards
-  // Shows typed input + 4 character buttons + back (←) + submit (✓)
+  // Spell mode
   const currentInput = spellInput ?? '';
   const charButtons = spellChoices ?? [];
 
   if (isLockScreen) {
-    // Lock Screen: ultra-compact layout — input + char buttons + back in one row
     return (
-      <View style={styles.lockScreenContainer}>
-        <Text style={styles.lockScreenInput}>
-          {currentInput || '···'}
-        </Text>
-        <View style={styles.lockScreenButtons}>
-          {charButtons.map((char: string, index: number) => (
-            <Button
-              key={index}
-              url={`lingolock://widget-spell?cardId=${cardId}&action=char&char=${encodeURIComponent(char)}`}
-              style={styles.charButtonCompact}
-              label={char}
-            />
-          ))}
-          <Button
-            url={`lingolock://widget-spell?cardId=${cardId}&action=back`}
-            style={styles.backButtonCompact}
-            label="←"
-          />
-          <Button
-            url={`lingolock://widget-spell?cardId=${cardId}&action=submit`}
-            style={styles.submitButtonCompact}
-            label="✓"
-          />
-        </View>
-      </View>
+      <SpellLockScreen
+        cardId={cardId}
+        spellInput={currentInput}
+        spellChoices={charButtons}
+      />
     );
   }
 
-  // Home Screen (systemSmall / systemMedium): sentence + input display + char buttons + back/submit
   return (
-    <View style={styles.container}>
-      <View style={styles.cardContent}>
-        <Text style={isSmall ? styles.sentenceCompact : styles.sentence}>{sentence}</Text>
-        {!isSmall ? <Text style={styles.hint}>{germanHint}</Text> : null}
-      </View>
-
-      {/* Current typed input */}
-      <View style={styles.spellInputContainer}>
-        <Text style={styles.spellInputText}>
-          {currentInput || '_'}
-        </Text>
-      </View>
-
-      {/* Character picker buttons */}
-      <View style={styles.charButtonRow}>
-        {charButtons.map((char: string, index: number) => (
-          <Button
-            key={index}
-            url={`lingolock://widget-spell?cardId=${cardId}&action=char&char=${encodeURIComponent(char)}`}
-            style={styles.charButton}
-            label={char}
-          />
-        ))}
-      </View>
-
-      {/* Back and Submit buttons */}
-      <View style={styles.actionButtonRow}>
-        <Button
-          url={`lingolock://widget-spell?cardId=${cardId}&action=back`}
-          style={styles.backButton}
-          label="←"
-        />
-        <Button
-          url={`lingolock://widget-spell?cardId=${cardId}&action=submit`}
-          style={styles.submitButton}
-          label="✓ Submit"
-        />
-      </View>
-
-      {/* Progress indicator */}
-      {!isSmall && cardsLeft !== undefined && cardsLeft > 0 ? (
-        <Text style={styles.progress}>{cardsLeft} cards left today</Text>
-      ) : null}
-    </View>
+    <SpellHomeScreen
+      cardId={cardId}
+      sentence={sentence}
+      germanHint={germanHint}
+      spellInput={currentInput}
+      spellChoices={charButtons}
+      cardsLeft={cardsLeft}
+      isSmall={isSmall}
+    />
   );
 }
 
-// Styles (expo-widgets may use SwiftUI-compatible styling)
-const styles = {
-  container: {
-    padding: 16,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    justifyContent: 'space-between' as const,
-    height: '100%',
-  },
-  cardContent: {
-    marginBottom: 8,
-  },
-  sentence: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    marginBottom: 4,
-  },
-  sentenceCompact: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    marginBottom: 2,
-  },
-  hint: {
-    fontSize: 14,
-    color: '#666',
-  },
-  buttonContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 8,
-  },
-  choiceButton: {
-    padding: 12,
-    backgroundColor: '#FFA056',
-    borderRadius: 8,
-  },
-  progress: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 8,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    marginBottom: 8,
-  },
-  emptyStreak: {
-    fontSize: 14,
-    color: '#666',
-  },
+// ---------------------------------------------------------------------------
+// Widget instance + initialization
+// ---------------------------------------------------------------------------
 
-  // Spell mode — Home Screen
-  spellInputContainer: {
-    padding: 8,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    marginBottom: 8,
-    minHeight: 36,
-    display: 'flex',
-    justifyContent: 'center' as const,
-  },
-  spellInputText: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    letterSpacing: 2,
-    textAlign: 'center' as const,
-  },
-  charButtonRow: {
-    display: 'flex',
-    flexDirection: 'row' as const,
-    justifyContent: 'center' as const,
-    gap: 8,
-    marginBottom: 8,
-  },
-  charButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#FFA056',
-    borderRadius: 10,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    fontSize: 20,
-    fontWeight: '600' as const,
-  },
-  actionButtonRow: {
-    display: 'flex',
-    flexDirection: 'row' as const,
-    justifyContent: 'center' as const,
-    gap: 8,
-  },
-  backButton: {
-    width: 44,
-    height: 36,
-    backgroundColor: '#DDD',
-    borderRadius: 8,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    fontSize: 18,
-  },
-  submitButton: {
-    flex: 1,
-    height: 36,
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-
-  // Spell mode — Lock Screen (accessoryRectangular)
-  lockScreenContainer: {
-    padding: 4,
-    display: 'flex',
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    height: '100%',
-    gap: 4,
-  },
-  lockScreenInput: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    minWidth: 30,
-    textAlign: 'center' as const,
-  },
-  lockScreenButtons: {
-    display: 'flex',
-    flexDirection: 'row' as const,
-    gap: 3,
-  },
-  charButtonCompact: {
-    width: 24,
-    height: 24,
-    backgroundColor: '#FFA056',
-    borderRadius: 6,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  backButtonCompact: {
-    width: 24,
-    height: 24,
-    backgroundColor: '#DDD',
-    borderRadius: 6,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    fontSize: 14,
-  },
-  submitButtonCompact: {
-    width: 24,
-    height: 24,
-    backgroundColor: '#4CAF50',
-    borderRadius: 6,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    fontSize: 14,
-    color: '#FFF',
-  },
-
-  // Self-rated mode styles
-  selfRatedFrontSmall: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  selfRatedDivider: {
-    height: 1,
-    backgroundColor: '#DDD',
-    marginVertical: 4,
-  },
-  selfRatedButtons: {
-    display: 'flex',
-    flexDirection: 'row' as const,
-    gap: 8,
-    justifyContent: 'center' as const,
-  },
-  againButton: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: '#EF5350',
-    borderRadius: 8,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700' as const,
-  },
-  goodButton: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: '#66BB6A',
-    borderRadius: 8,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700' as const,
-  },
-  revealWidgetButton: {
-    padding: 10,
-    backgroundColor: '#5B8EC4',
-    borderRadius: 8,
-    display: 'flex',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-};
-
-// Placeholder View/Text/Button components
-// (expo-widgets may provide these or require SwiftUI-compatible JSX)
-function View({ children, style }: { children?: React.ReactNode; style?: any }) {
-  return <div style={style}>{children}</div>;
-}
-
-function Text({ children, style }: { children: React.ReactNode; style?: any }) {
-  return <span style={style}>{children}</span>;
-}
-
-function Button({ url, label, style }: { url: string; label: string; style?: any }) {
-  return (
-    <a href={url} style={style}>
-      {label}
-    </a>
-  );
-}
-
-/**
- * Create and export the widget instance.
- * This widget is registered with iOS via the expo-widgets config plugin.
- */
 export const vocabularyWidget = createWidget<VocabularyWidgetProps>(
   'VocabularyWidget',
-  VocabularyWidgetComponent
+  VocabularyWidgetComponent,
 );
 
 /**
  * Initialize widget with current card data on app launch.
- * This should be called from the app's root layout or index file.
+ * Call from the app's root layout.
  */
 export function initializeVocabularyWidget() {
   const cardData = getWidgetCardData();
@@ -516,7 +552,6 @@ export function initializeVocabularyWidget() {
       isRevealed: cardData.isRevealed,
     });
   } else {
-    // No cards due - show empty state with streak
     const { getStreak } = require('../src/services/statsService');
     vocabularyWidget.updateSnapshot({
       streakCount: getStreak(),

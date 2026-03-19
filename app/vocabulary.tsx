@@ -8,13 +8,32 @@ import { getChapterMastery } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { deriveMastery, getMasteryColor } from '../src/utils/mastery';
 import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
-import type { ClozeCard, MasteryStatus } from '../src/types/vocabulary';
+import type { ClozeCard, ChapterData, MasteryStatus } from '../src/types/vocabulary';
+import type { SimpleCard } from '../src/types/simpleCard';
 import { useState } from 'react';
+
+type AnyCard = ClozeCard | SimpleCard;
 
 interface SectionData {
   title: string;
   chapterNumber: number;
-  data: ClozeCard[];
+  data: AnyCard[];
+}
+
+/** Extract display fields uniformly from either card type */
+function getCardDisplay(card: AnyCard): { primary: string; secondary: string } {
+  if (card.kind === 'cloze') {
+    return { primary: card.wordInContext, secondary: card.germanHint };
+  }
+  return { primary: card.front, secondary: card.back };
+}
+
+/** Get searchable text from either card type */
+function getSearchableText(card: AnyCard): string {
+  if (card.kind === 'cloze') {
+    return `${card.wordInContext} ${card.germanHint} ${card.lemma}`.toLowerCase();
+  }
+  return `${card.front} ${card.back}`.toLowerCase();
 }
 
 export default function VocabularyScreen() {
@@ -49,7 +68,7 @@ export default function VocabularyScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, chapters]);
 
-  // Build filtered, search-narrowed sections (no focusKey dep — data is static)
+  // Build filtered, search-narrowed sections
   const sections = useMemo<SectionData[]>(() => {
     const lc = search.toLowerCase();
     return chapters
@@ -57,12 +76,7 @@ export default function VocabularyScreen() {
       .map(ch => ({
         title: `Chapter ${ch.chapterNumber}`,
         chapterNumber: ch.chapterNumber,
-        data: ch.cards.filter(card =>
-          !lc ||
-          card.wordInContext.toLowerCase().includes(lc) ||
-          card.germanHint.toLowerCase().includes(lc) ||
-          card.lemma.toLowerCase().includes(lc)
-        ),
+        data: ch.cards.filter(card => !lc || getSearchableText(card).includes(lc)),
       }))
       .filter(s => s.data.length > 0);
   }, [search, filterChapter, chapters]);
@@ -84,8 +98,9 @@ export default function VocabularyScreen() {
     </View>
   );
 
-  const renderItem = ({ item }: { item: ClozeCard }) => {
+  const renderItem = ({ item }: { item: AnyCard }) => {
     const status = masteryMap[item.id] ?? 'New';
+    const { primary, secondary } = getCardDisplay(item);
     return (
       <Pressable
         onPress={() =>
@@ -115,13 +130,13 @@ export default function VocabularyScreen() {
             variant="bodyLarge"
             style={[styles.spanishWord, { color: theme.colors.onSurface }]}
           >
-            {item.wordInContext}
+            {primary}
           </Text>
           <Text
             variant="bodySmall"
             style={[styles.germanHint, { color: theme.colors.onSurfaceVariant }]}
           >
-            {item.germanHint}
+            {secondary}
           </Text>
         </View>
 

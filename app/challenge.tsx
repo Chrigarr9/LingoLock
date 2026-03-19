@@ -25,10 +25,9 @@ import {
   loadNewWordsPerDay,
   recordNewWordsIntroduced,
 } from '../src/services/storage';
-import { updateStatsAfterSession, recordAbort, getStreak } from '../src/services/statsService';
+import { updateStatsAfterSession, recordAbort, getStreak, checkAndAdvanceStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import { useKeyboardVisible } from '../src/hooks/useKeyboardVisible';
-import { pauseNotifications, resumeNotifications } from '../src/services/notificationScheduler';
 import { updateWidgetData } from '../src/services/widgetService';
 import type { SessionCard } from '../src/types/vocabulary';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
@@ -89,11 +88,6 @@ export default function ChallengeScreen() {
   // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Pause notifications when entering practice session
-    pauseNotifications().catch((err) => {
-      console.error('[Challenge] Failed to pause notifications:', err);
-    });
-
     let session: SessionCard[];
     if (mode === 'continuous') {
       session = buildSession(chapters, loadNewWordsPerDay(), params.source);
@@ -120,11 +114,7 @@ export default function ChallengeScreen() {
       type: params.type,
       sessionLength: session.length,
     });
-    // Resume notifications when exiting practice session
     return () => {
-      resumeNotifications().catch((err) => {
-        console.error('[Challenge] Failed to resume notifications:', err);
-      });
       updateWidgetData();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,12 +149,17 @@ export default function ChallengeScreen() {
   const advanceToNext = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
 
-    // On every card advance, check for cards that became due mid-session
-    // (e.g. 10-min FSRS intervals). Appends them so the progress counter
-    // updates immediately and the user doesn't need to return to the home screen.
+    // On every card advance, check for cards that became due mid-session.
+    // This handles both FSRS learning steps (1min → 10min intervals for cards
+    // answered earlier this session) and cards from other chapters that became due.
+    // Only exclude cards still pending in the queue (not yet answered) — answered
+    // cards must be eligible for re-queuing so learning steps complete in-session.
     setQueue((prevQueue) => {
-      const queueIds = new Set(prevQueue.map((sc) => sc.card.id));
-      const newlyDue = getDueCards(chapters, queueIds);
+      const nextIndex = currentIndex + 1;
+      const pendingIds = new Set(
+        prevQueue.slice(nextIndex).map((sc) => sc.card.id),
+      );
+      const newlyDue = getDueCards(chapters, pendingIds);
       if (newlyDue.length > 0) {
         const updated = [...prevQueue, ...newlyDue];
         totalCardCount.current = updated.length;
@@ -185,10 +180,8 @@ export default function ChallengeScreen() {
         return nextIndex;
       } else {
         updateStatsAfterSession(correctCountRef.current, originalCardCount.current, params.source ?? 'unknown');
+        checkAndAdvanceStreak();
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
-        resumeNotifications().catch((err) => {
-          console.error('[Challenge] Failed to resume notifications on completion:', err);
-        });
         updateWidgetData();
         const extra = buildSession(chapters, Infinity, params.source);
         setHasMoreCards(extra.length > 0);
@@ -196,7 +189,7 @@ export default function ChallengeScreen() {
         return prevIndex;
       }
     });
-  }, [params.source, chapters]);
+  }, [params.source, chapters, currentIndex]);
 
   const scheduleAdvance = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
@@ -269,9 +262,8 @@ export default function ChallengeScreen() {
   };
 
   const handleTextSubmit = (userAnswer: string) => {
-    if (!currentCard) return;
-    const clozeCard = currentCard.card as ClozeCard;
-    const correct = validateAnswer(userAnswer, clozeCard.wordInContext);
+    if (!currentCard || currentCard.card.kind !== 'cloze') return;
+    const correct = validateAnswer(userAnswer, currentCard.card.wordInContext);
     if (correct) {
       // Hint used → Hard (shorter interval), otherwise Good
       handleCorrect(currentCard, hintUsed ? 'hard' : 'good');
@@ -281,10 +273,9 @@ export default function ChallengeScreen() {
   };
 
   const handleMCSelect = (choice: string) => {
-    if (!currentCard) return;
+    if (!currentCard || currentCard.card.kind !== 'cloze') return;
     setAnsweredChoice(choice);
-    const clozeCard = currentCard.card as ClozeCard;
-    const correct = choice === clozeCard.wordInContext;
+    const correct = choice === currentCard.card.wordInContext;
     if (correct) {
       handleCorrect(currentCard, 'good');
     } else {
@@ -353,7 +344,7 @@ export default function ChallengeScreen() {
 
   // Generate hint text for current card (text mode only)
   const currentHintText = currentCard?.answerType === 'text' && currentCard.hintLevel
-    ? generateHintText((currentCard.card as ClozeCard).wordInContext, currentCard.hintLevel)
+    ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
     : undefined;
 
   const glassStyle = getGlassStyle(theme);
@@ -371,7 +362,7 @@ export default function ChallengeScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -464,8 +455,8 @@ export default function ChallengeScreen() {
                 {!showAnswer && (
                   <View style={styles.mcGrid}>
                     <MultipleChoiceGrid
-                      choices={currentCard.choices ?? []}
-                      correctAnswer={(currentCard.card as ClozeCard).wordInContext}
+                      choices={currentCard.answerType === 'mc4' ? currentCard.choices : []}
+                      correctAnswer={currentCard.card.kind === 'cloze' ? currentCard.card.wordInContext : ''}
                       answeredChoice={answeredChoice}
                       onSelect={handleMCSelect}
                     />
@@ -504,11 +495,11 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {isSelfRated && (
+            {currentCard.answerType === 'selfRated' && (
               <View style={styles.mcArea}>
                 <SelfRatedCard
                   key={currentCard.card.id}
-                  card={currentCard.card as SimpleCard}
+                  card={currentCard.card}
                   onRate={handleSelfRate}
                   isMuted={isMuted}
                   playbackSpeed={audioSpeed}

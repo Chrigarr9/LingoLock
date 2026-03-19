@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { getStreak, getChapterMastery, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
-import { usePWAInstall } from '../src/hooks/usePWAInstall';
+
 import { BundlePicker } from '../src/components/BundlePicker';
 
 export default function HomeScreen() {
@@ -28,8 +28,6 @@ export default function HomeScreen() {
   const [cardsDue, setCardsDue] = useState(0);
   const [currentChapter, setCurrentChapter] = useState(1);
   const [greeting, setGreeting] = useState(getGreeting);
-  const promptInstall = usePWAInstall();
-
   // Refresh stats when screen gains focus (returning from challenge)
   useFocusEffect(
     useCallback(() => {
@@ -227,19 +225,6 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* PWA install prompt — web only, when browser supports it */}
-          {promptInstall && (
-            <Pressable
-              onPress={promptInstall}
-              style={[styles.installBanner, { backgroundColor: theme.custom.brandBlue }]}
-              accessibilityLabel="Install app"
-              accessibilityRole="button"
-            >
-              <Icon source="download" size={18} color="#FFFFFF" />
-              <Text style={styles.installText}>Install LingoLock</Text>
-            </Pressable>
-          )}
-
           {/* Tutorial link — hidden on web */}
           {Platform.OS !== 'web' && (
             <Pressable
@@ -420,19 +405,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     fontSize: 10,
-  },
-  installBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 20,
-  },
-  installText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
   },
   tutorialLink: {
     flexDirection: 'row',

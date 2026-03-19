@@ -16,12 +16,11 @@
  *   - Due cards are scanned across all chapters (same as buildSession logic)
  */
 
-import { isDue, getAnswerType, scheduleReview, createNewCardState } from './fsrs';
-import { loadCardState, saveCardState, loadAllCardStates, statsStorage } from './storage';
-import { getBundle, getCardById as findCardById, isImportedBundle, getBundle as getBundleById } from '../content/bundles';
-import { loadEnabledBundles } from './storage';
-import { getStreak } from './statsService';
-import { updateStatsAfterSession } from './statsService';
+import { Platform } from 'react-native';
+import { isDue, getAnswerType, scheduleReview, createNewCardState, type ReviewGrade } from './fsrs';
+import { loadCardState, saveCardState, loadAllCardStates, statsStorage, loadEnabledBundles } from './storage';
+import { getBundle, getCardById as findCardById, isImportedBundle } from '../content/bundles';
+import { getStreak, updateStatsAfterSession, checkAndAdvanceStreak } from './statsService';
 import { validateAnswer } from '../utils/answerValidation';
 import type { ClozeCard } from '../types/vocabulary';
 import type { SimpleCard } from '../types/simpleCard';
@@ -49,29 +48,8 @@ export interface WidgetCardData {
   isRevealed?: boolean;   // Whether the card has been flipped
 }
 
-// ---------------------------------------------------------------------------
-// Fisher-Yates shuffle (for MC choices)
-// ---------------------------------------------------------------------------
-
-function shuffle<T>(arr: T[]): T[] {
-  const shuffled = [...arr];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-// ---------------------------------------------------------------------------
-// MC choice generation
-// ---------------------------------------------------------------------------
-
-function buildChoices(card: ClozeCard, answerType: 'mc4' | 'text'): string[] {
-  const distractorCount = 3;
-  const distractors = card.distractors.slice(0, distractorCount);
-  const choices = [card.wordInContext, ...distractors];
-  return shuffle(choices);
-}
+import { shuffle } from '../utils/shuffle';
+import { buildMcChoices } from '../utils/cardChoices';
 
 // ---------------------------------------------------------------------------
 // Spell mode — character picker state
@@ -146,91 +124,93 @@ export function buildSpellChoices(
  * Returns null if no cards are due (widget shows empty state).
  */
 export function getWidgetCardData(): WidgetCardData | null {
-  // Scan all enabled bundles for due review cards (only cards with state)
+  // Single pass: scan all enabled bundles for due cards (both ClozeCard and SimpleCard)
   const enabledIds = loadEnabledBundles();
-  const dueCards: Array<{ card: ClozeCard; bundleId: string }> = [];
+  const dueCloze: Array<{ card: ClozeCard; bundleId: string }> = [];
+  const dueSimple: Array<{ card: SimpleCard; bundleId: string }> = [];
+
   for (const bundleId of enabledIds) {
     const bundle = getBundle(bundleId);
-    for (const chapter of bundle.chapters) {
-      for (const card of chapter.cards) {
-        const namespacedId = `${bundleId}:${card.id}`;
-        const state = loadCardState(namespacedId);
+
+    if (isImportedBundle(bundleId)) {
+      // Imported decks: scan simpleCards (skip chapters to avoid double-counting)
+      for (const card of bundle.simpleCards) {
+        const state = loadCardState(card.id);
         if (state !== null && isDue(state)) {
-          dueCards.push({ card, bundleId });
+          dueSimple.push({ card, bundleId });
+        }
+      }
+    } else {
+      // Builtin decks: scan chapters for ClozeCards
+      for (const chapter of bundle.chapters) {
+        for (const card of chapter.cards) {
+          if (card.kind !== 'cloze') continue;
+          const state = loadCardState(card.id);
+          if (state !== null && isDue(state)) {
+            dueCloze.push({ card, bundleId });
+          }
         }
       }
     }
   }
 
-  // Also scan imported decks for due self-rated cards
-  for (const bundleId of enabledIds) {
-    if (!isImportedBundle(bundleId)) continue;
-    let imported;
-    try { imported = getBundleById(bundleId); } catch { continue; }
-    for (const card of imported.simpleCards) {
-      const namespacedId = `${bundleId}:${card.id}`;
-      const state = loadCardState(namespacedId);
-      if (state !== null && isDue(state)) {
-        return {
-          cardId: namespacedId,
-          sentence: '',
-          germanHint: '',
-          correctAnswer: '',
-          answerType: 'selfRated' as const,
-          cardsLeft: 1,
-          streakCount: getStreak(),
-          frontText: card.front,
-          backText: card.back,
-          isRevealed: false,
-        };
-      }
-    }
-  }
+  const totalDue = dueCloze.length + dueSimple.length;
+  if (totalDue === 0) return null;
 
-  if (dueCards.length === 0) {
-    return null; // No cards due — widget shows empty state
-  }
-
-  // Get first due card
-  const firstDueCard = dueCards[0];
-  const card = firstDueCard.card;
-  const namespacedId = `${firstDueCard.bundleId}:${card.id}`;
-  const cardState = loadCardState(namespacedId);
-  const answerType = getAnswerType(cardState);
   const streakCount = getStreak();
 
-  const widgetData: WidgetCardData = {
-    cardId: card.id,
-    sentence: card.sentence,
-    germanHint: card.germanHint,
-    correctAnswer: card.wordInContext,
-    answerType,
-    cardsLeft: dueCards.length,
+  // Prefer ClozeCards (richer widget interaction), fall back to SimpleCards
+  if (dueCloze.length > 0) {
+    const firstDue = dueCloze[0];
+    const card = firstDue.card;
+    const cardState = loadCardState(card.id);
+    const answerType = getAnswerType(cardState);
+
+    const widgetData: WidgetCardData = {
+      cardId: card.id,
+      sentence: card.sentence,
+      germanHint: card.germanHint,
+      correctAnswer: card.wordInContext,
+      answerType,
+      cardsLeft: totalDue,
+      streakCount,
+    };
+
+    if (answerType === 'mc4') {
+      widgetData.choices = buildMcChoices(card);
+    }
+
+    if (answerType === 'text') {
+      const spellInput = getSpellingState(card.id);
+      const bundle = getBundle(firstDue.bundleId);
+      widgetData.spellInput = spellInput;
+      widgetData.spellChoices = buildSpellChoices(
+        card.wordInContext, spellInput.length, 4,
+        bundle.config.spellCharacters,
+      );
+    }
+
+    if (card.image) {
+      widgetData.imageUri = card.image;
+    }
+
+    return widgetData;
+  }
+
+  // Only SimpleCards due — self-rated mode
+  const firstSimple = dueSimple[0];
+  return {
+    cardId: firstSimple.card.id,
+    sentence: '',
+    germanHint: '',
+    correctAnswer: '',
+    answerType: 'selfRated',
+    cardsLeft: totalDue,
     streakCount,
+    frontText: firstSimple.card.front,
+    backText: firstSimple.card.back,
+    isRevealed: false,
   };
-
-  // Add MC choices for mc2/mc4 cards
-  if (answerType === 'mc4') {
-    widgetData.choices = buildChoices(card, answerType);
-  }
-
-  // Add spell mode data for text cards (character picker replaces keyboard on widget)
-  if (answerType === 'text') {
-    const spellInput = getSpellingState(card.id);
-    const bundle = getBundle(firstDueCard.bundleId);
-    widgetData.spellInput = spellInput;
-    widgetData.spellChoices = buildSpellChoices(
-      card.wordInContext, spellInput.length, 4,
-      bundle.config.spellCharacters,
-    );
-  }
-
-  // Add image URI if available (for future expansion when images supported on widgets)
-  if (card.image) {
-    widgetData.imageUri = card.image;
-  }
-
-  return widgetData;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,16 +231,38 @@ export function getWidgetCardData(): WidgetCardData | null {
  * display logic — this service provides the data layer.
  */
 export function updateWidgetData(): void {
-  // TODO: Once expo-widgets provides updateTimeline/updateSnapshot API, call it here
-  // with getWidgetCardData() payload. For now, this is a no-op placeholder.
-  //
-  // Expected pattern (when API is available):
-  // try {
-  //   const cardData = getWidgetCardData();
-  //   await WidgetTimeline.update(cardData);
-  // } catch (error) {
-  //   // Silently no-op if expo-widgets not available (web, pre-SDK 55, etc.)
-  // }
+  if (Platform.OS === 'web') return;
+
+  try {
+    // Dynamic import to avoid crashes on web / when expo-widgets is unavailable
+    const { vocabularyWidget } = require('../../widgets/VocabularyWidget');
+
+    const cardData = getWidgetCardData();
+    if (cardData) {
+      vocabularyWidget.updateSnapshot({
+        cardId: cardData.cardId,
+        sentence: cardData.sentence,
+        germanHint: cardData.germanHint,
+        answerType: cardData.answerType,
+        choices: cardData.choices,
+        cardsLeft: cardData.cardsLeft,
+        streakCount: cardData.streakCount,
+        spellInput: cardData.spellInput,
+        spellChoices: cardData.spellChoices,
+        frontText: cardData.frontText,
+        backText: cardData.backText,
+        isRevealed: cardData.isRevealed,
+      });
+    } else {
+      // No cards due — show empty state with streak
+      vocabularyWidget.updateSnapshot({
+        streakCount: getStreak(),
+      });
+    }
+  } catch (error) {
+    // Silently no-op if expo-widgets not available
+    console.warn('[WidgetService] Failed to update widget:', error);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -285,8 +287,8 @@ export function processWidgetAnswer(
   const result = findCardById(cardId);
   const card = result?.card ?? null;
 
-  if (!card || !('wordInContext' in card)) {
-    // Card not found or not a ClozeCard — return safe default
+  if (!card || card.kind !== 'cloze') {
+    console.warn(`[WidgetService] Card not found for widget answer: ${cardId}`);
     return { isCorrect: false, correctAnswer: '' };
   }
 
@@ -305,6 +307,7 @@ export function processWidgetAnswer(
 
   // Update stats (1 card session from 'widget' source)
   updateStatsAfterSession(isCorrect ? 1 : 0, 1, 'widget');
+  checkAndAdvanceStreak();
 
   // Refresh widget with next card
   updateWidgetData();
@@ -361,7 +364,8 @@ export function processSpellAction(
   const result = findCardById(cardId);
   const card = result?.card ?? null;
 
-  if (!card || !('wordInContext' in card)) {
+  if (!card || card.kind !== 'cloze') {
+    console.warn(`[WidgetService] Card not found for spell submit: ${cardId}`);
     return { submitted: true, isCorrect: false, correctAnswer: '' };
   }
 
@@ -380,6 +384,7 @@ export function processSpellAction(
 
   // Update stats
   updateStatsAfterSession(isCorrect ? 1 : 0, 1, 'widget');
+  checkAndAdvanceStreak();
 
   // Refresh widget with next card
   updateWidgetData();
@@ -408,8 +413,7 @@ export function processWidgetReveal(cardId: string): WidgetCardData | null {
   const result = findCardById(cardId);
   if (!result) return null;
   const { card } = result;
-  if (!('front' in card)) return null; // Not a SimpleCard
-  const simpleCard = card as SimpleCard;
+  if (card.kind !== 'simple') return null; // Not a SimpleCard
   return {
     cardId,
     sentence: '',
@@ -418,8 +422,8 @@ export function processWidgetReveal(cardId: string): WidgetCardData | null {
     answerType: 'selfRated',
     cardsLeft: 0,
     streakCount: getStreak(),
-    frontText: simpleCard.front,
-    backText: simpleCard.back,
+    frontText: card.front,
+    backText: card.back,
     isRevealed: true,
   };
 }
@@ -441,10 +445,11 @@ export function processWidgetRate(
 ): { rated: boolean } {
   const loadedState = loadCardState(cardId);
   const cardState = loadedState ?? createNewCardState(cardId);
-  const grade = rating === '1' ? 'again' : 'good';
-  const updatedState = scheduleReview(cardState, grade as any);
+  const grade: ReviewGrade = rating === '1' ? 'again' : 'good';
+  const updatedState = scheduleReview(cardState, grade);
   saveCardState(cardId, updatedState);
   updateStatsAfterSession(rating === '3' ? 1 : 0, 1, 'widget');
+  checkAndAdvanceStreak();
   updateWidgetData();
   return { rated: true };
 }

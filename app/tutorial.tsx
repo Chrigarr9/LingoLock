@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ export default function TutorialScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['bottom']}
     >
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text
           variant="bodyMedium"
           style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
@@ -84,7 +84,7 @@ export default function TutorialScreen() {
         >
           Got It!
         </Button>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -93,10 +93,13 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     padding: 16,
     gap: 10,
+    flexGrow: 1,
   },
   subtitle: {
     textAlign: 'center',

@@ -22,6 +22,7 @@ jest.mock('./fsrs', () => ({
 jest.mock('./statsService', () => ({
   getStreak: jest.fn().mockReturnValue(5),
   updateStatsAfterSession: jest.fn(),
+  checkAndAdvanceStreak: jest.fn(),
 }));
 
 jest.mock('../content/bundles', () => ({
@@ -85,7 +86,7 @@ beforeEach(() => {
 describe('processWidgetReveal', () => {
   test('returns WidgetCardData with isRevealed=true when card found and is SimpleCard', () => {
     mockGetCardById.mockReturnValue({
-      card: { id: '42', front: 'Hola', back: 'Hello', deckId: 'spanish-basics' },
+      card: { kind: 'simple' as const, id: '42', front: 'Hola', back: 'Hello', deckId: 'spanish-basics' },
       bundle: {} as any,
     });
 
@@ -108,9 +109,10 @@ describe('processWidgetReveal', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when card is ClozeCard (no front property)', () => {
+  test('returns null when card is ClozeCard (not a SimpleCard)', () => {
     mockGetCardById.mockReturnValue({
       card: {
+        kind: 'cloze' as const,
         id: 'gato-ch01-s03',
         lemma: 'gato',
         wordInContext: 'gato',

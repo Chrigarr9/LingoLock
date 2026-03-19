@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Pressable, Switch as RNSwitch, Alert, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
-import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle } from '../src/theme';
 import {
@@ -14,31 +13,37 @@ import {
   loadNotificationsEnabled,
   saveNotificationsEnabled,
   loadNotificationInterval,
-  saveNotificationInterval,
+  loadNotificationActiveHours,
+  saveNotificationActiveHours,
   loadActiveBundle,
   loadEnabledBundles,
   saveEnabledBundles,
-  cardStorage,
 } from '../src/services/storage';
 import {
   setNotificationInterval,
-  pauseNotifications,
-  resumeNotifications,
   cancelAllNotifications,
 } from '../src/services/notificationScheduler';
-import { requestNotificationPermissions } from '../src/services/notificationService';
-import { getAvailableBundles, getBundle, registerImportedBundle, unregisterImportedBundle } from '../src/content/bundles';
+import { requestNotificationPermissions, setupNotifications } from '../src/services/notificationService';
+import { getAvailableBundles, getBundle } from '../src/content/bundles';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { getCardsDueCount } from '../src/services/statsService';
-import { importApkg } from '../src/services/apkgImporter';
-import { loadImportedDeckCards, removeImportedDeck } from '../src/services/importedDeckStore';
-import type { Bundle } from '../src/types/bundle';
+import { useApkgImport } from '../src/hooks/useApkgImport';
 
 const SPEED_OPTIONS: { label: string; value: number }[] = [
   { label: '0.75×', value: 0.75 },
   { label: '1×', value: 1.0 },
   { label: '1.25×', value: 1.25 },
 ];
+
+/** Available hour options for active hours picker (5 AM to 11 PM) */
+const HOUR_OPTIONS = Array.from({ length: 19 }, (_, i) => {
+  const hour = i + 5; // 5..23
+  const label = hour === 0 ? '12:00 AM'
+    : hour < 12 ? `${hour}:00 AM`
+    : hour === 12 ? '12:00 PM'
+    : `${hour - 12}:00 PM`;
+  return { hour, label };
+});
 
 export default function SettingsScreen() {
   const theme = useAppTheme();
@@ -56,137 +61,44 @@ export default function SettingsScreen() {
   };
 
   const [deckRefreshKey, setDeckRefreshKey] = useState(0);
+  const { importing, importProgress, handleImport, confirmDeleteDeck } = useApkgImport();
 
   const setActive = (bundleId: string) => {
     switchBundle(bundleId);
     setActiveBundleId(bundleId);
   };
 
-  const deleteDeck = (bundleId: string) => {
-    // Remove FSRS card states
-    const allKeys = cardStorage.getAllKeys();
-    const prefix = `${bundleId}:`;
-    for (const key of allKeys) {
-      if (key.startsWith(prefix)) cardStorage.remove(key);
-    }
+  const onDeleteDeck = (bundleId: string, displayLabel: string) => {
+    confirmDeleteDeck(bundleId, displayLabel, {
+      activeBundleId,
+      onDeleted: (fallbackId) => {
+        // Remove from enabled list
+        const newEnabled = enabledBundles.filter(id => id !== bundleId);
+        saveEnabledBundles(newEnabled);
+        setEnabledBundles(newEnabled);
 
-    // Remove from runtime cache + persistent storage
-    unregisterImportedBundle(bundleId);
-    removeImportedDeck(bundleId);
-
-    // Remove from enabled list
-    const newEnabled = enabledBundles.filter(id => id !== bundleId);
-    saveEnabledBundles(newEnabled);
-    setEnabledBundles(newEnabled);
-
-    // If deleted deck was active, fall back to default
-    if (bundleId === activeBundleId) {
-      const fallback = 'es-de-buenos-aires';
-      switchBundle(fallback);
-      setActiveBundleId(fallback);
-    }
-
-    setDeckRefreshKey(k => k + 1);
-  };
-
-  const handleDeleteDeck = (bundleId: string, displayLabel: string) => {
-    if (Platform.OS === 'web') {
-      // Alert.alert doesn't produce a confirm dialog on Expo web production builds
-      if (window.confirm(`Remove "${displayLabel}" and all its data from this device?`)) {
-        deleteDeck(bundleId);
-      }
-    } else {
-      Alert.alert(
-        'Delete Deck',
-        `Remove "${displayLabel}" and all its data from this device?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deleteDeck(bundleId) },
-        ],
-      );
-    }
-  };
-
-  const pickFileWeb = (): Promise<{ uri: string; name: string } | null> => {
-    return new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.apkg';
-      input.onchange = () => {
-        const file = input.files?.[0];
-        if (!file) { resolve(null); return; }
-        resolve({ uri: URL.createObjectURL(file), name: file.name });
-      };
-      input.click();
+        if (fallbackId) {
+          switchBundle(fallbackId);
+          setActiveBundleId(fallbackId);
+        }
+        setDeckRefreshKey(k => k + 1);
+      },
     });
   };
 
-  const handleImport = async () => {
-    try {
-      let fileUri: string;
-      let fileName: string;
-
-      if (Platform.OS === 'web') {
-        const picked = await pickFileWeb();
-        if (!picked) return;
-        fileUri = picked.uri;
-        fileName = picked.name;
-      } else {
-        const result = await DocumentPicker.getDocumentAsync({
-          type: '*/*',
-          copyToCacheDirectory: true,
-        });
-        if (result.canceled || !result.assets?.length) return;
-        fileUri = result.assets[0].uri;
-        fileName = result.assets[0].name ?? '';
-      }
-
-      if (!fileName.toLowerCase().endsWith('.apkg')) {
-        Alert.alert('Invalid file', 'Please select an .apkg file (Anki deck).');
-        return;
-      }
-
-      setImporting(true);
-      setImportStatus('Starting import...');
-
-      const meta = await importApkg(fileUri, (stage) => {
-        setImportStatus(stage);
-      });
-
-      setImportStatus('Loading cards...');
-      const cards = await loadImportedDeckCards(meta.id);
-      const bundle: Bundle = {
-        config: {
-          id: meta.id, type: 'imported', nativeLanguage: '', targetLanguage: '',
-          displayLabel: meta.name,
-          greetings: { morning: '', afternoon: '', evening: '' },
-          motivational: { perfect: '', great: '', good: '', encouragement: '' },
-          spellCharacters: [], searchPlaceholder: '',
-          cardCount: meta.cardCount, importedAt: meta.importedAt,
-        },
-        chapters: [{ chapterNumber: 1, cards: cards as any }], simpleCards: cards, cardImages: {}, cardAudios: {},
-      };
-      registerImportedBundle(meta.id, bundle);
-      switchBundle(meta.id);
-      setActiveBundleId(meta.id);
-      setImporting(false);
-      setImportStatus('');
-    } catch (error) {
-      console.error('[Settings] Import failed:', error);
-      setImporting(false);
-      setImportStatus('');
-      Alert.alert('Import failed', error instanceof Error ? error.message : 'An unknown error occurred.');
-    }
+  const onImport = () => {
+    handleImport((deckId) => {
+      switchBundle(deckId);
+      setActiveBundleId(deckId);
+    });
   };
-
-  const [importing, setImporting] = useState(false);
-  const [importStatus, setImportStatus] = useState('');
 
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [audioSpeed, setAudioSpeed] = useState(() => loadAudioSpeed());
   const [newWordsPerDay, setNewWordsPerDay] = useState(() => loadNewWordsPerDay());
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadNotificationsEnabled());
   const [notificationInterval, setNotificationIntervalState] = useState(() => loadNotificationInterval());
+  const [activeHours, setActiveHours] = useState(() => loadNotificationActiveHours());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -217,25 +129,43 @@ export default function SettingsScreen() {
       if (granted) {
         setNotificationsEnabled(true);
         saveNotificationsEnabled(true);
-        await resumeNotifications();
+        // Register AppState listener + scheduler so notifications fire on background
+        setupNotifications();
       } else {
         // Permissions not granted, keep disabled
         setNotificationsEnabled(false);
         saveNotificationsEnabled(false);
       }
     } else {
-      // Disabling: pause and cancel all
+      // Disabling: cancel all and tear down listeners
       setNotificationsEnabled(false);
       saveNotificationsEnabled(false);
-      await pauseNotifications();
       await cancelAllNotifications();
+      // Next setupNotifications() call will skip setup due to disabled flag
     }
   }
 
   async function handleIntervalChange(seconds: number) {
     setNotificationIntervalState(seconds);
-    saveNotificationInterval(seconds);
-    await setNotificationInterval(seconds);
+    await setNotificationInterval(seconds); // saves to storage + reschedules batch
+  }
+
+  async function handleActiveHoursStartChange(hour: number) {
+    // Enforce start < end
+    if (hour >= activeHours.endHour) return;
+    const updated = { startHour: hour, endHour: activeHours.endHour };
+    setActiveHours(updated);
+    saveNotificationActiveHours(updated.startHour, updated.endHour);
+    await scheduleNotificationBatch();
+  }
+
+  async function handleActiveHoursEndChange(hour: number) {
+    // Enforce start < end
+    if (hour <= activeHours.startHour) return;
+    const updated = { startHour: activeHours.startHour, endHour: hour };
+    setActiveHours(updated);
+    saveNotificationActiveHours(updated.startHour, updated.endHour);
+    await scheduleNotificationBatch();
   }
 
   return (
@@ -243,7 +173,7 @@ export default function SettingsScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['bottom']}
     >
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
         {/* Settings card group */}
         <View
           style={[
@@ -406,9 +336,8 @@ export default function SettingsScreen() {
                     </View>
                     <View style={styles.intervalSelector}>
                       {[
-                        { seconds: 180, label: '3 min' },
-                        { seconds: 300, label: '5 min' },
-                        { seconds: 600, label: '10 min' },
+                        { seconds: 900, label: '15 minutes' },
+                        { seconds: 1800, label: '30 minutes' },
                       ].map((option) => (
                         <Pressable
                           key={option.seconds}
@@ -443,6 +372,112 @@ export default function SettingsScreen() {
                           </Text>
                         </Pressable>
                       ))}
+                    </View>
+                  </View>
+
+                  {/* Separator */}
+                  <View style={[styles.separator, { backgroundColor: theme.custom.glassBorder }]} />
+
+                  {/* Active Hours */}
+                  <View style={styles.settingColumn}>
+                    <View style={styles.settingLabelGroup}>
+                      <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                        Active Hours
+                      </Text>
+                      <Text
+                        variant="bodySmall"
+                        style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                      >
+                        Notifications only fire within this time window
+                      </Text>
+                    </View>
+                    <View style={styles.activeHoursRow}>
+                      <View style={styles.activeHourPicker}>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                          From
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.hourScrollContent}
+                        >
+                          {HOUR_OPTIONS.filter(opt => opt.hour < activeHours.endHour).map((opt) => (
+                            <Pressable
+                              key={opt.hour}
+                              style={[
+                                styles.hourChip,
+                                {
+                                  backgroundColor:
+                                    activeHours.startHour === opt.hour
+                                      ? theme.custom.brandOrange
+                                      : theme.custom.glassBackground,
+                                  borderColor:
+                                    activeHours.startHour === opt.hour
+                                      ? theme.custom.brandOrange
+                                      : theme.custom.glassBorder,
+                                },
+                              ]}
+                              onPress={() => handleActiveHoursStartChange(opt.hour)}
+                            >
+                              <Text
+                                variant="labelSmall"
+                                style={{
+                                  color:
+                                    activeHours.startHour === opt.hour
+                                      ? '#FFFFFF'
+                                      : theme.colors.onSurface,
+                                  fontWeight: activeHours.startHour === opt.hour ? '700' : '500',
+                                }}
+                              >
+                                {opt.label}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                      <View style={styles.activeHourPicker}>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                          Until
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.hourScrollContent}
+                        >
+                          {HOUR_OPTIONS.filter(opt => opt.hour > activeHours.startHour).map((opt) => (
+                            <Pressable
+                              key={opt.hour}
+                              style={[
+                                styles.hourChip,
+                                {
+                                  backgroundColor:
+                                    activeHours.endHour === opt.hour
+                                      ? theme.custom.brandOrange
+                                      : theme.custom.glassBackground,
+                                  borderColor:
+                                    activeHours.endHour === opt.hour
+                                      ? theme.custom.brandOrange
+                                      : theme.custom.glassBorder,
+                                },
+                              ]}
+                              onPress={() => handleActiveHoursEndChange(opt.hour)}
+                            >
+                              <Text
+                                variant="labelSmall"
+                                style={{
+                                  color:
+                                    activeHours.endHour === opt.hour
+                                      ? '#FFFFFF'
+                                      : theme.colors.onSurface,
+                                  fontWeight: activeHours.endHour === opt.hour ? '700' : '500',
+                                }}
+                              >
+                                {opt.label}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
                     </View>
                   </View>
                 </>
@@ -504,7 +539,7 @@ export default function SettingsScreen() {
                       icon="trash-can-outline"
                       size={18}
                       iconColor={isImported ? theme.colors.error : theme.colors.onSurfaceVariant}
-                      onPress={isImported ? () => handleDeleteDeck(bundle.id, bundle.displayLabel) : undefined}
+                      onPress={isImported ? () => onDeleteDeck(bundle.id, bundle.displayLabel) : undefined}
                       disabled={!isImported}
                       accessibilityLabel={`Delete ${bundle.displayLabel}`}
                       style={[styles.deleteButton, !isImported && { opacity: 0.25 }]}
@@ -520,11 +555,11 @@ export default function SettingsScreen() {
             <View style={[styles.settingRow, { gap: 12 }]}>
               <ActivityIndicator size="small" color={theme.colors.primary} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {importStatus || 'Importing...'}
+                {importProgress || 'Importing...'}
               </Text>
             </View>
           ) : (
-            <Pressable style={styles.settingRow} onPress={handleImport}>
+            <Pressable style={styles.settingRow} onPress={onImport}>
               <Text variant="bodyMedium" style={{ color: theme.colors.primary, fontWeight: '500' }}>
                 + Import your own deck
               </Text>
@@ -538,7 +573,7 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -550,7 +585,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  contentInner: {
     paddingTop: 16,
+    paddingBottom: 24,
   },
   card: {
     borderRadius: 20,
@@ -635,5 +673,22 @@ const styles = StyleSheet.create({
   deleteButton: {
     margin: 0,
     marginLeft: -4,
+  },
+  activeHoursRow: {
+    marginTop: 8,
+    gap: 8,
+  },
+  activeHourPicker: {
+    // Each picker takes full width with horizontal scroll
+  },
+  hourScrollContent: {
+    gap: 6,
+    paddingVertical: 2,
+  },
+  hourChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 });

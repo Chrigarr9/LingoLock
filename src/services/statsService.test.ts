@@ -1,10 +1,11 @@
 /**
  * Tests for statsService
- * Streak tracking, success rate, chapter mastery, per-app stats, cards-due count
+ * Streak tracking (completion-based), success rate, chapter mastery, per-app stats, cards-due count
  *
- * Mocks: storage.ts (loadStats, saveStats, loadCardState)
+ * Mocks: storage.ts (loadStats, saveStats, loadCardState, loadEnabledBundles)
  *        fsrs.ts (isCardMastered, isDue)
  *        cardSelector.ts (getCurrentChapter)
+ *        content/bundles (getBundle, isImportedBundle)
  *        content bundle (getChapterCards)
  */
 
@@ -19,6 +20,7 @@ jest.mock('./storage', () => ({
   loadCardState: jest.fn(),
   loadNewWordsPerDay: jest.fn().mockReturnValue(0),
   loadNewWordsIntroducedToday: jest.fn().mockReturnValue(0),
+  loadEnabledBundles: jest.fn().mockReturnValue(['es-de-buenos-aires']),
 }));
 
 jest.mock('./fsrs', () => ({
@@ -30,18 +32,23 @@ jest.mock('./cardSelector', () => ({
   getCurrentChapter: jest.fn().mockReturnValue(1),
 }));
 
-jest.mock('../content/bundle', () => {
+jest.mock('../content/bundles', () => {
   const ch1Cards = [
-    { id: 'w1', chapter: 1, lemma: 'w1', wordInContext: 'w1', germanHint: 'h1', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
-    { id: 'w2', chapter: 1, lemma: 'w2', wordInContext: 'w2', germanHint: 'h2', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
-    { id: 'w3', chapter: 1, lemma: 'w3', wordInContext: 'w3', germanHint: 'h3', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
-    { id: 'w4', chapter: 1, lemma: 'w4', wordInContext: 'w4', germanHint: 'h4', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
-    { id: 'w5', chapter: 1, lemma: 'w5', wordInContext: 'w5', germanHint: 'h5', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+    { kind: 'cloze' as const, id: 'w1', chapter: 1, lemma: 'w1', wordInContext: 'w1', germanHint: 'h1', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+    { kind: 'cloze' as const, id: 'w2', chapter: 1, lemma: 'w2', wordInContext: 'w2', germanHint: 'h2', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+    { kind: 'cloze' as const, id: 'w3', chapter: 1, lemma: 'w3', wordInContext: 'w3', germanHint: 'h3', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+    { kind: 'cloze' as const, id: 'w4', chapter: 1, lemma: 'w4', wordInContext: 'w4', germanHint: 'h4', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+    { kind: 'cloze' as const, id: 'w5', chapter: 1, lemma: 'w5', wordInContext: 'w5', germanHint: 'h5', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
   ];
   return {
     getChapterCards: (n: number) => (n === 1 ? ch1Cards : []),
     CHAPTERS: [{ chapterNumber: 1, cards: ch1Cards }],
     ALL_CARDS: ch1Cards,
+    getBundle: jest.fn().mockReturnValue({
+      chapters: [{ chapterNumber: 1, cards: ch1Cards }],
+      simpleCards: [],
+    }),
+    isImportedBundle: jest.fn().mockReturnValue(false),
   };
 });
 
@@ -57,18 +64,22 @@ import {
   getCardsDueCount,
   getCurrentChapterNumber,
   recordAbort,
-  canAbortSafely,
   getAbortsToday,
+  checkAndAdvanceStreak,
 } from './statsService';
-import { CHAPTERS } from '../content/bundle';
-import { loadStats, saveStats, loadCardState } from './storage';
+import { CHAPTERS } from '../content/bundles';
+import { loadStats, saveStats, loadCardState, loadEnabledBundles } from './storage';
 import { isCardMastered, isDue } from './fsrs';
+import { getBundle, isImportedBundle } from '../content/bundles';
 
 const mockLoadStats = loadStats as jest.MockedFunction<typeof loadStats>;
 const mockSaveStats = saveStats as jest.MockedFunction<typeof saveStats>;
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
+const mockLoadEnabledBundles = loadEnabledBundles as jest.MockedFunction<typeof loadEnabledBundles>;
+const mockGetBundle = getBundle as jest.MockedFunction<typeof getBundle>;
+const mockIsImportedBundle = isImportedBundle as jest.MockedFunction<typeof isImportedBundle>;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,7 +88,7 @@ const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
 function makeDefaultStats(): import('../types/vocabulary').PersistedStats {
   return {
     currentStreak: 0,
-    lastSessionDate: null,
+    lastStreakDate: null,
     totalCorrect: 0,
     totalAnswered: 0,
     perAppStats: {},
@@ -120,12 +131,29 @@ function daysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+const ch1Cards = [
+  { kind: 'cloze' as const, id: 'w1', chapter: 1, lemma: 'w1', wordInContext: 'w1', germanHint: 'h1', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+  { kind: 'cloze' as const, id: 'w2', chapter: 1, lemma: 'w2', wordInContext: 'w2', germanHint: 'h2', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+  { kind: 'cloze' as const, id: 'w3', chapter: 1, lemma: 'w3', wordInContext: 'w3', germanHint: 'h3', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+  { kind: 'cloze' as const, id: 'w4', chapter: 1, lemma: 'w4', wordInContext: 'w4', germanHint: 'h4', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+  { kind: 'cloze' as const, id: 'w5', chapter: 1, lemma: 'w5', wordInContext: 'w5', germanHint: 'h5', sentence: '_', sentenceTranslation: '_', pos: 'noun', contextNote: '', cefrLevel: 'A1', distractors: [] },
+];
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockLoadStats.mockReturnValue(makeDefaultStats());
   mockLoadCardState.mockReturnValue(null);
   mockIsCardMastered.mockReturnValue(false);
   mockIsDue.mockReturnValue(false);
+  mockLoadEnabledBundles.mockReturnValue(['es-de-buenos-aires']);
+  mockGetBundle.mockReturnValue({
+    config: {} as any,
+    chapters: [{ chapterNumber: 1, cards: ch1Cards }],
+    simpleCards: [],
+    cardImages: {},
+    cardAudios: {},
+  });
+  mockIsImportedBundle.mockReturnValue(false);
 });
 
 // ---------------------------------------------------------------------------
@@ -133,23 +161,21 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('updateStatsAfterSession', () => {
-  test('first session sets streak to 1 and lastSessionDate to today', () => {
+  test('tracks totals but does NOT touch streak', () => {
     mockLoadStats.mockReturnValue(makeDefaultStats());
 
     updateStatsAfterSession(3, 5, 'Instagram');
 
     const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.currentStreak).toBe(1);
-    expect(saved.lastSessionDate).toBe(today());
+    expect(saved.currentStreak).toBe(0); // Streak unchanged
+    expect(saved.lastStreakDate).toBeNull(); // Streak date unchanged
     expect(saved.totalCorrect).toBe(3);
     expect(saved.totalAnswered).toBe(5);
   });
 
-  test('second session same day keeps streak at 1', () => {
+  test('accumulates totals on second session', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
-      currentStreak: 1,
-      lastSessionDate: today(),
       totalCorrect: 3,
       totalAnswered: 5,
     });
@@ -157,39 +183,8 @@ describe('updateStatsAfterSession', () => {
     updateStatsAfterSession(2, 5, 'TikTok');
 
     const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.currentStreak).toBe(1);
-    expect(saved.lastSessionDate).toBe(today());
     expect(saved.totalCorrect).toBe(5);
     expect(saved.totalAnswered).toBe(10);
-  });
-
-  test('session next day increments streak to 2', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 1,
-      lastSessionDate: yesterday(),
-      totalCorrect: 3,
-      totalAnswered: 5,
-    });
-
-    updateStatsAfterSession(4, 5, 'YouTube');
-
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.currentStreak).toBe(2);
-    expect(saved.lastSessionDate).toBe(today());
-  });
-
-  test('session after 2-day gap resets streak to 1', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 5,
-      lastSessionDate: daysAgo(2),
-    });
-
-    updateStatsAfterSession(3, 5, 'Instagram');
-
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.currentStreak).toBe(1);
   });
 
   test('tracks perAppStats: sessions and cards per source app', () => {
@@ -217,41 +212,163 @@ describe('updateStatsAfterSession', () => {
 });
 
 // ---------------------------------------------------------------------------
+// checkAndAdvanceStreak tests
+// ---------------------------------------------------------------------------
+
+describe('checkAndAdvanceStreak', () => {
+  test('advances streak to 1 when due count is 0 and no previous streak', () => {
+    // No cards due (mockIsDue returns false by default, mockLoadCardState returns null)
+    mockLoadStats.mockReturnValue(makeDefaultStats());
+
+    checkAndAdvanceStreak();
+
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.currentStreak).toBe(1);
+    expect(saved.lastStreakDate).toBe(today());
+  });
+
+  test('increments streak when due count is 0 and lastStreakDate is yesterday', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 3,
+      lastStreakDate: yesterday(),
+    });
+
+    checkAndAdvanceStreak();
+
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.currentStreak).toBe(4);
+    expect(saved.lastStreakDate).toBe(today());
+  });
+
+  test('does not change streak when due count is 0 and already counted today', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 5,
+      lastStreakDate: today(),
+    });
+
+    checkAndAdvanceStreak();
+
+    // saveStats should NOT be called — nothing changed
+    expect(mockSaveStats).not.toHaveBeenCalled();
+  });
+
+  test('does not advance streak when cards are still due', () => {
+    // Make w1 due
+    mockLoadCardState.mockImplementation((id) => {
+      if (id === 'w1') return makeCardState('w1');
+      return null;
+    });
+    mockIsDue.mockReturnValue(true);
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 3,
+      lastStreakDate: yesterday(),
+    });
+
+    checkAndAdvanceStreak();
+
+    // saveStats should NOT be called — due cards remain
+    expect(mockSaveStats).not.toHaveBeenCalled();
+  });
+
+  test('resets streak to 1 when lastStreakDate is older than yesterday and due count becomes 0', () => {
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 10,
+      lastStreakDate: daysAgo(3),
+    });
+
+    checkAndAdvanceStreak();
+
+    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
+    expect(saved.currentStreak).toBe(1);
+    expect(saved.lastStreakDate).toBe(today());
+  });
+
+  test('scans imported decks for due cards too', () => {
+    // Card IDs are pre-namespaced by getBundle() — mock must match
+    const simpleCards = [
+      { kind: 'simple' as const, id: 'imported-1:c1', front: 'F', back: 'B', deckId: 'imported-1' },
+    ];
+    mockLoadEnabledBundles.mockReturnValue(['es-de-buenos-aires', 'imported-1']);
+    mockIsImportedBundle.mockImplementation((id) => id === 'imported-1');
+    mockGetBundle.mockImplementation((id) => {
+      if (id === 'imported-1') {
+        return {
+          config: {} as any,
+          chapters: [{ chapterNumber: 1, cards: simpleCards }],
+          simpleCards,
+          cardImages: {},
+          cardAudios: {},
+        };
+      }
+      return {
+        config: {} as any,
+        chapters: [{ chapterNumber: 1, cards: ch1Cards }],
+        simpleCards: [],
+        cardImages: {},
+        cardAudios: {},
+      };
+    });
+
+    // Imported card is due — card.id is already namespaced
+    mockLoadCardState.mockImplementation((id) => {
+      if (id === 'imported-1:c1') return makeCardState('imported-1:c1');
+      return null;
+    });
+    mockIsDue.mockReturnValue(true);
+
+    mockLoadStats.mockReturnValue({
+      ...makeDefaultStats(),
+      currentStreak: 2,
+      lastStreakDate: yesterday(),
+    });
+
+    checkAndAdvanceStreak();
+
+    // saveStats should NOT be called — imported card is still due
+    expect(mockSaveStats).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getStreak tests
 // ---------------------------------------------------------------------------
 
 describe('getStreak', () => {
-  test('returns stored streak when lastSessionDate is today', () => {
+  test('returns stored streak when lastStreakDate is today', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 5,
-      lastSessionDate: today(),
+      lastStreakDate: today(),
     });
 
     expect(getStreak()).toBe(5);
   });
 
-  test('returns stored streak when lastSessionDate is yesterday', () => {
+  test('returns stored streak when lastStreakDate is yesterday', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 3,
-      lastSessionDate: yesterday(),
+      lastStreakDate: yesterday(),
     });
 
     expect(getStreak()).toBe(3);
   });
 
-  test('returns 0 when lastSessionDate is older than yesterday', () => {
+  test('returns 0 when lastStreakDate is older than yesterday', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 7,
-      lastSessionDate: daysAgo(3),
+      lastStreakDate: daysAgo(3),
     });
 
     expect(getStreak()).toBe(0);
   });
 
-  test('returns 0 when no sessions yet', () => {
+  test('returns 0 when no streak date set', () => {
     mockLoadStats.mockReturnValue(makeDefaultStats());
 
     expect(getStreak()).toBe(0);
@@ -382,102 +499,56 @@ describe('getCurrentChapterNumber', () => {
 // ---------------------------------------------------------------------------
 
 describe('recordAbort', () => {
-  test('first abort increments abortsToday to 1, does not break streak', () => {
+  test('first abort increments abortsToday to 1, does NOT affect streak', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 5,
-      lastSessionDate: today(),
+      lastStreakDate: today(),
     });
 
-    const broken = recordAbort('Instagram');
+    recordAbort('Instagram');
 
-    expect(broken).toBe(false);
     const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
     expect(saved.abortsToday).toBe(1);
     expect(saved.totalAborts).toBe(1);
-    expect(saved.currentStreak).toBe(5);
+    expect(saved.currentStreak).toBe(5); // Streak preserved
   });
 
-  test('second abort does not break streak', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 5,
-      lastSessionDate: today(),
-      abortsToday: 1,
-      lastAbortDate: today(),
-      totalAborts: 1,
-    });
-
-    const broken = recordAbort('TikTok');
-
-    expect(broken).toBe(false);
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.abortsToday).toBe(2);
-    expect(saved.currentStreak).toBe(5);
-  });
-
-  test('third abort breaks streak — resets to 0', () => {
+  test('third abort does NOT break streak (aborts no longer affect streak)', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 12,
-      lastSessionDate: today(),
+      lastStreakDate: today(),
       abortsToday: 2,
       lastAbortDate: today(),
       totalAborts: 5,
     });
 
-    const broken = recordAbort('YouTube');
+    recordAbort('YouTube');
 
-    expect(broken).toBe(true);
     const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
     expect(saved.abortsToday).toBe(3);
     expect(saved.totalAborts).toBe(6);
-    expect(saved.currentStreak).toBe(0);
+    expect(saved.currentStreak).toBe(12); // Streak preserved
   });
 
   test('aborts from previous day reset to 0 before counting', () => {
     mockLoadStats.mockReturnValue({
       ...makeDefaultStats(),
       currentStreak: 3,
-      lastSessionDate: today(),
+      lastStreakDate: today(),
       abortsToday: 2,
       lastAbortDate: yesterday(),
       totalAborts: 10,
     });
 
-    const broken = recordAbort('Instagram');
+    recordAbort('Instagram');
 
-    expect(broken).toBe(false);
     const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
     // abortsToday was reset to 0 (new day), then incremented to 1
     expect(saved.abortsToday).toBe(1);
     expect(saved.totalAborts).toBe(11);
-    expect(saved.currentStreak).toBe(3);
-  });
-});
-
-describe('canAbortSafely', () => {
-  test('returns true when 0 aborts today', () => {
-    mockLoadStats.mockReturnValue(makeDefaultStats());
-    expect(canAbortSafely()).toBe(true);
-  });
-
-  test('returns true when 1 abort today', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      abortsToday: 1,
-      lastAbortDate: today(),
-    });
-    expect(canAbortSafely()).toBe(true);
-  });
-
-  test('returns false when 2 aborts today — next one would break streak', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      abortsToday: 2,
-      lastAbortDate: today(),
-    });
-    expect(canAbortSafely()).toBe(false);
+    expect(saved.currentStreak).toBe(3); // Streak preserved
   });
 });
 

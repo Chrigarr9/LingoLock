@@ -1,2 +1,4 @@
 // Minimal React Native mock for Jest tests
-module.exports = {};
+module.exports = {
+  Platform: { OS: 'ios' },
+};

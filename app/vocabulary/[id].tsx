@@ -7,6 +7,10 @@ import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../../src/theme'
 import { useActiveBundle } from '../../src/content/activeBundleProvider';
 import { loadCardState } from '../../src/services/storage';
 import { deriveMastery, getMasteryColor } from '../../src/utils/mastery';
+import type { ClozeCard } from '../../src/types/vocabulary';
+import type { SimpleCard } from '../../src/types/simpleCard';
+
+type AnyCard = ClozeCard | SimpleCard;
 
 function formatDate(isoString: string): string {
   const d = new Date(isoString);
@@ -25,7 +29,7 @@ export default function WordDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const { cardImages, chapters } = useActiveBundle();
 
-  const card = useMemo(() => {
+  const card = useMemo((): AnyCard | undefined => {
     for (const ch of chapters) {
       const found = ch.cards.find(c => c.id === params.id);
       if (found) return found;
@@ -51,6 +55,7 @@ export default function WordDetailScreen() {
   const cardState = loadCardState(card.id);
   const mastery = deriveMastery(card.id);
   const masteryColor = getMasteryColor(mastery, theme);
+  const isCloze = card.kind === 'cloze';
 
   // Resolve image source — bundled (number) or URI (string)
   let imageSource: number | { uri: string } | null = null;
@@ -62,10 +67,6 @@ export default function WordDetailScreen() {
       imageSource = { uri: card.image };
     }
   }
-
-  // Split sentence around the blank
-  const parts = card.sentence.split('_____');
-  const hasSplit = parts.length >= 2;
 
   const glassStyle = getGlassStyle(theme);
 
@@ -83,37 +84,23 @@ export default function WordDetailScreen() {
         {/* Main glass card */}
         <View style={[styles.glassCard, glassStyle]}>
 
-          {/* 1. Word header */}
+          {/* 1. Word header — works for both card types */}
           <View style={styles.wordHeader}>
             <Text
               variant="headlineLarge"
               style={[styles.spanishWord, { color: theme.colors.onSurface }]}
             >
-              {card.wordInContext}
+              {isCloze ? card.wordInContext : card.front}
             </Text>
             <Text
               variant="titleMedium"
               style={[styles.germanHint, { color: theme.colors.onSurfaceVariant }]}
             >
-              {card.germanHint}
+              {isCloze ? card.germanHint : card.back}
             </Text>
-            <View style={styles.badgeRow}>
-              {/* POS badge */}
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.outlineVariant },
-                ]}
-              >
-                <Text
-                  variant="labelSmall"
-                  style={[styles.badgeText, { color: theme.custom.labelMuted }]}
-                >
-                  {card.pos.toUpperCase()}
-                </Text>
-              </View>
-              {/* CEFR badge */}
-              {card.cefrLevel ? (
+            {isCloze && (
+              <View style={styles.badgeRow}>
+                {/* POS badge */}
                 <View
                   style={[
                     styles.badge,
@@ -124,57 +111,81 @@ export default function WordDetailScreen() {
                     variant="labelSmall"
                     style={[styles.badgeText, { color: theme.custom.labelMuted }]}
                   >
-                    {card.cefrLevel}
+                    {card.pos.toUpperCase()}
                   </Text>
                 </View>
-              ) : null}
-            </View>
+                {/* CEFR badge */}
+                {card.cefrLevel ? (
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.outlineVariant },
+                    ]}
+                  >
+                    <Text
+                      variant="labelSmall"
+                      style={[styles.badgeText, { color: theme.custom.labelMuted }]}
+                    >
+                      {card.cefrLevel}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </View>
 
           {/* Divider */}
           <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
 
-          {/* 2. Sentence section */}
-          <View style={styles.section}>
-            <Text
-              variant="labelSmall"
-              style={[labelOverlineStyle.label, { color: theme.custom.brandBlue }]}
-            >
-              SENTENCE
-            </Text>
-            <Text variant="bodyLarge" style={[styles.sentence, { color: theme.colors.onSurface }]}>
-              {hasSplit ? (
-                <>
-                  {parts[0]}
-                  <Text style={{ color: theme.custom.brandBlue, fontWeight: '700' }}>
-                    {card.wordInContext}
+          {/* 2. Sentence section (ClozeCard only) */}
+          {isCloze && (() => {
+            const parts = card.sentence.split('_____');
+            const hasSplit = parts.length >= 2;
+            return (
+              <>
+                <View style={styles.section}>
+                  <Text
+                    variant="labelSmall"
+                    style={[labelOverlineStyle.label, { color: theme.custom.brandBlue }]}
+                  >
+                    SENTENCE
                   </Text>
-                  {parts[1]}
-                </>
-              ) : (
-                card.sentence
-              )}
-            </Text>
-            <Text
-              variant="bodyMedium"
-              style={[styles.translation, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {card.sentenceTranslation}
-            </Text>
-            {card.contextNote ? (
-              <Text
-                variant="labelSmall"
-                style={[styles.contextNote, { color: theme.colors.onSurfaceVariant }]}
-              >
-                {card.contextNote}
-              </Text>
-            ) : null}
-          </View>
+                  <Text variant="bodyLarge" style={[styles.sentence, { color: theme.colors.onSurface }]}>
+                    {hasSplit ? (
+                      <>
+                        {parts[0]}
+                        <Text style={{ color: theme.custom.brandBlue, fontWeight: '700' }}>
+                          {card.wordInContext}
+                        </Text>
+                        {parts[1]}
+                      </>
+                    ) : (
+                      card.sentence
+                    )}
+                  </Text>
+                  <Text
+                    variant="bodyMedium"
+                    style={[styles.translation, { color: theme.colors.onSurfaceVariant }]}
+                  >
+                    {card.sentenceTranslation}
+                  </Text>
+                  {card.contextNote ? (
+                    <Text
+                      variant="labelSmall"
+                      style={[styles.contextNote, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      {card.contextNote}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
+              </>
+            );
+          })()}
 
           {/* 3. Image section */}
           {imageSource !== null ? (
             <>
-              <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
               <View style={styles.imageSection}>
                 <Image
                   source={imageSource}
@@ -182,11 +193,9 @@ export default function WordDetailScreen() {
                   resizeMode="cover"
                 />
               </View>
+              <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
             </>
           ) : null}
-
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
 
           {/* 4. FSRS Status section */}
           <View style={styles.section}>
@@ -262,18 +271,20 @@ export default function WordDetailScreen() {
             )}
           </View>
 
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
-
-          {/* 5. Chapter info */}
-          <View style={styles.section}>
-            <Text
-              variant="labelSmall"
-              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
-            >
-              CHAPTER {card.chapter}
-            </Text>
-          </View>
+          {/* 5. Chapter info (ClozeCard only) */}
+          {isCloze && (
+            <>
+              <View style={[styles.divider, { backgroundColor: theme.custom.separator }]} />
+              <View style={styles.section}>
+                <Text
+                  variant="labelSmall"
+                  style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  CHAPTER {card.chapter}
+                </Text>
+              </View>
+            </>
+          )}
 
         </View>
       </ScrollView>

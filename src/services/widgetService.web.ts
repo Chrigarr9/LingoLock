@@ -80,3 +80,22 @@ export function processWidgetRate(
 export function clearWidgetData(): void {
   // No-op on web
 }
+
+/**
+ * Web stub: returns empty string.
+ */
+export function getSpellingState(_cardId: string): string {
+  return '';
+}
+
+/**
+ * Web stub: returns empty array.
+ */
+export function buildSpellChoices(
+  _correctAnswer: string,
+  _currentPosition: number,
+  _count?: number,
+  _characters?: string[],
+): string[] {
+  return [];
+}
