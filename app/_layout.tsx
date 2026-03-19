@@ -10,7 +10,6 @@ import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWi
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
-import { addUserInteractionListener, type UserInteractionEvent } from 'expo-widgets';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -97,7 +96,8 @@ export default function RootLayout() {
       updateWidgetData();
 
       // Listen for widget button taps (target strings from expo-widgets Button)
-      const widgetSub = addUserInteractionListener((event: UserInteractionEvent) => {
+      const { addUserInteractionListener } = require('expo-widgets');
+      const widgetSub = addUserInteractionListener((event: { target?: string }) => {
         const { target } = event;
         if (!target) return;
 
