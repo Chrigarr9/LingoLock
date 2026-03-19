@@ -8,7 +8,6 @@ export interface NotificationData {
   correctAnswer: string;
   choices?: string[];
   answerType: 'text' | 'mc4';
-  deliveryTime: number;
   mcMapping?: Record<string, string>;
 }
 

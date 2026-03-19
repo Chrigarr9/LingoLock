@@ -6,9 +6,9 @@
  */
 
 /**
- * Schedule the next vocabulary notification (no-op on web).
+ * Schedule a batch of vocabulary notifications (no-op on web).
  */
-export async function scheduleNextNotification(): Promise<void> {
+export async function scheduleNotificationBatch(): Promise<void> {
   // No-op
 }
 
@@ -16,27 +16,6 @@ export async function scheduleNextNotification(): Promise<void> {
  * Cancel all scheduled notifications (no-op on web).
  */
 export async function cancelAllNotifications(): Promise<void> {
-  // No-op
-}
-
-/**
- * Pause notifications (no-op on web).
- */
-export async function pauseNotifications(): Promise<void> {
-  // No-op
-}
-
-/**
- * Resume notifications (no-op on web).
- */
-export async function resumeNotifications(): Promise<void> {
-  // No-op
-}
-
-/**
- * Handle swipe-away (no-op on web).
- */
-export async function handleSwipeAway(): Promise<void> {
   // No-op
 }
 
@@ -52,11 +31,4 @@ export async function setNotificationInterval(_seconds: number): Promise<void> {
  */
 export function initScheduler(): void {
   // No-op
-}
-
-/**
- * Check if notifications are paused (always false on web).
- */
-export function isNotificationPaused(): boolean {
-  return false;
 }

@@ -1,11 +1,10 @@
-import { Platform, Alert, Linking } from 'react-native';
+import { Platform, Alert, Linking, AppState, AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { validateAnswer } from '../utils/answerValidation';
 import { scheduleReview, createNewCardState } from './fsrs';
-import { loadCardState, saveCardState } from './storage';
-import { updateStatsAfterSession } from './statsService';
-import { scheduleNextNotification, handleSwipeAway, initScheduler } from './notificationScheduler';
-import { startScreenUnlockDetection, stopScreenUnlockDetection } from './screenUnlockDetector';
+import { loadCardState, saveCardState, loadNotificationsEnabled } from './storage';
+import { updateStatsAfterSession, checkAndAdvanceStreak } from './statsService';
+import { scheduleNotificationBatch, cancelAllNotifications, initScheduler } from './notificationScheduler';
 import { updateWidgetData } from './widgetService';
 import { getCardById } from '../content/bundles';
 import type { ClozeCard } from '../types/vocabulary';
@@ -29,7 +28,6 @@ export interface NotificationData {
   correctAnswer: string;
   choices?: string[];
   answerType: 'text' | 'mc4';
-  deliveryTime: number;
   mcMapping?: Record<string, string>; // Maps action IDs to actual words: { "answer-a": "gato", "answer-b": "perro" }
 }
 
@@ -99,7 +97,8 @@ export async function registerNotificationCategories(): Promise<void> {
  * Implements soft prompt flow:
  * - If already granted: return true
  * - If denied: show alert directing to Settings
- * - If undetermined: request permissions
+ * - If undetermined: return false (don't auto-request on first launch;
+ *   the Settings screen toggle handles explicit opt-in)
  *
  * @returns true if permissions granted, false otherwise
  */
@@ -129,16 +128,20 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     return false;
   }
 
-  // Status is 'undetermined'
-  const { status: newStatus } = await Notifications.requestPermissionsAsync();
-  return newStatus === 'granted';
+  // Status is 'undetermined' — don't auto-request on first launch.
+  // The Settings screen toggle will call this function explicitly when the user
+  // opts in, giving them context about why notifications are needed first.
+  return false;
 }
 
 /**
- * Process notification answer: validate, update FSRS, update stats, schedule next.
+ * Process notification answer: validate, update FSRS, update stats.
+ *
+ * Does NOT reschedule notifications — the remaining batch is still valid
+ * with different cards. The AppState listener handles cancel/reschedule
+ * on foreground/background transitions.
  *
  * Handles both MC button answers (via mcMapping) and text input answers.
- * Enforces 1-minute response window — expired responses break streak.
  */
 async function processNotificationAnswer(response: Notifications.NotificationResponse): Promise<void> {
   const { actionIdentifier, userText } = response;
@@ -148,22 +151,13 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
     actionIdentifier,
     userText,
     cardId: data.cardId,
-    deliveryTime: data.deliveryTime,
   });
-
-  // 1-minute window check
-  const elapsed = Date.now() - data.deliveryTime;
-  if (elapsed > 60000) {
-    console.log('[Notifications] Response expired (', elapsed, 'ms) - breaking streak');
-    await handleSwipeAway(); // Breaks streak, pauses until next day
-    return;
-  }
 
   // Load card from content bundle
   const result = getCardById(data.cardId);
   const card = result?.card ?? null;
 
-  if (!card || !('wordInContext' in card)) {
+  if (!card || card.kind !== 'cloze') {
     console.error('[Notifications] Card not found or not a cloze card:', data.cardId);
     return;
   }
@@ -185,13 +179,12 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
     isCorrect = validateAnswer(userText, data.correctAnswer);
     console.log('[Notifications] Text answer:', { userText, correctAnswer: data.correctAnswer, isCorrect });
   }
-  // Handle default action (tapped notification body)
+  // Handle default action (tapped notification body to open app)
   else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-    console.log('[Notifications] User tapped notification - opening app to challenge');
-    // Open app to home screen (user will start challenge manually)
-    // Schedule next notification since user engaged
-    await scheduleNextNotification();
-    await updateWidgetData();
+    console.log('[Notifications] User tapped notification — opening app');
+    // AppState listener will cancel notifications when app comes to foreground
+    // and reschedule when it goes back to background
+    updateWidgetData();
     return;
   }
 
@@ -203,22 +196,20 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
 
   // Update stats (1 card session from 'notification' source)
   updateStatsAfterSession(isCorrect ? 1 : 0, 1, 'notification');
+  checkAndAdvanceStreak();
 
-  // Send feedback notification and schedule next
+  // Send feedback notification (no rescheduling — rest of batch is still valid)
   if (isCorrect) {
-    // Correct: show feedback + schedule next
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '',
-        body: `✓ ${card.germanHint}`,
+        body: `\u2713 ${card.germanHint}`,
         data: {},
       },
       trigger: null, // Immediate
     });
-    await scheduleNextNotification();
   } else {
-    // Incorrect: show correct answer + translation, then next card
-    const feedbackBody = `✗ ${data.correctAnswer} — ${card.sentenceTranslation}`;
+    const feedbackBody = `\u2717 ${data.correctAnswer} \u2014 ${card.sentenceTranslation}`;
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '',
@@ -227,12 +218,10 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
       },
       trigger: null, // Immediate
     });
-    // Schedule next card immediately (wrong answer doesn't break flow)
-    await scheduleNextNotification();
   }
 
-  // Refresh widget with next card
-  await updateWidgetData();
+  // Refresh widget with updated data
+  updateWidgetData();
 }
 
 /**
@@ -240,14 +229,31 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
  * - Register notification categories
  * - Initialize scheduler
  * - Request permissions
- * - Start screen unlock detection
+ * - Register AppState listener for foreground/background transitions
  * - Register response listener
  *
  * @returns Cleanup function to remove listeners
  */
+// Module-level cleanup for idempotent setup — calling setupNotifications()
+// again (e.g., from Settings re-enable) tears down previous listeners first.
+let activeCleanup: (() => void) | null = null;
+
 export function setupNotifications(): () => void {
   if (Platform.OS === 'web') {
     return () => {}; // No-op cleanup
+  }
+
+  // Tear down previous setup if called again (idempotent)
+  if (activeCleanup) {
+    activeCleanup();
+    activeCleanup = null;
+  }
+
+  // Respect user's persisted preference — if they toggled notifications off
+  // in Settings, don't restart the scheduler on next app launch.
+  if (!loadNotificationsEnabled()) {
+    console.log('[Notifications] Notifications disabled by user — skipping setup');
+    return () => {};
   }
 
   // Register categories
@@ -258,26 +264,42 @@ export function setupNotifications(): () => void {
   // Initialize scheduler
   initScheduler();
 
-  // Request permissions and start unlock detection
+  // Request permissions
   requestNotificationPermissions().then((granted) => {
     if (granted) {
-      console.log('[Notifications] Permissions granted - starting unlock detection');
-      // Start screen unlock detection -> triggers scheduleNextNotification
-      startScreenUnlockDetection(() => {
-        scheduleNextNotification().catch((err) => {
-          console.error('[Notifications] Failed to schedule notification:', err);
-        });
-      });
-
-      // Schedule first notification immediately if cards are due
-      scheduleNextNotification().catch((err) => {
-        console.error('[Notifications] Failed to schedule initial notification:', err);
-      });
+      console.log('[Notifications] Permissions granted');
+      // No scheduling here — app is active at startup, no notifications needed.
+      // The AppState listener below will schedule when app goes to background.
     } else {
-      console.log('[Notifications] Permissions not granted - notifications disabled');
+      console.log('[Notifications] Permissions not granted — notifications disabled');
     }
   }).catch((err) => {
     console.error('[Notifications] Failed to request permissions:', err);
+  });
+
+  // Track previous AppState for transition detection
+  let prevAppState: AppStateStatus = AppState.currentState;
+
+  // AppState listener: cancel on foreground, schedule batch on background
+  const appStateSubscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+    const wasActive = prevAppState === 'active';
+    const isNowActive = nextState === 'active';
+    const isNowBackground = nextState === 'background';
+    prevAppState = nextState;
+
+    if (isNowActive && !wasActive) {
+      // Transitioning TO foreground: cancel all scheduled notifications
+      console.log('[Notifications] App came to foreground — cancelling notifications');
+      cancelAllNotifications().catch((err) => {
+        console.error('[Notifications] Failed to cancel notifications:', err);
+      });
+    } else if (isNowBackground && wasActive) {
+      // Transitioning TO background: schedule a fresh batch
+      console.log('[Notifications] App went to background — scheduling notification batch');
+      scheduleNotificationBatch().catch((err) => {
+        console.error('[Notifications] Failed to schedule notification batch:', err);
+      });
+    }
   });
 
   // Register response listener
@@ -288,9 +310,11 @@ export function setupNotifications(): () => void {
     });
   });
 
-  // Return cleanup function
-  return () => {
+  // Store and return cleanup function
+  activeCleanup = () => {
     subscription.remove();
-    stopScreenUnlockDetection();
+    appStateSubscription.remove();
   };
+
+  return activeCleanup;
 }

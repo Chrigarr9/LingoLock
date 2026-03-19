@@ -55,7 +55,7 @@ const LL_PREFIX = 'll.';
 
 const DEFAULT_STATS: PersistedStats = {
   currentStreak: 0,
-  lastSessionDate: null,
+  lastStreakDate: null,
   totalCorrect: 0,
   totalAnswered: 0,
   perAppStats: {},
@@ -85,7 +85,8 @@ export function loadCardState(cardId: string): CardState | null {
   if (!raw) return null;
   try {
     return JSON.parse(raw) as CardState;
-  } catch {
+  } catch (e) {
+    console.error(`[Storage] Corrupted card state for "${cardId}", treating as new:`, e);
     return null;
   }
 }
@@ -142,7 +143,8 @@ export function loadStats(): PersistedStats {
   if (!raw) return { ...DEFAULT_STATS, perAppStats: {} };
   try {
     return JSON.parse(raw) as PersistedStats;
-  } catch {
+  } catch (e) {
+    console.error('[Storage] Corrupted stats data, returning defaults:', e);
     return { ...DEFAULT_STATS, perAppStats: {} };
   }
 }
@@ -245,18 +247,18 @@ export function recordNewWordsIntroduced(count: number): void {
 // ---------------------------------------------------------------------------
 
 const NOTIFICATION_INTERVAL_KEY = 'll.notification_interval';
-const NOTIFICATION_SWIPE_AWAY_DATE_KEY = 'll.notification_swipe_away_date';
 const NOTIFICATIONS_ENABLED_KEY = 'll.notifications_enabled';
+const NOTIFICATION_ACTIVE_HOURS_KEY = 'll.notification_active_hours';
 
 /**
  * Load the notification interval in seconds.
- * Returns 300 (5 minutes) if never set.
+ * Returns 900 (15 minutes) if never set.
  */
 export function loadNotificationInterval(): number {
   const raw = store.getItem(NOTIFICATION_INTERVAL_KEY);
-  if (raw === null) return 300;
+  if (raw === null) return 900;
   const parsed = parseInt(raw, 10);
-  return isNaN(parsed) ? 300 : parsed;
+  return isNaN(parsed) ? 900 : parsed;
 }
 
 /**
@@ -267,18 +269,31 @@ export function saveNotificationInterval(seconds: number): void {
 }
 
 /**
- * Load the date when user last swiped away a notification.
- * Returns null if never set or not today.
+ * Load the notification active hours window.
+ * Returns { startHour: 8, endHour: 20 } if never set.
+ * Hours are 0-23 integers.
  */
-export function loadNotificationSwipeAwayDate(): string | null {
-  return store.getItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY) ?? null;
+export function loadNotificationActiveHours(): { startHour: number; endHour: number } {
+  const raw = store.getItem(NOTIFICATION_ACTIVE_HOURS_KEY);
+  if (raw === null) return { startHour: 8, endHour: 20 };
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      startHour: typeof parsed.startHour === 'number' ? parsed.startHour : 8,
+      endHour: typeof parsed.endHour === 'number' ? parsed.endHour : 20,
+    };
+  } catch (e) {
+    console.error('[Storage] Corrupted notification active hours, returning defaults:', e);
+    return { startHour: 8, endHour: 20 };
+  }
 }
 
 /**
- * Persist the swipe-away date (YYYY-MM-DD format).
+ * Persist the notification active hours window.
+ * Hours are 0-23 integers. startHour must be < endHour.
  */
-export function saveNotificationSwipeAwayDate(date: string): void {
-  store.setItem(NOTIFICATION_SWIPE_AWAY_DATE_KEY, date);
+export function saveNotificationActiveHours(startHour: number, endHour: number): void {
+  store.setItem(NOTIFICATION_ACTIVE_HOURS_KEY, JSON.stringify({ startHour, endHour }));
 }
 
 /**
@@ -347,7 +362,8 @@ export function loadEnabledBundles(): string[] {
   if (!raw) return [DEFAULT_BUNDLE_ID];
   try {
     return JSON.parse(raw);
-  } catch {
+  } catch (e) {
+    console.error('[Storage] Corrupted enabled bundles list, returning default:', e);
     return [DEFAULT_BUNDLE_ID];
   }
 }

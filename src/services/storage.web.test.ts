@@ -172,7 +172,7 @@ describe('deleteCardState', () => {
 describe('saveStats / loadStats', () => {
   const defaultStats: PersistedStats = {
     currentStreak: 0,
-    lastSessionDate: null,
+    lastStreakDate: null,
     totalCorrect: 0,
     totalAnswered: 0,
     perAppStats: {},
@@ -283,7 +283,7 @@ describe('clearAllData', () => {
     saveCardState('card-2', makeCardState('card-2'));
     saveStats({
       currentStreak: 3,
-      lastSessionDate: '2026-03-01',
+      lastStreakDate: '2026-03-01',
       totalCorrect: 10,
       totalAnswered: 15,
       perAppStats: {},
@@ -300,7 +300,7 @@ describe('clearAllData', () => {
     expect(loadAudioMuted()).toBe(false);
     expect(loadStats()).toEqual({
       currentStreak: 0,
-      lastSessionDate: null,
+      lastStreakDate: null,
       totalCorrect: 0,
       totalAnswered: 0,
       perAppStats: {},
