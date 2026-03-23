@@ -132,13 +132,36 @@ function SelfRatedRevealed({
   backText?: string;
   isLockScreen: boolean;
 }) {
+  if (isLockScreen) {
+    return (
+      <VStack alignment="leading" spacing={2} modifiers={[
+        padding({ all: 4 }),
+        frame({ maxWidth: Infinity, maxHeight: Infinity }),
+      ]}>
+        <Text modifiers={[
+          font({ size: 12 }),
+          foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+          lineLimit(1),
+        ]}>
+          {frontText}
+        </Text>
+        <Text modifiers={[
+          font({ size: 13, weight: 'semibold' }),
+          lineLimit(2),
+        ]}>
+          {backText}
+        </Text>
+      </VStack>
+    );
+  }
+
   return (
     <VStack alignment="leading" spacing={4} modifiers={[
-      padding({ all: isLockScreen ? 4 : 16 }),
+      padding({ all: 16 }),
       frame({ maxWidth: Infinity, maxHeight: Infinity }),
     ]}>
       <Text modifiers={[
-        font({ size: isLockScreen ? 12 : 14 }),
+        font({ size: 14 }),
         foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
         lineLimit(2),
       ]}>
@@ -146,7 +169,7 @@ function SelfRatedRevealed({
       </Text>
       <Divider />
       <Text modifiers={[
-        font({ size: isLockScreen ? 12 : 16, weight: 'semibold' }),
+        font({ size: 16, weight: 'semibold' }),
         lineLimit(3),
       ]}>
         {backText}
@@ -189,13 +212,29 @@ function SelfRatedHidden({
   cardsLeft?: number;
   isLockScreen: boolean;
 }) {
+  if (isLockScreen) {
+    return (
+      <VStack alignment="leading" spacing={2} modifiers={[
+        padding({ all: 4 }),
+        frame({ maxWidth: Infinity, maxHeight: Infinity }),
+      ]}>
+        <Text modifiers={[
+          font({ size: 13, weight: 'semibold' }),
+          lineLimit(3),
+        ]}>
+          {frontText}
+        </Text>
+      </VStack>
+    );
+  }
+
   return (
     <VStack alignment="leading" spacing={8} modifiers={[
-      padding({ all: isLockScreen ? 4 : 16 }),
+      padding({ all: 16 }),
       frame({ maxWidth: Infinity, maxHeight: Infinity }),
     ]}>
       <Text modifiers={[
-        font({ size: isLockScreen ? 12 : 18, weight: 'semibold' }),
+        font({ size: 18, weight: 'semibold' }),
         lineLimit(4),
       ]}>
         {frontText}
@@ -209,7 +248,7 @@ function SelfRatedHidden({
           tint(COLOR_BLUE),
         ]}
       />
-      {!isLockScreen ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+      <ProgressFooter cardsLeft={cardsLeft} />
     </VStack>
   );
 }
@@ -235,21 +274,47 @@ function MCCard({
   isLockScreen: boolean;
   isSmall: boolean;
 }) {
+  // Lock screen: sentence + hint only (no buttons — tap opens app)
+  if (isLockScreen) {
+    return (
+      <VStack alignment="leading" spacing={2} modifiers={[
+        padding({ all: 4 }),
+        frame({ maxWidth: Infinity, maxHeight: Infinity }),
+      ]}>
+        <Text modifiers={[
+          font({ size: 13, weight: 'semibold' }),
+          lineLimit(2),
+        ]}>
+          {sentence}
+        </Text>
+        {germanHint ? (
+          <Text modifiers={[
+            font({ size: 12 }),
+            foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+            lineLimit(1),
+          ]}>
+            {germanHint}
+          </Text>
+        ) : null}
+      </VStack>
+    );
+  }
+
   return (
     <VStack alignment="leading" spacing={4} modifiers={[
-      padding({ all: isLockScreen ? 4 : 16 }),
+      padding({ all: 16 }),
       frame({ maxWidth: Infinity, maxHeight: Infinity }),
     ]}>
       {/* Sentence */}
       <Text modifiers={[
-        font({ size: isLockScreen ? 12 : isSmall ? 14 : 16, weight: 'semibold' }),
-        lineLimit(isLockScreen ? 2 : 3),
+        font({ size: isSmall ? 15 : 16, weight: 'semibold' }),
+        lineLimit(3),
       ]}>
         {sentence}
       </Text>
 
-      {/* Hint (not on lock screen or small) */}
-      {!isLockScreen && !isSmall && germanHint ? (
+      {/* Hint — shown on all home screen sizes */}
+      {germanHint ? (
         <Text modifiers={[
           font({ size: 13 }),
           foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
@@ -280,7 +345,7 @@ function MCCard({
       </VStack>
 
       {/* Progress */}
-      {!isLockScreen ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+      <ProgressFooter cardsLeft={cardsLeft} />
     </VStack>
   );
 }
@@ -290,51 +355,36 @@ function MCCard({
 // ---------------------------------------------------------------------------
 
 function SpellLockScreen({
-  cardId,
-  spellInput,
-  spellChoices,
+  sentence,
+  germanHint,
 }: {
   cardId: string;
+  sentence: string;
+  germanHint?: string;
   spellInput: string;
   spellChoices: string[];
 }) {
   return (
-    <HStack spacing={3} modifiers={[
+    <VStack alignment="leading" spacing={2} modifiers={[
       padding({ all: 4 }),
       frame({ maxWidth: Infinity, maxHeight: Infinity }),
     ]}>
       <Text modifiers={[
-        font({ size: 12, weight: 'semibold', design: 'monospaced' }),
-        frame({ minWidth: 28 }),
-        multilineTextAlignment('center'),
+        font({ size: 13, weight: 'semibold' }),
+        lineLimit(2),
       ]}>
-        {spellInput || '...'}
+        {sentence}
       </Text>
-      {spellChoices.map((char: string, index: number) => (
-        <Button
-          key={index}
-          target={`spell:${cardId}:char:${char}`}
-          label={char}
-          modifiers={[
-            buttonStyle('borderedProminent'),
-            tint(BRAND_ORANGE),
-          ]}
-        />
-      ))}
-      <Button
-        target={`spell:${cardId}:back`}
-        label="\u2190"
-        modifiers={[buttonStyle('bordered')]}
-      />
-      <Button
-        target={`spell:${cardId}:submit`}
-        label="\u2713"
-        modifiers={[
-          buttonStyle('borderedProminent'),
-          tint(COLOR_GREEN),
-        ]}
-      />
-    </HStack>
+      {germanHint ? (
+        <Text modifiers={[
+          font({ size: 12 }),
+          foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+          lineLimit(1),
+        ]}>
+          {germanHint}
+        </Text>
+      ) : null}
+    </VStack>
   );
 }
 
@@ -366,14 +416,14 @@ function SpellHomeScreen({
     ]}>
       {/* Sentence */}
       <Text modifiers={[
-        font({ size: isSmall ? 14 : 16, weight: 'semibold' }),
+        font({ size: isSmall ? 15 : 16, weight: 'semibold' }),
         lineLimit(isSmall ? 2 : 3),
       ]}>
         {sentence}
       </Text>
 
-      {/* Hint */}
-      {!isSmall && germanHint ? (
+      {/* Hint — shown on all home screen sizes */}
+      {germanHint ? (
         <Text modifiers={[
           font({ size: 13 }),
           foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
@@ -428,7 +478,7 @@ function SpellHomeScreen({
       </HStack>
 
       {/* Progress */}
-      {!isSmall ? <ProgressFooter cardsLeft={cardsLeft} /> : null}
+      <ProgressFooter cardsLeft={cardsLeft} />
     </VStack>
   );
 }
@@ -502,6 +552,8 @@ function VocabularyWidgetComponent(
     return (
       <SpellLockScreen
         cardId={cardId}
+        sentence={sentence}
+        germanHint={germanHint}
         spellInput={currentInput}
         spellChoices={charButtons}
       />

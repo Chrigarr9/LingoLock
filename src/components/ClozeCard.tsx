@@ -61,9 +61,10 @@ export function ClozeCardDisplay({
   const { height: windowHeight } = useWindowDimensions();
   // Calculate available height for the image:
   // Total screen minus fixed UI elements minus keyboard.
-  // Fixed overhead: safe area ~55 + header ~50 + progress ~30 + card text/hint ~120
-  //   + MC grid ~190 (or input ~60) + next button ~60 + padding/gaps ~55 = ~560 for MC, ~430 for text
-  const fixedOverhead = answerType === 'text' ? 430 : 560;
+  // Fixed overhead: safe area ~89 + header ~44 + progress ~30 + card text/hint ~94
+  //   + MC grid ~190 + next button ~60 + padding ~53 = ~560 for MC
+  //   + input ~56 + padding ~45 = ~390 for text
+  const fixedOverhead = answerType === 'text' ? 340 : 560;
   const availableForImage = windowHeight - fixedOverhead - keyboardHeight;
   const imageMaxHeight = Math.max(0, Math.min(220, availableForImage));
   const shouldShowImage = imageMaxHeight >= 40;
@@ -115,6 +116,7 @@ export function ClozeCardDisplay({
     return () => {
       cancelled = true;
       if (soundRef.current) {
+        soundRef.current.pause();
         soundRef.current.remove();
         soundRef.current = null;
       }
@@ -125,6 +127,7 @@ export function ClozeCardDisplay({
   useEffect(() => {
     return () => {
       if (soundRef.current) {
+        soundRef.current.pause();
         soundRef.current.remove();
         soundRef.current = null;
       }

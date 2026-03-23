@@ -357,7 +357,7 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   return (
     <View
-      style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboard.height > 0 ? 0 : insets.bottom }]}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -368,22 +368,6 @@ export default function ChallengeScreen() {
           onPress={handleClose}
           accessibilityLabel="Close challenge"
         />
-        {!isComplete && (
-          <View style={styles.headerCenter}>
-            <Text
-              variant="labelSmall"
-              style={[labelOverlineStyle.label, { color: theme.colors.onSurfaceVariant, letterSpacing: 1.5 }]}
-            >
-              CARD
-            </Text>
-            <Text
-              variant="titleMedium"
-              style={[styles.headerTitle, { color: theme.colors.onSurface }]}
-            >
-              {params.source || 'Practice'}
-            </Text>
-          </View>
-        )}
         <IconButton
           icon={isMuted ? 'volume-off' : 'volume-high'}
           size={22}
@@ -418,7 +402,7 @@ export default function ChallengeScreen() {
       <View
         style={[styles.keyboardAvoid, Platform.OS === 'ios' && keyboard.height > 0 && { paddingBottom: keyboard.height }]}
       >
-        <View style={[styles.contentScroll, styles.content]}>
+        <View style={[styles.contentScroll, styles.content, keyboard.height > 0 && styles.contentKeyboardUp]}>
 
         {!isComplete && currentCard && (
           <>
@@ -620,12 +604,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 4,
   },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontWeight: '700',
-  },
   progressArea: {
     paddingHorizontal: 24,
     paddingTop: 4,
@@ -647,6 +625,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingBottom: 32,
+  },
+  contentKeyboardUp: {
+    justifyContent: 'flex-end',
+    paddingBottom: 12,
   },
   mcArea: {
     paddingTop: 16,
