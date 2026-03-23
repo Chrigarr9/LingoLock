@@ -65,10 +65,15 @@ import {
   getCurrentChapterNumber,
   checkAndAdvanceStreak,
 } from './statsService';
-import { CHAPTERS } from '../content/bundles';
 import { loadStats, saveStats, loadCardState, loadEnabledBundles } from './storage';
 import { isCardMastered, isDue } from './fsrs';
 import { getBundle, isImportedBundle } from '../content/bundles';
+import type { ChapterData } from '../types/vocabulary';
+
+// CHAPTERS is defined in the jest.mock factory above — extract it from the mock.
+// The real bundles/index.ts doesn't export CHAPTERS (it's in the per-bundle module),
+// so we pull it from the mocked getBundle() return value.
+const CHAPTERS: ChapterData[] = (getBundle as jest.Mock)('es-de-buenos-aires').chapters;
 
 const mockLoadStats = loadStats as jest.MockedFunction<typeof loadStats>;
 const mockSaveStats = saveStats as jest.MockedFunction<typeof saveStats>;
