@@ -34,6 +34,7 @@ export interface WidgetCardData {
   sentence: string;       // Cloze sentence with _____ gap
   germanHint: string;     // German hint word
   correctAnswer: string;  // wordInContext
+  sentenceTranslation?: string; // German translation of the sentence
   answerType: 'mc4' | 'text' | 'selfRated';  // Determines widget interaction mode
   choices?: string[];     // MC choices for mc2/mc4 cards
   imageUri?: string;      // Optional card image
@@ -124,6 +125,15 @@ export function buildSpellChoices(
  * Returns null if no cards are due (widget shows empty state).
  */
 export function getWidgetCardData(): WidgetCardData | null {
+  const batch = getWidgetCardBatch(1);
+  return batch.length > 0 ? batch[0] : null;
+}
+
+/**
+ * Get a batch of due cards for the widget (up to `count`).
+ * Used to pre-load multiple cards so the widget can auto-advance.
+ */
+function getWidgetCardBatch(count: number): WidgetCardData[] {
   // Single pass: scan all enabled bundles for due cards (both ClozeCard and SimpleCard)
   const enabledIds = loadEnabledBundles();
   const dueCloze: Array<{ card: ClozeCard; bundleId: string }> = [];
@@ -155,14 +165,16 @@ export function getWidgetCardData(): WidgetCardData | null {
   }
 
   const totalDue = dueCloze.length + dueSimple.length;
-  if (totalDue === 0) return null;
+  if (totalDue === 0) return [];
 
   const streakCount = getStreak();
+  const results: WidgetCardData[] = [];
 
-  // Prefer ClozeCards (richer widget interaction), fall back to SimpleCards
-  if (dueCloze.length > 0) {
-    const firstDue = dueCloze[0];
-    const card = firstDue.card;
+  // Build cards from ClozeCards first, then SimpleCards
+  const clozeLimit = count === Infinity ? dueCloze.length : Math.min(dueCloze.length, count);
+  for (let i = 0; i < clozeLimit; i++) {
+    const entry = dueCloze[i];
+    const card = entry.card;
     const cardState = loadCardState(card.id);
     const answerType = getAnswerType(cardState);
 
@@ -171,8 +183,9 @@ export function getWidgetCardData(): WidgetCardData | null {
       sentence: card.sentence,
       germanHint: card.germanHint,
       correctAnswer: card.wordInContext,
+      sentenceTranslation: card.sentenceTranslation,
       answerType,
-      cardsLeft: totalDue,
+      cardsLeft: totalDue - i,
       streakCount,
     };
 
@@ -180,37 +193,41 @@ export function getWidgetCardData(): WidgetCardData | null {
       widgetData.choices = buildMcChoices(card);
     }
 
+    // For spell mode, only first card gets spell state; others start fresh
     if (answerType === 'text') {
-      const spellInput = getSpellingState(card.id);
-      const bundle = getBundle(firstDue.bundleId);
-      widgetData.spellInput = spellInput;
-      widgetData.spellChoices = buildSpellChoices(
-        card.wordInContext, spellInput.length, 4,
-        bundle.config.spellCharacters,
-      );
+      if (i === 0) {
+        const spellInput = getSpellingState(card.id);
+        const bundle = getBundle(entry.bundleId);
+        widgetData.spellInput = spellInput;
+        widgetData.spellChoices = buildSpellChoices(
+          card.wordInContext, spellInput.length, 4,
+          bundle.config.spellCharacters,
+        );
+      } else {
+        widgetData.spellInput = '';
+      }
     }
 
-    if (card.image) {
-      widgetData.imageUri = card.image;
-    }
-
-    return widgetData;
+    results.push(widgetData);
   }
 
-  // Only SimpleCards due — self-rated mode
-  const firstSimple = dueSimple[0];
-  return {
-    cardId: firstSimple.card.id,
-    sentence: '',
-    germanHint: '',
-    correctAnswer: '',
-    answerType: 'selfRated',
-    cardsLeft: totalDue,
-    streakCount,
-    frontText: firstSimple.card.front,
-    backText: firstSimple.card.back,
-    isRevealed: false,
-  };
+  // Fill remaining slots with SimpleCards
+  for (let i = 0; i < dueSimple.length && results.length < count; i++) {
+    results.push({
+      cardId: dueSimple[i].card.id,
+      sentence: '',
+      germanHint: '',
+      correctAnswer: '',
+      answerType: 'selfRated',
+      cardsLeft: totalDue - results.length,
+      streakCount,
+      frontText: dueSimple[i].card.front,
+      backText: dueSimple[i].card.back,
+      isRevealed: false,
+    });
+  }
+
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,15 +253,262 @@ export function updateWidgetData(): void {
   try {
     // Use expo-widgets Widget class directly — do NOT import VocabularyWidget.tsx
     // as it pulls in @expo/ui/swift-ui which only works in the widget extension process.
+    // The Widget constructor requires (name, layoutString) where layoutString is
+    // JS source code that evaluates to a function(props, env) returning a view tree.
+    // createWidget() can't be used from the main app because the bridge can't
+    // auto-convert a JS function to a String.
+    //
+    // Workaround: provide a minimal layout function as a string that renders
+    // based on the props we pass via updateSnapshot. The ExpoWidgets.bundle
+    // runtime (stubs for VStack, Text, Button etc.) is loaded first in the JSContext.
     const { Widget } = require('expo-widgets');
-    const widget = new Widget('VocabularyWidget', 'VocabularyWidget');
+    const layoutFn = `function(props, env) {
+      var family = env.widgetFamily;
+      var isLock = family === 'accessoryRectangular';
+      var isSmall = family === 'systemSmall';
+      var id = props.cardId;
+      var input = props.spellInput || '';
+      var word = (props.correctAnswer || '').toLowerCase();
+      var pos = input.length;
+
+      function txt(text, mods) { return { type: 'TextView', props: { text: String(text), modifiers: mods || [] } }; }
+      function vs(ch, mods, opts) { return { type: 'VStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
+      function hs(ch, mods, opts) { return { type: 'HStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
+      function btn(target, label, handler) { var p = { target: target, label: label, modifiers: [{ $type: 'frame', maxWidth: 99999 }] }; if (handler) p.onButtonPress = handler; return { type: 'Button', props: p }; }
+      function sfIcon(name, size, color) { var p = { systemName: name }; var mods = []; if (size) mods.push({ $type: 'font', size: size }); if (color) mods.push({ $type: 'foregroundStyle', styleType: 'color', color: color }); if (mods.length) p.modifiers = mods; return { type: 'ImageView', props: p }; }
+      function link(url, children) { return { type: 'LinkView', props: { destination: url, children: children } }; }
+
+      var fP = { $type: 'foregroundStyle', styleType: 'color', color: '#1C2E4A' };
+      var fS = { $type: 'foregroundStyle', styleType: 'color', color: '#4A6B8A' };
+      var fGreen = { $type: 'foregroundStyle', styleType: 'color', color: '#34C759' };
+      var fRed = { $type: 'foregroundStyle', styleType: 'color', color: '#FF3B30' };
+      function f(size, weight) { var m = { $type: 'font', size: size }; if (weight) m.weight = weight; return m; }
+      function lim(n) { return { $type: 'lineLimit', lines: n }; }
+
+      // Build spell choices for current position from the word itself
+      function getChoices() {
+        var extras = 'abcdefghijlmnoprstuvaeiouns'.split('');
+        var correct = pos < word.length ? word[pos] : null;
+        var choices = [];
+        if (correct) choices.push(correct);
+        // Add chars from elsewhere in the word
+        for (var i = 0; i < word.length && choices.length < 3; i++) {
+          if (word[i] !== correct && choices.indexOf(word[i]) === -1) choices.push(word[i]);
+        }
+        // Fill with random extras
+        for (var j = 0; choices.length < 4 && j < extras.length; j++) {
+          if (choices.indexOf(extras[j]) === -1) choices.push(extras[j]);
+        }
+        // Shuffle (simple)
+        for (var k = choices.length - 1; k > 0; k--) {
+          var r = Math.floor(Math.random() * (k + 1));
+          var tmp = choices[k]; choices[k] = choices[r]; choices[r] = tmp;
+        }
+        return choices.slice(0, 4);
+      }
+
+      // Show feedback: correct → auto-advance with indicator, wrong → feedback card with Next
+      function showFeedback(correct, answerWord, sentenceText, translation) {
+        if (correct) {
+          // Auto-advance: go directly to next card with a "✓" indicator
+          var result = advanceToNext();
+          result.lastResult = '\\u2713 ' + answerWord;
+          result.lastCorrect = true;
+          return result;
+        }
+        // Wrong: show feedback card, user taps Next
+        return {
+          feedbackShown: true,
+          feedbackCorrect: false,
+          feedbackAnswer: answerWord,
+          feedbackSentence: sentenceText,
+          feedbackTranslation: translation || '',
+          feedbackHint: props.germanHint || ''
+        };
+      }
+
+      // Actually advance to next card (called from Next button on feedback)
+      function advanceToNext() {
+        var nc = props.nextCards || [];
+        if (nc.length > 0) {
+          var next = nc[0];
+          return {
+            cardId: next.cardId,
+            sentence: next.sentence || '',
+            germanHint: next.germanHint || '',
+            correctAnswer: next.correctAnswer || '',
+            sentenceTranslation: next.sentenceTranslation || '',
+            answerType: next.answerType || 'text',
+            choices: next.choices || [],
+            cardsLeft: (props.cardsLeft || 1) - 1,
+            streakCount: props.streakCount || 0,
+            spellInput: '',
+            frontText: next.frontText || '',
+            backText: next.backText || '',
+            isRevealed: false,
+            nextCards: nc.slice(1),
+            feedbackShown: false,
+            done: false
+          };
+        }
+        return {
+          done: true,
+          spellInput: '',
+          nextCards: [],
+          feedbackShown: false
+        };
+      }
+
+      // Show input within the sentence gap
+      function sentenceWithInput() {
+        var display = input || '_';
+        return props.sentence.replace('_____', display);
+      }
+
+      // ── Lock screen + Small widget: sentence + German hint ──
+      // Tapping opens the app. Show sentence with gap and German translation below.
+      if (isSmall || isLock) {
+        var lockPad = isLock ? 4 : 14;
+        // Lock screen uses system colors (adapts to light/dark/tinted automatically)
+        var lockFP = isLock ? { $type: 'foregroundStyle', styleType: 'hierarchical', style: 'primary' } : fP;
+        var lockFS = isLock ? { $type: 'foregroundStyle', styleType: 'hierarchical', style: 'secondary' } : fS;
+
+        var challengeUrl = 'lingolock://challenge?source=Widget';
+
+        if (!id || !props.sentence) {
+          return link(challengeUrl, vs([
+            txt('All caught up!', [f(isLock ? 13 : 16, 'bold'), lockFP]),
+            props.streakCount > 0 ? txt(props.streakCount + ' day streak', [f(isLock ? 10 : 12), lockFS]) : null
+          ], [{ $type: 'padding', all: lockPad }], { alignment: 'center', spacing: isLock ? 2 : 4 }));
+        }
+        return link(challengeUrl, vs([
+          txt(props.sentence, [f(isLock ? 13 : 15, 'semibold'), lockFP, lim(isLock ? 2 : 4)]),
+          props.germanHint ? txt(props.germanHint, [f(isLock ? 12 : 13), lockFS, lim(1)]) : null,
+          props.cardsLeft > 0 ? txt(props.cardsLeft + ' cards left', [f(isLock ? 9 : 11), lockFS]) : null
+        ], [{ $type: 'padding', all: lockPad }], { alignment: 'leading', spacing: isLock ? 2 : 4 }));
+      }
+
+      // ── Empty state ──
+      if (!id || !props.sentence) {
+        return vs([
+          txt('All caught up!', [f(18, 'bold'), fP]),
+          props.streakCount > 0 ? txt(props.streakCount + ' day streak', [f(12), fS]) : null
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'center', spacing: 6 });
+      }
+
+      // ── Self-rated revealed ──
+      if (props.frontText && props.isRevealed) {
+        return vs([
+          txt(props.frontText, [f(12), fS, lim(2)]),
+          txt(props.backText || '', [f(14, 'semibold'), fP, lim(2)]),
+          hs([
+            btn('rate:' + id + ':1', 'Again', function() { return { isRevealed: false }; }),
+            btn('rate:' + id + ':3', 'Good', function() { return { isRevealed: false }; })
+          ], [], { spacing: 6 })
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 4 });
+      }
+
+      // ── Self-rated unrevealed ──
+      if (props.frontText) {
+        return vs([
+          txt(props.frontText, [f(14, 'semibold'), fP, lim(3)]),
+          btn('reveal:' + id, 'Reveal', function() { return { isRevealed: true }; })
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 6 });
+      }
+
+      // ── Feedback card (wrong answer only — correct auto-advances) ──
+      if (props.feedbackShown) {
+        // Split sentence around the gap to highlight the correct word
+        var parts = (props.sentence || '').split('_____');
+        var before = parts[0] || '';
+        var after = parts[1] || '';
+        var answer = props.feedbackAnswer || '';
+        // Build sentence as HStack with the answer word styled differently
+        var sentenceWithHighlight = hs([
+          before ? txt(before, [f(14), fP]) : null,
+          txt(answer, [f(16, 'bold'), fP, { $type: 'font', size: 16, weight: 'bold', design: 'serif' }]),
+          after ? txt(after, [f(14), fP]) : null
+        ], [], { spacing: 0 });
+
+        return vs([
+          txt('\\u2717 Incorrect', [f(12, 'bold'), fRed]),
+          sentenceWithHighlight,
+          props.feedbackTranslation ? txt(props.feedbackTranslation, [f(12), fS, lim(3)]) : null,
+          { type: 'SpacerView', props: {} },
+          btn('next', 'Next \\u203A', function() { return advanceToNext(); })
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 4 });
+      }
+
+      // ── Done state (no more cards) ──
+      if (props.done) {
+        return vs([
+          txt('\\u2713 All done!', [f(16, 'bold'), fGreen]),
+          txt((props.cardsLeft || 0) === 0 ? 'All caught up!' : '', [f(12), fS])
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'center', spacing: 6 });
+      }
+
+      var fontSize = isLock ? 11 : 13;
+      var spellBtns = getChoices();
+      // Previous answer indicator (shown briefly at top of next card)
+      var lastIndicator = props.lastResult ? txt(props.lastResult, [f(11, 'bold'), props.lastCorrect ? fGreen : fRed]) : null;
+
+      // Cards left counter at top right
+      var header = props.cardsLeft > 0
+        ? hs([lastIndicator, { type: 'SpacerView', props: {} }, txt(props.cardsLeft + ' left', [f(10), fS])], [], { spacing: 4 })
+        : (lastIndicator ? hs([lastIndicator], []) : null);
+
+      // ── MC card ──
+      if (props.choices && props.choices.length > 0) {
+        var mcBtns = props.choices.map(function(c) {
+          return btn('answer:' + id + ':' + c, c, function() { return showFeedback(c === props.correctAnswer, props.correctAnswer, props.sentence, props.sentenceTranslation); });
+        });
+        return vs([
+          header,
+          txt(props.sentence, [f(14, 'semibold'), fP, lim(3)]),
+          props.sentenceTranslation ? txt(props.sentenceTranslation, [f(11), fS, lim(2)]) : null,
+          { type: 'SpacerView', props: {} },
+          hs(mcBtns, [], { spacing: 6 })
+        ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 4 });
+      }
+
+      // ── Spell mode ──
+      var allBtns = [];
+      spellBtns.forEach(function(ch) {
+        allBtns.push(btn('spell:' + id + ':char:' + ch, ch, function() { return { spellInput: input + ch }; }));
+      });
+      allBtns.push(btn('spell:' + id + ':back', '\\u232B', function() { return { spellInput: input.slice(0, -1) }; }));
+      allBtns.push(btn('spell:' + id + ':submit', '\\u2713', function() { return showFeedback(input.toLowerCase() === word, props.correctAnswer, sentenceWithInput(), props.sentenceTranslation); }));
+      return vs([
+        header,
+        txt(sentenceWithInput(), [f(14, 'semibold'), fP, lim(3)]),
+        props.sentenceTranslation ? txt(props.sentenceTranslation, [f(11), fS, lim(2)]) : null,
+        { type: 'SpacerView', props: {} },
+        hs(allBtns, [], { spacing: 6 })
+      ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 4 });
+    }`;
+    const widget = new Widget('VocabularyWidget', layoutFn);
 
     const cardData = getWidgetCardData();
     if (cardData) {
+      console.log('[Widget] Updating snapshot with card:', {
+        cardId: cardData.cardId,
+        answerType: cardData.answerType,
+        cardsLeft: cardData.cardsLeft,
+        hasChoices: !!cardData.choices?.length,
+        hasSpellChoices: !!cardData.spellChoices?.length,
+        spellChoices: cardData.spellChoices,
+        spellInput: cardData.spellInput,
+        sentence: cardData.sentence?.substring(0, 40),
+        germanHint: cardData.germanHint,
+      });
+      // Pre-load all due cards so the widget can cycle through them
+      const allCards = getWidgetCardBatch(Infinity);
       widget.updateSnapshot({
         cardId: cardData.cardId,
         sentence: cardData.sentence,
         germanHint: cardData.germanHint,
+        correctAnswer: cardData.correctAnswer,
+        sentenceTranslation: cardData.sentenceTranslation,
         answerType: cardData.answerType,
         choices: cardData.choices,
         cardsLeft: cardData.cardsLeft,
@@ -254,15 +518,18 @@ export function updateWidgetData(): void {
         frontText: cardData.frontText,
         backText: cardData.backText,
         isRevealed: cardData.isRevealed,
+        // Batch: remaining cards for auto-advance
+        nextCards: allCards.slice(1),
+        cardIndex: 0,
       });
     } else {
-      // No cards due — show empty state with streak
+      console.log('[Widget] No card data — showing empty state');
       widget.updateSnapshot({
         streakCount: getStreak(),
       });
     }
   } catch (error) {
-    // Silently no-op if expo-widgets not available (e.g. dev build without widget extension)
+    console.error('[Widget] Failed to update widget data:', error);
   }
 }
 
@@ -468,4 +735,65 @@ export function clearWidgetData(): void {
   // For now, updateWidgetData() will return null from getWidgetCardData()
   // and the widget component should handle empty state rendering
   updateWidgetData();
+}
+
+// ---------------------------------------------------------------------------
+// syncPendingWidgetAnswers — process widget answers through FSRS
+// ---------------------------------------------------------------------------
+
+/**
+ * Read pending widget answers from shared UserDefaults and process them
+ * through FSRS. Called on app launch and when app comes to foreground.
+ *
+ * The widget extension writes answers to UserDefaults via the patched
+ * AppIntent (see plugins/withWidgetNotificationSync.js). This function
+ * reads them, updates FSRS card states, and clears the pending queue.
+ */
+export function syncPendingWidgetAnswers(): void {
+  if (Platform.OS === 'web') return;
+
+  try {
+    const ExpoWidgets = require('expo-modules-core').requireNativeModule('ExpoWidgets');
+
+    // readPendingAnswers is added by the withWidgetNotificationSync plugin
+    if (!ExpoWidgets.readPendingAnswers) {
+      return; // Not available in this build yet
+    }
+
+    const pending: Array<{ cardId: string; isCorrect: boolean; timestamp: number }> =
+      ExpoWidgets.readPendingAnswers() ?? [];
+
+    if (pending.length === 0) return;
+
+    console.log('[Widget] Processing', pending.length, 'pending widget answers');
+
+    for (const answer of pending) {
+      const { cardId, isCorrect } = answer;
+      const grade: ReviewGrade = isCorrect ? 'good' : 'again';
+
+      const existingState = loadCardState(cardId);
+      if (existingState === null) {
+        // Card was never seen — create initial state + schedule
+        const newState = createNewCardState(cardId);
+        const updated = scheduleReview(newState, grade);
+        saveCardState(cardId, updated);
+      } else {
+        const updated = scheduleReview(existingState, grade);
+        saveCardState(cardId, updated);
+      }
+
+      console.log('[Widget] FSRS updated:', { cardId, isCorrect, grade });
+    }
+
+    // Update stats
+    const correct = pending.filter((a) => a.isCorrect).length;
+    updateStatsAfterSession(correct, pending.length, 'widget');
+    checkAndAdvanceStreak();
+
+    // Clear the pending queue
+    ExpoWidgets.clearPendingAnswers();
+    console.log('[Widget] Cleared pending answers queue');
+  } catch (error) {
+    console.error('[Widget] Failed to sync pending answers:', error);
+  }
 }

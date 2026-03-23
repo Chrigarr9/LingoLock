@@ -287,7 +287,7 @@ export default function ChallengeScreen() {
     if (!isComplete && answeredNewCardIds.current.size > 0) {
       recordNewWordsIntroduced(answeredNewCardIds.current.size);
     }
-    router.back();
+    while (router.canGoBack()) router.back();
   };
 
   const startExtraSession = () => {
@@ -575,7 +575,7 @@ export default function ChallengeScreen() {
             )}
 
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => { while (router.canGoBack()) router.back(); }}
               style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
               accessibilityLabel="Done"
               accessibilityRole="button"
