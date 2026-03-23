@@ -268,55 +268,6 @@ export function getImportedCardsDueCount(cards: SimpleCard[], _bundleId: string)
 }
 
 // ---------------------------------------------------------------------------
-// Abort tracking
-// ---------------------------------------------------------------------------
-
-/**
- * Ensure abort counters are for today. If lastAbortDate is not today, reset.
- * Handles migration from older stats that lack abort fields.
- */
-function normalizeAbortStats(stats: import('../types/vocabulary').PersistedStats): void {
-  // Migration: old stats may lack abort fields
-  if (stats.abortsToday === undefined) stats.abortsToday = 0;
-  if (stats.lastAbortDate === undefined) stats.lastAbortDate = null;
-  if (stats.totalAborts === undefined) stats.totalAborts = 0;
-
-  const todayStr = getTodayString();
-  if (stats.lastAbortDate !== todayStr) {
-    stats.abortsToday = 0;
-    stats.lastAbortDate = todayStr;
-  }
-}
-
-/**
- * Record a forced-session abort. Tracks abort count for analytics.
- * Does NOT affect streak — streak is purely about completing all due cards.
- *
- * Only call this for forced sessions (type: 'unlock' | 'app_open').
- * Voluntary practice aborts should NOT call this.
- *
- * @param sourceApp  The app that triggered the session (for per-app tracking)
- */
-export function recordAbort(sourceApp: string): void {
-  const stats = loadStats();
-  normalizeAbortStats(stats);
-
-  stats.abortsToday += 1;
-  stats.totalAborts += 1;
-
-  saveStats(stats);
-}
-
-/**
- * Returns the number of forced-session aborts today.
- */
-export function getAbortsToday(): number {
-  const stats = loadStats();
-  normalizeAbortStats(stats);
-  return stats.abortsToday;
-}
-
-// ---------------------------------------------------------------------------
 // getCurrentChapterNumber
 // ---------------------------------------------------------------------------
 

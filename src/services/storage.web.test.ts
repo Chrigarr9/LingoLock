@@ -176,9 +176,6 @@ describe('saveStats / loadStats', () => {
     totalCorrect: 0,
     totalAnswered: 0,
     perAppStats: {},
-    abortsToday: 0,
-    lastAbortDate: null,
-    totalAborts: 0,
   };
 
   it('stores stats at key ll.stats', () => {
@@ -287,9 +284,6 @@ describe('clearAllData', () => {
       totalCorrect: 10,
       totalAnswered: 15,
       perAppStats: {},
-      abortsToday: 0,
-      lastAbortDate: null,
-      totalAborts: 0,
     });
     saveAudioMuted(true);
 
@@ -304,9 +298,6 @@ describe('clearAllData', () => {
       totalCorrect: 0,
       totalAnswered: 0,
       perAppStats: {},
-      abortsToday: 0,
-      lastAbortDate: null,
-      totalAborts: 0,
     });
   });
 

@@ -63,8 +63,6 @@ import {
   getChapterMastery,
   getCardsDueCount,
   getCurrentChapterNumber,
-  recordAbort,
-  getAbortsToday,
   checkAndAdvanceStreak,
 } from './statsService';
 import { CHAPTERS } from '../content/bundles';
@@ -92,9 +90,6 @@ function makeDefaultStats(): import('../types/vocabulary').PersistedStats {
     totalCorrect: 0,
     totalAnswered: 0,
     perAppStats: {},
-    abortsToday: 0,
-    lastAbortDate: null,
-    totalAborts: 0,
   };
 }
 
@@ -494,80 +489,3 @@ describe('getCurrentChapterNumber', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Abort tracking tests
-// ---------------------------------------------------------------------------
-
-describe('recordAbort', () => {
-  test('first abort increments abortsToday to 1, does NOT affect streak', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 5,
-      lastStreakDate: today(),
-    });
-
-    recordAbort('Instagram');
-
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.abortsToday).toBe(1);
-    expect(saved.totalAborts).toBe(1);
-    expect(saved.currentStreak).toBe(5); // Streak preserved
-  });
-
-  test('third abort does NOT break streak (aborts no longer affect streak)', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 12,
-      lastStreakDate: today(),
-      abortsToday: 2,
-      lastAbortDate: today(),
-      totalAborts: 5,
-    });
-
-    recordAbort('YouTube');
-
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    expect(saved.abortsToday).toBe(3);
-    expect(saved.totalAborts).toBe(6);
-    expect(saved.currentStreak).toBe(12); // Streak preserved
-  });
-
-  test('aborts from previous day reset to 0 before counting', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      currentStreak: 3,
-      lastStreakDate: today(),
-      abortsToday: 2,
-      lastAbortDate: yesterday(),
-      totalAborts: 10,
-    });
-
-    recordAbort('Instagram');
-
-    const saved = (mockSaveStats.mock.calls[0] as [import('../types/vocabulary').PersistedStats])[0];
-    // abortsToday was reset to 0 (new day), then incremented to 1
-    expect(saved.abortsToday).toBe(1);
-    expect(saved.totalAborts).toBe(11);
-    expect(saved.currentStreak).toBe(3); // Streak preserved
-  });
-});
-
-describe('getAbortsToday', () => {
-  test('returns current abort count for today', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      abortsToday: 2,
-      lastAbortDate: today(),
-    });
-    expect(getAbortsToday()).toBe(2);
-  });
-
-  test('returns 0 when aborts are from a previous day', () => {
-    mockLoadStats.mockReturnValue({
-      ...makeDefaultStats(),
-      abortsToday: 3,
-      lastAbortDate: yesterday(),
-    });
-    expect(getAbortsToday()).toBe(0);
-  });
-});
