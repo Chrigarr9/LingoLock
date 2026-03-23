@@ -40,7 +40,7 @@ const SPEED_OPTIONS: { label: string; value: number }[] = [
 ];
 
 const INTERVAL_OPTIONS = [
-  { seconds: 30, label: '30 seconds (test)' },
+  { seconds: 60, label: '1 minute' },
   { seconds: 300, label: '5 minutes' },
   { seconds: 600, label: '10 minutes' },
   { seconds: 900, label: '15 minutes' },

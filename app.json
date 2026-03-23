@@ -4,7 +4,6 @@
     "slug": "lingolock",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "lingolock",
     "splash": {
@@ -132,7 +131,9 @@
       ],
       "expo-sqlite",
       "expo-background-fetch",
-      "expo-task-manager"
+      "expo-task-manager",
+      "./plugins/withWidgetNotificationSync",
+      "./plugins/withAppIntents"
     ],
     "experiments": {
       "typedRoutes": true
