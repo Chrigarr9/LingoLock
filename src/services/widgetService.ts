@@ -275,11 +275,10 @@ export function updateWidgetData(): void {
       function vs(ch, mods, opts) { return { type: 'VStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
       function hs(ch, mods, opts) { return { type: 'HStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
       function btn(target, label, handler) { var p = { target: target, label: label, modifiers: [{ $type: 'frame', maxWidth: 99999 }] }; if (handler) p.onButtonPress = handler; return { type: 'Button', props: p }; }
-      function sfIcon(name, size, color) { var p = { systemName: name }; var mods = []; if (size) mods.push({ $type: 'font', size: size }); if (color) mods.push({ $type: 'foregroundStyle', styleType: 'color', color: color }); if (mods.length) p.modifiers = mods; return { type: 'ImageView', props: p }; }
       function link(url, children) { return { type: 'LinkView', props: { destination: url, children: children } }; }
 
-      var fP = { $type: 'foregroundStyle', styleType: 'color', color: '#1C2E4A' };
-      var fS = { $type: 'foregroundStyle', styleType: 'color', color: '#4A6B8A' };
+      var fP = { $type: 'foregroundStyle', styleType: 'hierarchical', style: 'primary' };
+      var fS = { $type: 'foregroundStyle', styleType: 'hierarchical', style: 'secondary' };
       var fGreen = { $type: 'foregroundStyle', styleType: 'color', color: '#34C759' };
       var fRed = { $type: 'foregroundStyle', styleType: 'color', color: '#FF3B30' };
       function f(size, weight) { var m = { $type: 'font', size: size }; if (weight) m.weight = weight; return m; }
@@ -287,7 +286,7 @@ export function updateWidgetData(): void {
 
       // Build spell choices for current position from the word itself
       function getChoices() {
-        var extras = 'abcdefghijlmnoprstuvaeiouns'.split('');
+        var extras = 'abcdefghijklmnopqrstuvwxyzaeiouns'.split('');
         var correct = pos < word.length ? word[pos] : null;
         var choices = [];
         if (correct) choices.push(correct);
@@ -447,7 +446,6 @@ export function updateWidgetData(): void {
         ], [{ $type: 'padding', all: 12 }], { alignment: 'center', spacing: 6 });
       }
 
-      var fontSize = isLock ? 11 : 13;
       var spellBtns = getChoices();
       // Previous answer indicator (shown briefly at top of next card)
       var lastIndicator = props.lastResult ? txt(props.lastResult, [f(11, 'bold'), props.lastCorrect ? fGreen : fRed]) : null;

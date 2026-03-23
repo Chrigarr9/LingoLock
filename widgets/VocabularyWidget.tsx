@@ -1,32 +1,15 @@
 /**
- * VocabularyWidget - Home Screen and Lock Screen widget component
+ * VocabularyWidget — expo-widgets extension entry point (NOT actively used)
  *
- * Renders using expo-widgets SwiftUI bridge (@expo/ui/swift-ui components).
- * The JSX compiles to {type, props} objects that DynamicView.swift maps to
- * native SwiftUI views. Styling uses `modifiers` arrays, NOT CSS/RN styles.
+ * ⚠️  DUAL MAINTENANCE WARNING ⚠️
+ * The actual widget rendering is driven by the layout function string in
+ * src/services/widgetService.ts (passed via `new Widget(name, layoutFn)`).
+ * That string IS the source of truth for what users see.
  *
- * Widget behavior by card type:
- *   - MC cards (mc2/mc4): Shows answer buttons directly on widget
- *   - Text cards: Shows character-picker "spell" keyboard (char buttons + back + submit)
- *   - Self-rated cards: Shows front text with reveal button, then front/back with rating buttons
- *   - Empty state: Shows "All caught up!" message when no cards due
- *
- * Widget sizes:
- *   - systemMedium (Home Screen): Full sentence + hint + buttons + progress
- *   - systemSmall (Home Screen): Sentence + buttons (compact)
- *   - accessoryRectangular (Lock Screen): Compact char buttons + input display
- *
- * Button interactions use `target` strings. The main app registers an
- * `addUserInteractionListener` that parses the target and dispatches
- * to the same handlers the deep link system uses.
- *
- * Target string format: "action:param1:param2:..."
- *   - "answer:<cardId>:<choice>"
- *   - "spell:<cardId>:char:<char>"
- *   - "spell:<cardId>:back"
- *   - "spell:<cardId>:submit"
- *   - "reveal:<cardId>"
- *   - "rate:<cardId>:<rating>"
+ * This file exists because expo-widgets may require it as a Metro bundle
+ * entry point for the widget extension process. If you change widget
+ * appearance, edit the layout function string in widgetService.ts — NOT
+ * this file.
  */
 
 import React from 'react';
