@@ -11,6 +11,7 @@ import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWi
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
+import { setupAutomationListener } from '../src/services/automationService';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -84,9 +85,10 @@ export default function RootLayout() {
       });
     }
 
-    // Native: Setup notifications, initialize widget, and listen for widget interactions
+    // Native: Setup notifications, widget, automation listener
     let cleanupNotifications: (() => void) | undefined;
     let cleanupWidgetListener: (() => void) | undefined;
+    let cleanupAutomation: (() => void) | undefined;
     if (Platform.OS !== 'web') {
       cleanupNotifications = setupNotifications();
       // Register background fetch so notifications keep firing even when app isn't opened
@@ -140,11 +142,15 @@ export default function RootLayout() {
         }
       });
       cleanupWidgetListener = () => widgetSub.remove();
+
+      // Setup automation listener for App Intent triggers
+      cleanupAutomation = setupAutomationListener();
     }
 
     return () => {
       cleanupNotifications?.();
       cleanupWidgetListener?.();
+      cleanupAutomation?.();
     };
   }, []);
 
