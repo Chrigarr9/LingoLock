@@ -55,36 +55,24 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
  */
 function parseChallengeLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkParams | null {
   try {
-
-    // Extract and validate parameters
     const rawSource = parsed.queryParams?.source as string;
-    // Sanitize source: cap length and remove non-printable characters
     const source = rawSource ? rawSource.slice(0, 64).replace(/[^\x20-\x7E]/g, '') : rawSource;
+
+    if (!source) {
+      console.warn('[DeepLink] Missing required source parameter');
+      return null;
+    }
+
+    // Count and type are optional (legacy compat)
     const countStr = parsed.queryParams?.count as string;
-    const type = parsed.queryParams?.type as string;
-
-    if (!source || !countStr || !type) {
-      console.warn('[DeepLink] Missing required challenge parameters:', { source, count: countStr, type });
-      return null;
-    }
-
-    const count = parseInt(countStr, 10);
-    if (isNaN(count) || count < 1 || count > 10) {
-      console.warn(`[DeepLink] Invalid count: ${countStr}, must be 1-10`);
-      return null;
-    }
-
-    if (type !== 'unlock' && type !== 'app_open') {
-      console.warn(`[DeepLink] Invalid type: ${type}, must be 'unlock' or 'app_open'`);
-      return null;
-    }
+    const count = countStr ? parseInt(countStr, 10) : undefined;
 
     return {
       type: 'challenge',
       params: {
         source,
-        count,
-        type: type as 'unlock' | 'app_open'
+        count: count && !isNaN(count) ? count : undefined,
+        type: 'app_open',
       }
     };
   } catch (error) {

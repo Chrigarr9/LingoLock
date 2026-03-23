@@ -156,8 +156,6 @@ export default function RootLayout() {
         pathname: '/challenge',
         params: {
           source: deepLink.params.source,
-          count: deepLink.params.count.toString(),
-          type: deepLink.params.type,
         },
       });
     } else if (deepLink.type === 'widget-answer') {

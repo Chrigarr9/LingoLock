@@ -265,6 +265,29 @@ export function saveNotificationsEnabled(enabled: boolean): void {
 }
 
 // ---------------------------------------------------------------------------
+// Automation preferences
+// ---------------------------------------------------------------------------
+
+const AUTOMATION_CARD_THRESHOLD_KEY = 'automation_card_threshold';
+
+/**
+ * Load the number of correct cards required before the "Continue to [App]"
+ * button appears during automation-triggered sessions.
+ * Returns 3 if never set.
+ */
+export function loadAutomationCardThreshold(): number {
+  return statsStorage.getNumber(AUTOMATION_CARD_THRESHOLD_KEY) ?? 3;
+}
+
+/**
+ * Persist the automation card threshold.
+ * Clamped to [1, 10].
+ */
+export function saveAutomationCardThreshold(n: number): void {
+  statsStorage.set(AUTOMATION_CARD_THRESHOLD_KEY, Math.max(1, Math.min(10, n)));
+}
+
+// ---------------------------------------------------------------------------
 // Bundle state
 // ---------------------------------------------------------------------------
 

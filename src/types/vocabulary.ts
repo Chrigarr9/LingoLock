@@ -6,17 +6,14 @@
  * Parameters for challenge screen deep linking and routing
  */
 export interface ChallengeParams {
-  /** Source app that triggered the challenge (from deep link: lingolock://challenge?source=Instagram) */
+  /** Source app or label (e.g. "Instagram", "Practice", "Notification") */
   source: string;
 
-  /** Number of vocabulary cards to present (1-10) */
-  count: number;
+  /** Number of vocabulary cards (legacy deep links — ignored, threshold from settings) */
+  count?: number;
 
-  /** Type of challenge trigger */
-  type: 'unlock' | 'app_open';
-
-  /** ID of the card to display (optional, for specific card navigation) */
-  cardId?: string;
+  /** Challenge trigger type (legacy — kept for backward compat, defaults to 'app_open') */
+  type?: 'app_open';
 }
 
 /**

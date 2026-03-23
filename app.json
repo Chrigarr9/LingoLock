@@ -13,59 +13,61 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.lingolock.app",
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.lingolock.app",
           "group.com.lingolock.app"
         ]
       },
       "infoPlist": {
         "UIBackgroundModes": [
-          "fetch",
           "fetch"
         ],
         "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals.",
         "LSApplicationQueriesSchemes": [
           "instagram",
-          "twitter",
-          "fb",
           "tiktok",
-          "youtube",
+          "fb",
+          "twitter",
+          "snapchat",
+          "barcelona",
+          "bereal",
+          "pinterest",
           "reddit",
           "linkedin",
+          "tumblr",
           "whatsapp",
           "telegram",
           "discord",
-          "snapchat",
-          "pinterest",
-          "spotify",
+          "sgnl",
+          "fb-messenger",
+          "youtube",
           "netflix",
-          "googlegmail",
+          "twitch",
+          "disneyplus",
+          "aiv",
+          "spotify",
+          "music",
+          "soundcloud",
           "googlechrome",
+          "x-safari-https",
+          "googlegmail",
           "maps",
+          "photos-redirect",
           "sms",
+          "message",
+          "mobilenotes",
           "calshow",
-          "instagram",
-          "twitter",
-          "fb",
-          "tiktok",
-          "youtube",
-          "reddit",
-          "linkedin",
-          "whatsapp",
-          "telegram",
-          "discord",
-          "snapchat",
-          "pinterest",
-          "spotify",
-          "netflix",
-          "googlegmail",
-          "googlechrome",
-          "maps",
-          "sms",
-          "calshow"
+          "x-apple-reminder",
+          "app-settings",
+          "robloxmobile",
+          "clashroyale"
         ],
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -113,20 +115,19 @@
       [
         "expo-widgets",
         {
-          "ios": {
-            "widgets": [
-              {
-                "name": "VocabularyWidget",
-                "displayName": "LingoLock Practice",
-                "description": "Practice vocabulary directly from your Home Screen or Lock Screen",
-                "families": [
-                  "systemSmall",
-                  "systemMedium",
-                  "accessoryRectangular"
-                ]
-              }
-            ]
-          }
+          "widgets": [
+            {
+              "name": "VocabularyWidget",
+              "displayName": "LingoLock Practice",
+              "description": "Practice vocabulary directly from your Home Screen or Lock Screen",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "systemLarge",
+                "accessoryRectangular"
+              ]
+            }
+          ]
         }
       ],
       "expo-sqlite",
