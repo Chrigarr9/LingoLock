@@ -19,6 +19,8 @@ import {
   loadActiveBundle,
   loadEnabledBundles,
   saveEnabledBundles,
+  loadAutomationCardThreshold,
+  saveAutomationCardThreshold,
 } from '../src/services/storage';
 import {
   setNotificationInterval,
@@ -38,6 +40,7 @@ const SPEED_OPTIONS: { label: string; value: number }[] = [
 ];
 
 const INTERVAL_OPTIONS = [
+  { seconds: 30, label: '30 seconds (test)' },
   { seconds: 300, label: '5 minutes' },
   { seconds: 600, label: '10 minutes' },
   { seconds: 900, label: '15 minutes' },
@@ -110,6 +113,7 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadNotificationsEnabled());
   const [notificationInterval, setNotificationIntervalState] = useState(() => loadNotificationInterval());
   const [activeHours, setActiveHours] = useState(() => loadNotificationActiveHours());
+  const [automationThreshold, setAutomationThreshold] = useState(() => loadAutomationCardThreshold());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -170,6 +174,18 @@ export default function SettingsScreen() {
     setActiveHours(updated);
     saveNotificationActiveHours(updated.startHour, updated.endHour);
     await scheduleNotificationBatch();
+  }
+
+  function handleThresholdDecrement() {
+    const next = Math.max(1, automationThreshold - 1);
+    setAutomationThreshold(next);
+    saveAutomationCardThreshold(next);
+  }
+
+  function handleThresholdIncrement() {
+    const next = Math.min(10, automationThreshold + 1);
+    setAutomationThreshold(next);
+    saveAutomationCardThreshold(next);
   }
 
   const glassStyle = getGlassStyle(theme);
@@ -300,6 +316,56 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* ── Automation Settings (native only) ── */}
+        {Platform.OS !== 'web' && (
+          <View style={[styles.card, glassStyle]}>
+            <Text
+              variant="titleSmall"
+              style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+            >
+              App Automation
+            </Text>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingLabelGroup}>
+                <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                  Cards Before App
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  Correct answers needed before you can continue to the app
+                </Text>
+              </View>
+              <View style={styles.stepper}>
+                <IconButton
+                  icon="minus"
+                  size={20}
+                  iconColor={theme.custom.brandBlue}
+                  onPress={handleThresholdDecrement}
+                  disabled={automationThreshold <= 1}
+                  style={styles.stepperButton}
+                />
+                <Text
+                  variant="titleMedium"
+                  style={[styles.stepperValue, { color: theme.colors.onSurface }]}
+                >
+                  {automationThreshold}
+                </Text>
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  iconColor={theme.custom.brandBlue}
+                  onPress={handleThresholdIncrement}
+                  disabled={automationThreshold >= 10}
+                  style={styles.stepperButton}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* ── Notification Settings (native only) ── */}
         {Platform.OS !== 'web' && (
           <View style={[styles.card, glassStyle]}>
@@ -350,7 +416,7 @@ export default function SettingsScreen() {
                       selectedValue={notificationInterval}
                       onValueChange={(value) => handleIntervalChange(value as number)}
                       style={{ color: pickerColor }}
-                      itemStyle={{ color: pickerColor }}
+                      itemStyle={{ color: pickerColor, fontSize: 16, height: 120 }}
                     >
                       {INTERVAL_OPTIONS.map((opt) => (
                         <Picker.Item key={opt.seconds} label={opt.label} value={opt.seconds} />
@@ -383,7 +449,7 @@ export default function SettingsScreen() {
                           selectedValue={activeHours.startHour}
                           onValueChange={(value) => handleActiveHoursStartChange(value as number)}
                           style={{ color: pickerColor }}
-                          itemStyle={{ color: pickerColor }}
+                          itemStyle={{ color: pickerColor, fontSize: 16, height: 120 }}
                         >
                           {HOUR_OPTIONS.filter(opt => opt.hour < activeHours.endHour).map((opt) => (
                             <Picker.Item key={opt.hour} label={opt.label} value={opt.hour} />
@@ -400,7 +466,7 @@ export default function SettingsScreen() {
                           selectedValue={activeHours.endHour}
                           onValueChange={(value) => handleActiveHoursEndChange(value as number)}
                           style={{ color: pickerColor }}
-                          itemStyle={{ color: pickerColor }}
+                          itemStyle={{ color: pickerColor, fontSize: 16, height: 120 }}
                         >
                           {HOUR_OPTIONS.filter(opt => opt.hour > activeHours.startHour).map((opt) => (
                             <Picker.Item key={opt.hour} label={opt.label} value={opt.hour} />
@@ -585,6 +651,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginTop: 8,
+    height: 120,
   },
   activeHoursRow: {
     marginTop: 8,
