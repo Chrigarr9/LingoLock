@@ -8,12 +8,6 @@
 export interface ChallengeParams {
   /** Source app or label (e.g. "Instagram", "Practice", "Notification") */
   source: string;
-
-  /** Number of vocabulary cards (legacy deep links — ignored, threshold from settings) */
-  count?: number;
-
-  /** Challenge trigger type (legacy — kept for backward compat, defaults to 'app_open') */
-  type?: 'app_open';
 }
 
 /**

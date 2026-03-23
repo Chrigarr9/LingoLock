@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -65,7 +65,10 @@ export default function ChallengeScreen() {
 
   // Automation: show "Continue to [App]" button after threshold correct answers
   const isAutomation = isKnownApp(params.source ?? '');
-  const automationThreshold = isAutomation ? loadAutomationCardThreshold() : 0;
+  const automationThreshold = useMemo(
+    () => isAutomation ? loadAutomationCardThreshold() : 0,
+    [isAutomation],
+  );
 
   // --------------------------------------------------------------------------
   // Session state

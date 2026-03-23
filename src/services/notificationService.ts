@@ -1,23 +1,41 @@
 import { Platform, Alert, Linking, AppState, AppStateStatus } from 'react-native';
+import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { validateAnswer } from '../utils/answerValidation';
 import { scheduleReview, createNewCardState } from './fsrs';
 import { loadCardState, saveCardState, loadNotificationsEnabled } from './storage';
 import { updateStatsAfterSession, checkAndAdvanceStreak } from './statsService';
-import { scheduleNotificationBatch, cancelAllNotifications, initScheduler } from './notificationScheduler';
-import { updateWidgetData } from './widgetService';
+import { scheduleNotificationBatch, dismissDeliveredVocabNotifications, cancelAllNotifications, initScheduler } from './notificationScheduler';
+import { updateWidgetData, syncPendingWidgetAnswers } from './widgetService';
 import { getCardById } from '../content/bundles';
 import type { ClozeCard } from '../types/vocabulary';
 
-// Configure foreground notification handler at module top-level
+// Configure notification handler — runs for EVERY notification before display.
+// Dismisses previous vocab notifications so the new one replaces them.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const id = notification.request.identifier;
+
+    // If this is a new vocab notification, dismiss any previously delivered ones
+    if (id.startsWith('lingolock-vocab-')) {
+      try {
+        const delivered = await Notifications.getPresentedNotificationsAsync();
+        for (const n of delivered) {
+          if (n.request.identifier.startsWith('lingolock-vocab-') ||
+              n.request.identifier === 'lingolock-feedback') {
+            await Notifications.dismissNotificationAsync(n.request.identifier);
+          }
+        }
+      } catch {}
+    }
+
+    return {
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 /**
@@ -178,12 +196,19 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
     isCorrect = validateAnswer(userText, data.correctAnswer);
     console.log('[Notifications] Text answer:', { userText, correctAnswer: data.correctAnswer, isCorrect });
   }
-  // Handle default action (tapped notification body to open app)
+  // Handle default action (tapped notification body to open app → navigate to challenge)
   else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-    console.log('[Notifications] User tapped notification — opening app');
-    // AppState listener will cancel notifications when app comes to foreground
-    // and reschedule when it goes back to background
+    console.log('[Notifications] User tapped notification — opening challenge');
     updateWidgetData();
+    // Navigate to challenge screen so the user can practice
+    try {
+      router.push({
+        pathname: '/challenge',
+        params: { source: 'Notification' },
+      });
+    } catch (err) {
+      console.error('[Notifications] Failed to navigate to challenge:', err);
+    }
     return;
   }
 
@@ -197,22 +222,24 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   updateStatsAfterSession(isCorrect ? 1 : 0, 1, 'notification');
   checkAndAdvanceStreak();
 
-  // Send feedback notification (no rescheduling — rest of batch is still valid)
+  // Send feedback notification — uses fixed ID so it replaces the question notification
+  const feedbackId = 'lingolock-feedback';
   if (isCorrect) {
     await Notifications.scheduleNotificationAsync({
+      identifier: feedbackId,
       content: {
         title: '',
-        body: `\u2713 ${card.germanHint}`,
+        body: `\u2713 ${data.correctAnswer} \u2014 ${card.germanHint}\n${card.sentenceTranslation}`,
         data: {},
       },
       trigger: null, // Immediate
     });
   } else {
-    const feedbackBody = `\u2717 ${data.correctAnswer} \u2014 ${card.sentenceTranslation}`;
     await Notifications.scheduleNotificationAsync({
+      identifier: feedbackId,
       content: {
         title: '',
-        body: feedbackBody,
+        body: `\u2717 ${data.correctAnswer} \u2014 ${card.germanHint}\n${card.sentenceTranslation}`,
         data: {},
       },
       trigger: null, // Immediate
@@ -221,6 +248,11 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
 
   // Refresh widget with updated data
   updateWidgetData();
+
+  // Dismiss any older delivered vocab notifications so they don't pile up
+  dismissDeliveredVocabNotifications().catch((err) => {
+    console.error('[Notifications] Failed to dismiss old notifications:', err);
+  });
 }
 
 /**
@@ -255,8 +287,10 @@ export function setupNotifications(): () => void {
     return () => {};
   }
 
-  // Register categories
-  registerNotificationCategories().catch((err) => {
+  // Register categories — must complete before first notification fires
+  registerNotificationCategories().then(() => {
+    console.log('[Notifications] Categories registered: vocabulary-text, vocabulary-mc');
+  }).catch((err) => {
     console.error('[Notifications] Failed to register categories:', err);
   });
 
@@ -276,25 +310,32 @@ export function setupNotifications(): () => void {
     console.error('[Notifications] Failed to request permissions:', err);
   });
 
-  // Track previous AppState for transition detection
-  let prevAppState: AppStateStatus = AppState.currentState;
+  // Track whether the app was recently active (before inactive→background).
+  // iOS always transitions active → inactive → background, so we need to
+  // remember the "active" state across the intermediate "inactive" step.
+  let wasRecentlyActive = AppState.currentState === 'active';
+  console.log('[Notifications] AppState listener registered, initial state:', AppState.currentState);
 
   // AppState listener: cancel on foreground, schedule batch on background
   const appStateSubscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-    const wasActive = prevAppState === 'active';
+    console.log('[Notifications] AppState changed →', nextState, '(wasRecentlyActive:', wasRecentlyActive, ')');
     const isNowActive = nextState === 'active';
     const isNowBackground = nextState === 'background';
-    prevAppState = nextState;
 
-    if (isNowActive && !wasActive) {
-      // Transitioning TO foreground: cancel all scheduled notifications
-      console.log('[Notifications] App came to foreground — cancelling notifications');
+    if (isNowActive) {
+      wasRecentlyActive = true;
+      // Transitioning TO foreground: cancel notifications + sync widget answers
+      console.log('[Notifications] App came to foreground — cancelling notifications + syncing widget');
+      syncPendingWidgetAnswers();
       cancelAllNotifications().catch((err) => {
         console.error('[Notifications] Failed to cancel notifications:', err);
       });
-    } else if (isNowBackground && wasActive) {
-      // Transitioning TO background: schedule a fresh batch
-      console.log('[Notifications] App went to background — scheduling notification batch');
+    } else if (isNowBackground && wasRecentlyActive) {
+      wasRecentlyActive = false;
+      // Transitioning TO background: sync widget answers, refresh widget, schedule notifications
+      console.log('[Notifications] App went to background — syncing + scheduling');
+      syncPendingWidgetAnswers();
+      updateWidgetData();
       scheduleNotificationBatch().catch((err) => {
         console.error('[Notifications] Failed to schedule notification batch:', err);
       });

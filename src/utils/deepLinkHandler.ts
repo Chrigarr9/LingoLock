@@ -1,7 +1,7 @@
 /**
  * Deep link URL parser for lingolock:// scheme
  * Extracts parameters from URLs like:
- * - lingolock://challenge?source=Instagram&count=3&type=app_open
+ * - lingolock://challenge?source=Instagram
  * - lingolock://widget-answer?cardId=gato-ch01-s03&choice=gato
  */
 
@@ -63,17 +63,9 @@ function parseChallengeLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkP
       return null;
     }
 
-    // Count and type are optional (legacy compat)
-    const countStr = parsed.queryParams?.count as string;
-    const count = countStr ? parseInt(countStr, 10) : undefined;
-
     return {
       type: 'challenge',
-      params: {
-        source,
-        count: count && !isNaN(count) ? count : undefined,
-        type: 'app_open',
-      }
+      params: { source },
     };
   } catch (error) {
     console.error('[DeepLink] Failed to parse challenge link:', error);

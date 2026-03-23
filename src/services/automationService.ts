@@ -2,20 +2,23 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import { consumeAutomationSource } from '../../modules/expo-app-intents/src';
 
-/** Guard against concurrent cold-start + AppState 'active' both firing */
-let consumed = false;
+/** Brief guard against cold-start + AppState both firing within the same cycle */
+let pendingCheck = false;
 
 /**
  * Check for a pending App Intent automation on foreground.
  * If found, navigate to the challenge screen with the source app.
  */
 export function checkPendingAutomation(): void {
-  if (Platform.OS !== 'ios' || consumed) return;
+  if (Platform.OS !== 'ios' || pendingCheck) return;
 
   const source = consumeAutomationSource();
   if (!source) return;
 
-  consumed = true;
+  // Block duplicate calls for 1 second (cold-start race window)
+  pendingCheck = true;
+  setTimeout(() => { pendingCheck = false; }, 1000);
+
   console.log('[Automation] Detected pending automation for:', source);
   try {
     router.push({
@@ -49,6 +52,5 @@ export function setupAutomationListener(): () => void {
   return () => {
     clearTimeout(timeout);
     subscription.remove();
-    consumed = false;
   };
 }

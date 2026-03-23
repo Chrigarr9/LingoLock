@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Image, TouchableOpacity } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -49,12 +49,7 @@ export default function HomeScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top', 'bottom']}
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={[styles.scroll, styles.content]}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -179,7 +174,7 @@ export default function HomeScreen() {
           onPress={() =>
             router.push({
               pathname: '/challenge',
-              params: { source: 'Practice', type: 'app_open', mode: 'continuous' },
+              params: { source: 'Practice' },
             })
           }
           style={[styles.ctaButton, { backgroundColor: theme.colors.primary }]}
@@ -236,7 +231,7 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
-      </ScrollView>
+      </View>
 
     </SafeAreaView>
   );

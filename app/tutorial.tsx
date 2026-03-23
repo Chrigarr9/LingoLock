@@ -1,11 +1,10 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle } from '../src/theme';
 import { TutorialStep } from '../src/components/TutorialStep';
-import { View } from 'react-native';
 
 export default function TutorialScreen() {
   const router = useRouter();
