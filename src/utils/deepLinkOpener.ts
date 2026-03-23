@@ -10,24 +10,39 @@ import * as Linking from 'expo-linking';
  * Maps app display names to their URL schemes
  */
 const APP_SCHEMES: Record<string, string> = {
+  // Social
   'Instagram': 'instagram://',
+  'TikTok': 'tiktok://',
+  'Facebook': 'fb://',
   'Twitter': 'twitter://',
   'X': 'twitter://',
-  'Facebook': 'fb://',
-  'TikTok': 'tiktok://',
-  'YouTube': 'youtube://',
+  'Snapchat': 'snapchat://',
+  'Threads': 'barcelona://',
+  'BeReal': 'bereal://',
+  'Pinterest': 'pinterest://',
   'Reddit': 'reddit://',
   'LinkedIn': 'linkedin://',
+  'Tumblr': 'tumblr://',
+  // Messaging
   'WhatsApp': 'whatsapp://',
   'Telegram': 'telegram://',
   'Discord': 'discord://',
-  'Snapchat': 'snapchat://',
-  'Pinterest': 'pinterest://',
-  'Spotify': 'spotify://',
+  'Signal': 'sgnl://',
+  'Messenger': 'fb-messenger://',
+  // Video & Streaming
+  'YouTube': 'youtube://',
   'Netflix': 'netflix://',
-  'Gmail': 'googlegmail://',
+  'Twitch': 'twitch://',
+  'Disney+': 'disneyplus://',
+  'Prime Video': 'aiv://',
+  // Music
+  'Spotify': 'spotify://',
+  'Apple Music': 'music://',
+  'SoundCloud': 'soundcloud://',
+  // Browsers & Utilities
   'Chrome': 'googlechrome://',
   'Safari': 'x-safari-https://',
+  'Gmail': 'googlegmail://',
   'Maps': 'maps://',
   'Photos': 'photos-redirect://',
   'Messages': 'sms://',
@@ -36,7 +51,18 @@ const APP_SCHEMES: Record<string, string> = {
   'Calendar': 'calshow://',
   'Reminders': 'x-apple-reminder://',
   'Settings': 'app-settings://',
+  // Gaming
+  'Roblox': 'robloxmobile://',
+  'Clash Royale': 'clashroyale://',
 };
+
+/**
+ * Check if a source name corresponds to a known external app.
+ * Used to determine if the "Continue to [App]" button should appear.
+ */
+export function isKnownApp(name: string): boolean {
+  return name in APP_SCHEMES;
+}
 
 /**
  * Result of attempting to open a deep link

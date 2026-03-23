@@ -1,55 +1,51 @@
 import React, { useState } from 'react';
-import { Alert } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Pressable, StyleSheet } from 'react-native';
+import { Icon, Text } from 'react-native-paper';
+import { useAppTheme } from '../theme';
 import { openSourceApp } from '../utils/deepLinkOpener';
 
 interface ContinueButtonProps {
   sourceApp: string;
-  challengeType: 'unlock' | 'app_open';
-  onPress?: () => void;
 }
 
-export function ContinueButton({ sourceApp, challengeType, onPress }: ContinueButtonProps) {
+export function ContinueButton({ sourceApp }: ContinueButtonProps) {
+  const theme = useAppTheme();
   const [isOpening, setIsOpening] = useState(false);
 
   const handlePress = async () => {
-    onPress?.();
-
-    if (challengeType === 'unlock') {
-      Alert.alert(
-        'Challenge Complete!',
-        'You can now return to your home screen and access your apps.',
-        [{ text: 'OK', style: 'default' }],
-      );
-      return;
-    }
-
     setIsOpening(true);
-    const result = await openSourceApp(sourceApp);
+    await openSourceApp(sourceApp);
     setIsOpening(false);
-
-    if (!result.success) {
-      Alert.alert(
-        'Cannot Open App',
-        result.error || `Unable to open ${sourceApp}. Please open it manually.`,
-        [{ text: 'OK', style: 'default' }],
-      );
-    }
   };
 
   return (
-    <Button
-      mode="contained"
+    <Pressable
       onPress={handlePress}
       disabled={isOpening}
-      loading={isOpening}
-      style={{ borderRadius: 20 }}
-      contentStyle={{ paddingVertical: 8 }}
-      labelStyle={{ fontSize: 16, fontWeight: '600', letterSpacing: 0 }}
+      style={[styles.button, { backgroundColor: theme.colors.surfaceVariant }]}
       accessibilityLabel={`Continue to ${sourceApp}`}
-      accessibilityHint={`Opens ${sourceApp}`}
+      accessibilityRole="button"
     >
-      {isOpening ? 'Opening...' : `Open ${sourceApp}`}
-    </Button>
+      <Text style={[styles.label, { color: theme.colors.onSurface }]}>
+        {isOpening ? 'Opening...' : `Continue to ${sourceApp}`}
+      </Text>
+      <Icon source="arrow-right" size={18} color={theme.colors.onSurfaceVariant} />
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 20,
+    alignSelf: 'stretch',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
