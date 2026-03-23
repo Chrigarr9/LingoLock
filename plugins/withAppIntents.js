@@ -43,13 +43,22 @@ module.exports = function withAppIntents(config) {
   config = withXcodeProject(config, (config) => {
     const project = config.modResults;
     const { projectName } = config.modRequest;
-    const mainTarget = project.getFirstTarget();
+    const target = project.getFirstTarget();
+
+    // Find the app source group (named after the project, e.g. "LingoLock")
+    const groups = project.hash.project.objects.PBXGroup;
+    let appGroupKey = null;
+    for (const [key, val] of Object.entries(groups)) {
+      if (typeof val === 'object' && val.name === projectName) {
+        appGroupKey = key;
+        break;
+      }
+    }
 
     for (const file of INTENT_FILES) {
       const filePath = `${projectName}/${file}`;
-      // Avoid duplicates on repeated prebuild
       if (!project.hasFile(filePath)) {
-        project.addSourceFile(filePath, { target: mainTarget.uuid }, mainTarget.uuid);
+        project.addSourceFile(filePath, { target: target.uuid }, appGroupKey);
         console.log(`[withAppIntents] Added ${file} to Xcode main target`);
       }
     }
