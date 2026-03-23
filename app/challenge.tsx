@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,8 @@ import { AnswerReveal } from '../src/components/AnswerReveal';
 import { AnswerInput } from '../src/components/AnswerInput';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
+import { isKnownApp } from '../src/utils/deepLinkOpener';
+import { loadAutomationCardThreshold } from '../src/services/storage';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
 import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
@@ -25,7 +27,7 @@ import {
   loadNewWordsPerDay,
   recordNewWordsIntroduced,
 } from '../src/services/storage';
-import { updateStatsAfterSession, recordAbort, getStreak, checkAndAdvanceStreak } from '../src/services/statsService';
+import { updateStatsAfterSession, getStreak, checkAndAdvanceStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
 import { useKeyboard } from '../src/hooks/useKeyboardVisible';
 import { updateWidgetData } from '../src/services/widgetService';
@@ -38,9 +40,6 @@ const AUTO_ADVANCE_MS = 1500;
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
     source: string;
-    count: string;
-    type: 'unlock' | 'app_open';
-    mode?: 'continuous' | 'fixed';
   }>();
   const router = useRouter();
   const theme = useAppTheme();
@@ -64,8 +63,9 @@ export default function ChallengeScreen() {
   // Cache chapter number at session start — avoids O(chapters × cards) scan on every render
   const sessionChapter = useRef(0);
 
-  // Default mode to 'continuous' when absent
-  const mode = params.mode ?? 'continuous';
+  // Automation: show "Continue to [App]" button after threshold correct answers
+  const isAutomation = isKnownApp(params.source ?? '');
+  const automationThreshold = isAutomation ? loadAutomationCardThreshold() : 0;
 
   // --------------------------------------------------------------------------
   // Session state
@@ -89,12 +89,7 @@ export default function ChallengeScreen() {
   // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
-    let session: SessionCard[];
-    if (mode === 'continuous') {
-      session = buildSession(chapters, loadNewWordsPerDay(), params.source);
-    } else {
-      session = buildSession(chapters, parseInt(params.count || '3', 10), params.source);
-    }
+    const session = buildSession(chapters, loadNewWordsPerDay(), params.source);
 
     if (session.length === 0) {
       // Check if unlimited budget would yield cards (budget exhausted, not truly done)
@@ -111,8 +106,7 @@ export default function ChallengeScreen() {
 
     console.log('[Challenge] Started:', {
       source: params.source,
-      mode,
-      type: params.type,
+      isAutomation,
       sessionLength: session.length,
     });
     return () => {
@@ -290,12 +284,8 @@ export default function ChallengeScreen() {
 
   const handleClose = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
-    // Record new words seen before abort — but NOT if session already completed
     if (!isComplete && answeredNewCardIds.current.size > 0) {
       recordNewWordsIntroduced(answeredNewCardIds.current.size);
-    }
-    if (mode === 'fixed' && !isComplete) {
-      recordAbort(params.source ?? 'unknown');
     }
     router.back();
   };
@@ -349,6 +339,11 @@ export default function ChallengeScreen() {
     : undefined;
 
   const glassStyle = getGlassStyle(theme);
+
+  // --------------------------------------------------------------------------
+  // Automation: inline "Continue to [App]" after threshold
+  // --------------------------------------------------------------------------
+  const showContinueButton = isAutomation && correctCount >= automationThreshold;
 
   // --------------------------------------------------------------------------
   // Celebration data (computed when complete)
@@ -420,9 +415,8 @@ export default function ChallengeScreen() {
       )}
 
       {/* Content */}
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <View
+        style={[styles.keyboardAvoid, Platform.OS === 'ios' && keyboard.height > 0 && { paddingBottom: keyboard.height }]}
       >
         <View style={[styles.contentScroll, styles.content]}>
 
@@ -518,6 +512,11 @@ export default function ChallengeScreen() {
                 </Text>
               </Pressable>
             )}
+
+            {/* Continue to [App] — appears after automation threshold met */}
+            {showContinueButton && (
+              <ContinueButton sourceApp={params.source!} />
+            )}
           </>
         )}
 
@@ -591,29 +590,22 @@ export default function ChallengeScreen() {
               </Pressable>
             )}
 
-            {/* Done button for voluntary/continuous practice */}
-            {(mode === 'continuous' || isEmpty) && (
-              <Pressable
-                onPress={() => router.back()}
-                style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
-                accessibilityLabel="Done"
-                accessibilityRole="button"
-              >
-                <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>Done</Text>
-              </Pressable>
-            )}
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
+              accessibilityLabel="Done"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>Done</Text>
+            </Pressable>
 
-            {/* ContinueButton only for fixed forced sessions */}
-            {mode === 'fixed' && !isEmpty && params.source && (
-              <ContinueButton
-                sourceApp={params.source}
-                challengeType={params.type || 'app_open'}
-              />
+            {isAutomation && params.source && (
+              <ContinueButton sourceApp={params.source} />
             )}
           </View>
         )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
