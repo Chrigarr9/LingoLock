@@ -34,14 +34,19 @@ export default function HomeScreen() {
     setGreeting(getGreeting());
   }, [chapters]);
 
-  // Refresh on focus, foreground, and every 5s while visible.
+  // Refresh on focus, foreground, and periodically while visible.
   // Challenge is a fullScreenModal so the home screen never loses focus —
   // useFocusEffect alone won't fire when returning from challenge.
-  // The interval also catches cards that become FSRS-due while the user
-  // is looking at the home screen.
-  useFocusEffect(refreshStats);
+  // The interval catches cards that become FSRS-due while the user is
+  // looking at the home screen. Only polls when visible to save battery.
+  const isVisible = useRef(true);
+  useFocusEffect(useCallback(() => {
+    isVisible.current = true;
+    refreshStats();
+    return () => { isVisible.current = false; };
+  }, [refreshStats]));
   useEffect(() => {
-    const interval = setInterval(refreshStats, 5000);
+    const interval = setInterval(() => { if (isVisible.current) refreshStats(); }, 10_000);
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') refreshStats();
     });

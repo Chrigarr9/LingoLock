@@ -38,7 +38,7 @@ export default function VocabularyWidgetLayout(
   props: WidgetProps,
   env: WidgetEnvironment,
 ) {
-  "use widget";
+  "widget";
 
   const family = env.widgetFamily;
   const isLock = family === 'accessoryRectangular';

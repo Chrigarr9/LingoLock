@@ -13,7 +13,7 @@ export default function GraceScreen() {
   // Auto-dismiss when app returns from background
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') router.dismissAll();
+      if (state === 'active') router.replace('/');
     });
     return () => sub.remove();
   }, [router]);

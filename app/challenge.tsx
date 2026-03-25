@@ -187,7 +187,7 @@ export default function ChallengeScreen() {
         checkAndAdvanceStreak();
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
         updateWidgetData();
-        rescheduleAfterExternalAnswer();
+        rescheduleAfterExternalAnswer().catch(e => console.error('[Challenge] Reschedule failed:', e));
         const extra = buildSession(chapters, Infinity, params.source);
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);

@@ -119,7 +119,7 @@ export default function RootLayout() {
             const result = processWidgetAnswer(cardId, choice);
             console.log('[App] Widget answer processed:', result);
             updateWidgetData();
-            rescheduleAfterExternalAnswer();
+            rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
           } else if (action === 'spell' && parts.length >= 3) {
             const cardId = parts[1];
             const spellAction = parts[2] as 'char' | 'back' | 'submit';
@@ -127,7 +127,7 @@ export default function RootLayout() {
             const result = processSpellAction(cardId, spellAction, char);
             if (result.submitted) {
               console.log('[App] Spell submitted:', result);
-              rescheduleAfterExternalAnswer();
+              rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
             }
             updateWidgetData();
           } else if (action === 'reveal' && parts.length >= 2) {
@@ -139,7 +139,7 @@ export default function RootLayout() {
             const rating = parts[2] as '1' | '3';
             processWidgetRate(cardId, rating);
             updateWidgetData();
-            rescheduleAfterExternalAnswer();
+            rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
           } else {
             console.warn('[App] Unknown widget target:', target);
           }
@@ -190,7 +190,7 @@ export default function RootLayout() {
         const result = processWidgetAnswer(cardId, choice);
         console.log('[App] Widget answer processed:', result);
         updateWidgetData();
-        rescheduleAfterExternalAnswer();
+        rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
       } catch (error) {
         console.error('[App] Failed to process widget answer:', error);
       }
@@ -202,7 +202,7 @@ export default function RootLayout() {
         const result = processSpellAction(cardId, action, char);
         if (result.submitted) {
           console.log('[App] Spell submitted:', result);
-          rescheduleAfterExternalAnswer();
+          rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
         }
       } catch (error) {
         console.error('[App] Failed to process widget spell:', error);
@@ -223,7 +223,7 @@ export default function RootLayout() {
 
       try {
         processWidgetRate(cardId, rating);
-        rescheduleAfterExternalAnswer();
+        rescheduleAfterExternalAnswer().catch(e => console.error('[App] Reschedule failed:', e));
       } catch (error) {
         console.error('[App] Failed to process widget rate:', error);
       }
