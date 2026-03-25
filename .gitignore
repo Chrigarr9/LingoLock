@@ -94,11 +94,8 @@ local.properties
 !assets/**/*.png
 
 # Generated content — rebuilt by running the pipeline + npm run build:content
-# NOTE: bundle.ts and assets ARE tracked — Vercel needs them at build time
-assets/images/cards/*
-!assets/images/cards/.gitkeep
-assets/audio/cards/*
-!assets/audio/cards/.gitkeep
+# NOTE: bundle.ts and assets ARE tracked — EAS build needs them in the archive
+# (EAS uses .gitignore to filter the project archive, even for tracked files)
 
 # Playwright
 .playwright-mcp/
