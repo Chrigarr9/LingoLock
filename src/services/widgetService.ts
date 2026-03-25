@@ -261,6 +261,7 @@ export function updateWidgetData(): void {
     // Workaround: provide a minimal layout function as a string that renders
     // based on the props we pass via updateSnapshot. The ExpoWidgets.bundle
     // runtime (stubs for VStack, Text, Button etc.) is loaded first in the JSContext.
+    console.log('[Widget] updateWidgetData called');
     const { Widget } = require('expo-widgets');
     const layoutFn = `function(props, env) {
       var family = env.widgetFamily;
@@ -274,7 +275,7 @@ export function updateWidgetData(): void {
       function txt(text, mods) { return { type: 'TextView', props: { text: String(text), modifiers: mods || [] } }; }
       function vs(ch, mods, opts) { return { type: 'VStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
       function hs(ch, mods, opts) { return { type: 'HStackView', props: Object.assign({ children: ch.filter(Boolean), modifiers: mods || [] }, opts || {}) }; }
-      function btn(target, label, handler) { var p = { target: target, label: label, modifiers: [{ $type: 'frame', maxWidth: 99999 }] }; if (handler) p.onButtonPress = handler; return { type: 'Button', props: p }; }
+      function btn(target, label, handler) { var p = { target: target, label: label, modifiers: [{ $type: 'frame', maxWidth: 99999 }, { $type: 'font', size: 14 }] }; if (handler) p.onButtonPress = handler; return { type: 'Button', props: p }; }
       function link(url, children) { return { type: 'LinkView', props: { destination: url, children: children } }; }
 
       var fP = { $type: 'foregroundStyle', styleType: 'hierarchical', hierarchicalStyle: 'primary' };
@@ -460,12 +461,15 @@ export function updateWidgetData(): void {
         var mcBtns = props.choices.map(function(c) {
           return btn('answer:' + id + ':' + c, c, function() { return showFeedback(c === props.correctAnswer, props.correctAnswer, props.sentence, props.sentenceTranslation); });
         });
+        var row1 = mcBtns.slice(0, 2);
+        var row2 = mcBtns.slice(2);
         return vs([
           header,
           txt(props.sentence, [f(14, 'semibold'), fP, lim(3)]),
           props.sentenceTranslation ? txt(props.sentenceTranslation, [f(11), fS, lim(2)]) : null,
           { type: 'SpacerView', props: {} },
-          hs(mcBtns, [], { spacing: 6 })
+          hs(row1, [], { spacing: 6 }),
+          row2.length > 0 ? hs(row2, [], { spacing: 6 }) : null
         ], [{ $type: 'padding', all: 12 }], { alignment: 'leading', spacing: 4 });
       }
 
@@ -529,8 +533,11 @@ export function updateWidgetData(): void {
           return clean;
         });
       }
+      console.log('[Widget] Updating snapshot:', { cardId: cardData.cardId, answerType: cardData.answerType, cardsLeft: cardData.cardsLeft });
       widget.updateSnapshot(props);
+      console.log('[Widget] Snapshot updated');
     } else {
+      console.log('[Widget] No card data — showing empty state');
       widget.updateSnapshot({
         streakCount: getStreak(),
       });

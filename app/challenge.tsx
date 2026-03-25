@@ -84,6 +84,7 @@ export default function ChallengeScreen() {
   const [correctCount, setCorrectCount] = useState(0);
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
+  const [userAnswer, setUserAnswer] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [audioSpeed] = useState(() => loadAudioSpeed());
   const [isEmpty, setIsEmpty] = useState(false);
@@ -179,6 +180,7 @@ export default function ChallengeScreen() {
         setShowAnswer(false);
         setIsCorrect(null);
         setAnsweredChoice(null);
+        setUserAnswer(null);
         setShowReveal(false);
         setHintUsed(false);
         return nextIndex;
@@ -225,6 +227,7 @@ export default function ChallengeScreen() {
     const currentState = existing ?? createNewCardState(cardId);
     const nextState = scheduleReview(currentState, grade);
     saveCardState(cardId, nextState);
+    updateWidgetData();
   };
 
   // --------------------------------------------------------------------------
@@ -266,9 +269,10 @@ export default function ChallengeScreen() {
     }
   };
 
-  const handleTextSubmit = (userAnswer: string) => {
+  const handleTextSubmit = (typedAnswer: string) => {
     if (!currentCard || currentCard.card.kind !== 'cloze') return;
-    const correct = validateAnswer(userAnswer, currentCard.card.wordInContext);
+    setUserAnswer(typedAnswer);
+    const correct = validateAnswer(typedAnswer, currentCard.card.wordInContext);
     if (correct) {
       // Hint used → Hard (shorter interval), otherwise Good
       handleCorrect(currentCard, hintUsed ? 'hard' : 'good');
@@ -280,6 +284,7 @@ export default function ChallengeScreen() {
   const handleMCSelect = (choice: string) => {
     if (!currentCard || currentCard.card.kind !== 'cloze') return;
     setAnsweredChoice(choice);
+    setUserAnswer(choice);
     const correct = choice === currentCard.card.wordInContext;
     if (correct) {
       handleCorrect(currentCard, 'good');
@@ -316,6 +321,7 @@ export default function ChallengeScreen() {
     setShowAnswer(false);
     setIsCorrect(null);
     setAnsweredChoice(null);
+    setUserAnswer(null);
     setShowReveal(false);
     setHintUsed(false);
     setIsComplete(false);
@@ -456,6 +462,7 @@ export default function ChallengeScreen() {
                   playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
+                  userAnswer={userAnswer ?? undefined}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -493,6 +500,7 @@ export default function ChallengeScreen() {
                   hintUsed={hintUsed}
                   onHintRequest={handleHintRequest}
                   keyboardHeight={keyboard.height}
+                  userAnswer={userAnswer ?? undefined}
                 />
 
                 {/* Answer reveal — shown after answering */}

@@ -26,6 +26,8 @@ interface ClozeCardDisplayProps {
   onAlreadyKnow?: () => void;
   /** Height of the keyboard in pixels (0 when hidden). Image shrinks to fit remaining space. */
   keyboardHeight?: number;
+  /** The answer the user actually gave (shown in feedback when incorrect) */
+  userAnswer?: string;
 }
 
 /**
@@ -47,6 +49,7 @@ export function ClozeCardDisplay({
   onHintRequest,
   onAlreadyKnow,
   keyboardHeight = 0,
+  userAnswer,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
@@ -193,17 +196,20 @@ export function ClozeCardDisplay({
       </View>
 
       {/* After-answer feedback */}
-      {showAnswer && (
+      {showAnswer && isCorrect === false && userAnswer && (
         <Text
           variant="bodyMedium"
-          style={[
-            styles.feedbackText,
-            { color: isCorrect === false ? incorrectColor : correctColor },
-          ]}
+          style={[styles.feedbackText, { color: incorrectColor }]}
         >
-          {isCorrect === false
-            ? `\u2717 ${card.wordInContext}`
-            : `\u2713 ${card.wordInContext}`}
+          {`\u2717 ${userAnswer}`}
+        </Text>
+      )}
+      {showAnswer && isCorrect === true && (
+        <Text
+          variant="bodyMedium"
+          style={[styles.feedbackText, { color: correctColor }]}
+        >
+          {`\u2713 ${card.wordInContext}`}
         </Text>
       )}
 
