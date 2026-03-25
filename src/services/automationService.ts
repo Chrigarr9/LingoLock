@@ -1,37 +1,22 @@
 import { Platform, AppState, AppStateStatus } from 'react-native';
-import { router } from 'expo-router';
 import { consumeAutomationSource } from '../../modules/expo-app-intents/src';
 
-/** Brief guard against cold-start + AppState both firing within the same cycle */
-let pendingCheck = false;
-
 /**
- * Check for a pending App Intent automation on foreground.
- * If found, navigate to the challenge screen with the source app.
+ * Consume any stale automation source from UserDefaults.
+ * Navigation is handled entirely by the deep link path (lingolock://challenge).
+ * This just clears the UserDefaults fallback value to prevent it from
+ * persisting across app launches.
  */
-export function checkPendingAutomation(): void {
-  if (Platform.OS !== 'ios' || pendingCheck) return;
-
+function clearStaleAutomationSource(): void {
+  if (Platform.OS !== 'ios') return;
   const source = consumeAutomationSource();
-  if (!source) return;
-
-  // Block duplicate calls for 1 second (cold-start race window)
-  pendingCheck = true;
-  setTimeout(() => { pendingCheck = false; }, 1000);
-
-  console.log('[Automation] Detected pending automation for:', source);
-  try {
-    router.push({
-      pathname: '/challenge',
-      params: { source },
-    });
-  } catch (err) {
-    console.error('[Automation] Failed to navigate:', err);
+  if (source) {
+    console.log('[Automation] Cleared stale automation source:', source);
   }
 }
 
 /**
- * Register AppState listener that checks for pending automations
+ * Register AppState listener that clears stale automation sources
  * when the app comes to the foreground.
  *
  * @returns Cleanup function to remove the listener
@@ -39,13 +24,12 @@ export function checkPendingAutomation(): void {
 export function setupAutomationListener(): () => void {
   if (Platform.OS !== 'ios') return () => {};
 
-  // Check immediately on setup (cold start from intent)
-  // Use a short delay to ensure navigation is ready
-  const timeout = setTimeout(() => checkPendingAutomation(), 300);
+  // Clear on cold start after a delay
+  const timeout = setTimeout(() => clearStaleAutomationSource(), 1000);
 
   const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
     if (state === 'active') {
-      checkPendingAutomation();
+      setTimeout(() => clearStaleAutomationSource(), 1000);
     }
   });
 

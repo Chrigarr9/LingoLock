@@ -6,14 +6,16 @@ import { openSourceApp } from '../utils/deepLinkOpener';
 
 interface ContinueButtonProps {
   sourceApp: string;
+  onBeforeOpen?: () => void;
 }
 
-export function ContinueButton({ sourceApp }: ContinueButtonProps) {
+export function ContinueButton({ sourceApp, onBeforeOpen }: ContinueButtonProps) {
   const theme = useAppTheme();
   const [isOpening, setIsOpening] = useState(false);
 
   const handlePress = async () => {
     setIsOpening(true);
+    onBeforeOpen?.();
     await openSourceApp(sourceApp);
     setIsOpening(false);
   };

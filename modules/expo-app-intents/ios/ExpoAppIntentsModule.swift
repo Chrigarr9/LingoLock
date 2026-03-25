@@ -15,5 +15,13 @@ public class ExpoAppIntentsModule: Module {
             defaults?.removeObject(forKey: "automationSource")
             return source
         }
+
+        /// Write the grace period timestamp so the Swift intent can skip
+        /// opening the app when the user recently completed practice.
+        Function("setGraceTimestamp") { (timestamp: Double) in
+            let defaults = UserDefaults(suiteName: "group.com.lingolock.app")
+            defaults?.set(timestamp, forKey: "automationGraceTs")
+            defaults?.synchronize() // Force flush so the intent reads it immediately
+        }
     }
 }

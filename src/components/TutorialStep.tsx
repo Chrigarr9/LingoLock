@@ -7,10 +7,11 @@ interface TutorialStepProps {
   stepNumber: number;
   title: string;
   description: string;
-  image: ImageSourcePropType;
+  image?: ImageSourcePropType;
+  children?: React.ReactNode;
 }
 
-export function TutorialStep({ stepNumber, title, description, image }: TutorialStepProps) {
+export function TutorialStep({ stepNumber, title, description, image, children }: TutorialStepProps) {
   const theme = useAppTheme();
 
   return (
@@ -44,14 +45,17 @@ export function TutorialStep({ stepNumber, title, description, image }: Tutorial
           </Text>
         </View>
       </View>
-      <View
-        style={[
-          styles.imageContainer,
-          getGlassStyle(theme),
-        ]}
-      >
-        <Image source={image} style={styles.image} resizeMode="contain" />
-      </View>
+      {children}
+      {image && (
+        <View
+          style={[
+            styles.imageContainer,
+            getGlassStyle(theme),
+          ]}
+        >
+          <Image source={image} style={styles.image} resizeMode="contain" />
+        </View>
+      )}
     </View>
   );
 }

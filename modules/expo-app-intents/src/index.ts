@@ -5,8 +5,8 @@ try {
   if (Platform.OS === 'ios') {
     ExpoAppIntents = requireNativeModule('ExpoAppIntents');
   }
-} catch {
-  // Native module not available (Expo Go, dev client without prebuild, etc.)
+} catch (e) {
+  console.warn('[ExpoAppIntents] Native module not available:', e);
 }
 
 /**
@@ -20,4 +20,13 @@ try {
 export function consumeAutomationSource(): string | null {
   if (!ExpoAppIntents) return null;
   return ExpoAppIntents.consumeAutomationSource() ?? null;
+}
+
+/**
+ * Write the grace period timestamp to shared UserDefaults so the Swift
+ * intent can skip opening the app when the user recently completed practice.
+ */
+export function setGraceTimestamp(timestamp: number): void {
+  if (!ExpoAppIntents) return;
+  ExpoAppIntents.setGraceTimestamp(timestamp);
 }

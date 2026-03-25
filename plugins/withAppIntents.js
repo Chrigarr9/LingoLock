@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const INTENT_FILES = ['StartPracticeIntent.swift', 'AppShortcuts.swift'];
-const SOURCE_DIR = 'modules/expo-app-intents/ios';
+const SOURCE_DIR = 'modules/expo-app-intents/intent-sources';
 
 module.exports = function withAppIntents(config) {
   // Step 1: Copy Swift intent files into the generated iOS project
