@@ -13,15 +13,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-26
     env:
       BUILD_PROFILE: ${{ github.event.inputs.profile }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Select Xcode 16.1
-        run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
