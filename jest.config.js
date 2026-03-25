@@ -6,6 +6,7 @@ module.exports = {
     // Map React Native and MMKV imports to mocks in tests
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.js',
     '^react-native$': '<rootDir>/__mocks__/react-native.js',
+    '^react-native-keychain$': '<rootDir>/__mocks__/react-native-keychain.js',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {

@@ -381,6 +381,33 @@ export function migrateCardIdsToNamespaced(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Backup helpers
+// ---------------------------------------------------------------------------
+
+const RESTORE_DISMISSED_KEY = 'restore_dismissed';
+const LAST_BACKUP_TS_KEY = 'last_backup_ts';
+
+export function getCardCount(): number {
+  return cardStorage.getAllKeys().length;
+}
+
+export function isRestoreDismissed(): boolean {
+  return statsStorage.getBoolean(RESTORE_DISMISSED_KEY) ?? false;
+}
+
+export function setRestoreDismissed(): void {
+  statsStorage.set(RESTORE_DISMISSED_KEY, true);
+}
+
+export function getLastBackupTs(): number | undefined {
+  return statsStorage.getNumber(LAST_BACKUP_TS_KEY) ?? undefined;
+}
+
+export function setLastBackupTs(ts: number): void {
+  statsStorage.set(LAST_BACKUP_TS_KEY, ts);
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 
