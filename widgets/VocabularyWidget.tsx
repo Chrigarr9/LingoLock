@@ -1,14 +1,17 @@
 /**
  * VocabularyWidget — Home Screen / Lock Screen widget layout.
  *
- * The "use widget" directive causes babel-preset-expo to transform this
- * function body into a string template literal. That string is stored in
- * UserDefaults and evaluated inside the widget extension's JSContext,
- * where @expo/ui/swift-ui components are stubbed to produce SwiftUI view
- * tree objects that DynamicView.swift renders natively.
+ * The "widget" directive causes babel-preset-expo to transform this function
+ * into a string template literal. That string is stored in UserDefaults and
+ * evaluated inside the widget extension's JSContext, where @expo/ui/swift-ui
+ * components are stubbed to produce SwiftUI view tree objects.
+ *
+ * IMPORTANT: Use a standalone function declaration (not `export default function`).
+ * The Babel widgets-plugin replaces the function with a `var` declaration — this
+ * breaks when nested inside `export default`.
  */
 
-import { type WidgetEnvironment } from 'expo-widgets';
+import { createWidget, type WidgetEnvironment } from 'expo-widgets';
 import { VStack, HStack, Text, Button, Spacer } from '@expo/ui/swift-ui';
 import { Link } from '@expo/ui/swift-ui';
 import {
@@ -29,12 +32,9 @@ interface WidgetProps {
   choices?: string[];
   cardsLeft?: number;
   streakCount?: number;
-  frontText?: string;
-  backText?: string;
-  isRevealed?: boolean;
 }
 
-export default function VocabularyWidgetLayout(
+function VocabularyWidgetLayout(
   props: WidgetProps,
   env: WidgetEnvironment,
 ) {
@@ -160,3 +160,5 @@ export default function VocabularyWidgetLayout(
     </Link>
   );
 }
+
+export const vocabularyWidget = createWidget<WidgetProps>('VocabularyWidget', VocabularyWidgetLayout);

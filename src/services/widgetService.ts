@@ -251,12 +251,11 @@ export function updateWidgetData(): void {
   if (Platform.OS === 'web') return;
 
   try {
-    // Import the widget layout — the "use widget" directive in the TSX file
-    // causes Babel to transform the component function into a string that the
-    // widget extension's JSContext can evaluate with the ExpoWidgets.bundle runtime.
-    const { createWidget } = require('expo-widgets');
-    const widgetLayout = require('../../widgets/VocabularyWidget').default;
-    const widget = createWidget('VocabularyWidget', widgetLayout);
+    // Import the widget instance — the "widget" directive in VocabularyWidget.tsx
+    // causes Babel to transform the component into a string. createWidget() in
+    // that module passes the string to the native Widget constructor which stores
+    // it in shared UserDefaults for the widget extension to evaluate.
+    const { vocabularyWidget: widget } = require('../../widgets/VocabularyWidget');
 
     const cardData = getWidgetCardData();
     if (cardData) {
