@@ -7,11 +7,14 @@ import { useDeepLink } from '../src/hooks/useDeepLink';
 import { DeepLinkParams } from '../src/utils/deepLinkHandler';
 import { lightTheme, darkTheme } from '../src/theme';
 import { setupNotifications } from '../src/services/notificationService';
+import { rescheduleAfterExternalAnswer } from '../src/services/notificationScheduler';
 import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWidgetRate, updateWidgetData } from '../src/services/widgetService';
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 import { setupAutomationListener } from '../src/services/automationService';
+import { consumeAutomationSource } from '../modules/expo-app-intents/src';
+import { isKnownApp, openSourceApp } from '../src/utils/deepLinkOpener';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -116,6 +119,7 @@ export default function RootLayout() {
             const result = processWidgetAnswer(cardId, choice);
             console.log('[App] Widget answer processed:', result);
             updateWidgetData();
+            rescheduleAfterExternalAnswer();
           } else if (action === 'spell' && parts.length >= 3) {
             const cardId = parts[1];
             const spellAction = parts[2] as 'char' | 'back' | 'submit';
@@ -123,6 +127,7 @@ export default function RootLayout() {
             const result = processSpellAction(cardId, spellAction, char);
             if (result.submitted) {
               console.log('[App] Spell submitted:', result);
+              rescheduleAfterExternalAnswer();
             }
             updateWidgetData();
           } else if (action === 'reveal' && parts.length >= 2) {
@@ -134,6 +139,7 @@ export default function RootLayout() {
             const rating = parts[2] as '1' | '3';
             processWidgetRate(cardId, rating);
             updateWidgetData();
+            rescheduleAfterExternalAnswer();
           } else {
             console.warn('[App] Unknown widget target:', target);
           }
@@ -158,12 +164,24 @@ export default function RootLayout() {
     console.log('[App] Deep link received:', deepLink);
 
     if (deepLink.type === 'challenge') {
-      router.push({
+      // Consume any pending UserDefaults value so the automation listener
+      // doesn't also handle this same trigger (prevents double navigation)
+      consumeAutomationSource();
+      router.replace({
         pathname: '/challenge',
-        params: {
-          source: deepLink.params.source,
-        },
+        params: { source: deepLink.params.source },
       });
+    } else if (deepLink.type === 'grace') {
+      // Grace period bounce-back: practice was recently completed
+      consumeAutomationSource();
+      const { source } = deepLink.params;
+      if (isKnownApp(source)) {
+        // Known app: redirect back immediately
+        openSourceApp(source);
+      } else {
+        // "Other": show grace screen — user switches back manually
+        router.replace({ pathname: '/grace', params: { source } });
+      }
     } else if (deepLink.type === 'widget-answer') {
       const { cardId, choice } = deepLink.params;
       console.log('[App] Processing widget answer:', { cardId, choice });
@@ -172,6 +190,7 @@ export default function RootLayout() {
         const result = processWidgetAnswer(cardId, choice);
         console.log('[App] Widget answer processed:', result);
         updateWidgetData();
+        rescheduleAfterExternalAnswer();
       } catch (error) {
         console.error('[App] Failed to process widget answer:', error);
       }
@@ -183,6 +202,7 @@ export default function RootLayout() {
         const result = processSpellAction(cardId, action, char);
         if (result.submitted) {
           console.log('[App] Spell submitted:', result);
+          rescheduleAfterExternalAnswer();
         }
       } catch (error) {
         console.error('[App] Failed to process widget spell:', error);
@@ -203,6 +223,7 @@ export default function RootLayout() {
 
       try {
         processWidgetRate(cardId, rating);
+        rescheduleAfterExternalAnswer();
       } catch (error) {
         console.error('[App] Failed to process widget rate:', error);
       }
@@ -229,6 +250,14 @@ export default function RootLayout() {
           headerShown: false,
           animation: 'fade',
           gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="grace"
+        options={{
+          presentation: 'fullScreenModal',
+          headerShown: false,
+          animation: 'fade',
         }}
       />
       <Stack.Screen

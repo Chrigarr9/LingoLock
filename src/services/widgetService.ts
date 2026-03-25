@@ -488,40 +488,49 @@ export function updateWidgetData(): void {
 
     const cardData = getWidgetCardData();
     if (cardData) {
-      console.log('[Widget] Updating snapshot with card:', {
-        cardId: cardData.cardId,
-        answerType: cardData.answerType,
-        cardsLeft: cardData.cardsLeft,
-        hasChoices: !!cardData.choices?.length,
-        hasSpellChoices: !!cardData.spellChoices?.length,
-        spellChoices: cardData.spellChoices,
-        spellInput: cardData.spellInput,
-        sentence: cardData.sentence?.substring(0, 40),
-        germanHint: cardData.germanHint,
-      });
-      // Pre-load all due cards so the widget can cycle through them
-      const allCards = getWidgetCardBatch(Infinity);
-      widget.updateSnapshot({
+      // Pre-load a small batch for auto-advance (keep payload small for UserDefaults)
+      const allCards = getWidgetCardBatch(10);
+      // Build a clean props object — only include defined values.
+      // UserDefaults requires strict property-list types; undefined/null
+      // values can cause the entire set() call to silently fail.
+      const props: Record<string, unknown> = {
         cardId: cardData.cardId,
         sentence: cardData.sentence,
         germanHint: cardData.germanHint,
         correctAnswer: cardData.correctAnswer,
-        sentenceTranslation: cardData.sentenceTranslation,
         answerType: cardData.answerType,
-        choices: cardData.choices,
         cardsLeft: cardData.cardsLeft,
         streakCount: cardData.streakCount,
-        spellInput: cardData.spellInput,
-        spellChoices: cardData.spellChoices,
-        frontText: cardData.frontText,
-        backText: cardData.backText,
-        isRevealed: cardData.isRevealed,
-        // Batch: remaining cards for auto-advance
-        nextCards: allCards.slice(1),
         cardIndex: 0,
-      });
+      };
+      if (cardData.sentenceTranslation) props.sentenceTranslation = cardData.sentenceTranslation;
+      if (cardData.choices) props.choices = cardData.choices;
+      if (cardData.spellInput != null) props.spellInput = cardData.spellInput;
+      if (cardData.spellChoices) props.spellChoices = cardData.spellChoices;
+      if (cardData.frontText) props.frontText = cardData.frontText;
+      if (cardData.backText) props.backText = cardData.backText;
+      if (cardData.isRevealed != null) props.isRevealed = cardData.isRevealed;
+      // Strip undefined fields from nextCards too
+      if (allCards.length > 1) {
+        props.nextCards = allCards.slice(1).map(c => {
+          const clean: Record<string, unknown> = {
+            cardId: c.cardId,
+            sentence: c.sentence,
+            germanHint: c.germanHint,
+            correctAnswer: c.correctAnswer,
+            answerType: c.answerType,
+            cardsLeft: c.cardsLeft,
+            streakCount: c.streakCount,
+          };
+          if (c.sentenceTranslation) clean.sentenceTranslation = c.sentenceTranslation;
+          if (c.choices) clean.choices = c.choices;
+          if (c.frontText) clean.frontText = c.frontText;
+          if (c.backText) clean.backText = c.backText;
+          return clean;
+        });
+      }
+      widget.updateSnapshot(props);
     } else {
-      console.log('[Widget] No card data — showing empty state');
       widget.updateSnapshot({
         streakCount: getStreak(),
       });

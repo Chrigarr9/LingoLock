@@ -9,8 +9,8 @@ import { AnswerReveal } from '../src/components/AnswerReveal';
 import { AnswerInput } from '../src/components/AnswerInput';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
-import { isKnownApp } from '../src/utils/deepLinkOpener';
-import { loadAutomationCardThreshold } from '../src/services/storage';
+import { isKnownApp, openSourceApp } from '../src/utils/deepLinkOpener';
+import { loadAutomationCardThreshold, saveAutomationGraceStart } from '../src/services/storage';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
 import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
@@ -31,6 +31,7 @@ import { updateStatsAfterSession, getStreak, checkAndAdvanceStreak } from '../sr
 import { validateAnswer } from '../src/utils/answerValidation';
 import { useKeyboard } from '../src/hooks/useKeyboardVisible';
 import { updateWidgetData } from '../src/services/widgetService';
+import { rescheduleAfterExternalAnswer } from '../src/services/notificationScheduler';
 import type { SessionCard } from '../src/types/vocabulary';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 
@@ -64,7 +65,9 @@ export default function ChallengeScreen() {
   const sessionChapter = useRef(0);
 
   // Automation: show "Continue to [App]" button after threshold correct answers
-  const isAutomation = isKnownApp(params.source ?? '');
+  const source = params.source ?? '';
+  const isAutomation = isKnownApp(source) || source === 'Other';
+  const canReturnToApp = isKnownApp(source); // false for "Other" — no URL scheme
   const automationThreshold = useMemo(
     () => isAutomation ? loadAutomationCardThreshold() : 0,
     [isAutomation],
@@ -92,11 +95,14 @@ export default function ChallengeScreen() {
   // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
-    const session = buildSession(chapters, loadNewWordsPerDay(), params.source);
+    // Automation sessions bypass the daily new word limit — the gate should
+    // always have cards. Voluntary practice respects the limit.
+    const budget = isAutomation ? Infinity : loadNewWordsPerDay();
+    const session = buildSession(chapters, budget, params.source);
 
     if (session.length === 0) {
       // Check if unlimited budget would yield cards (budget exhausted, not truly done)
-      const extra = buildSession(chapters, Infinity, params.source);
+      const extra = isAutomation ? [] : buildSession(chapters, Infinity, params.source);
       setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
       setIsComplete(true);
@@ -181,6 +187,7 @@ export default function ChallengeScreen() {
         checkAndAdvanceStreak();
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
         updateWidgetData();
+        rescheduleAfterExternalAnswer();
         const extra = buildSession(chapters, Infinity, params.source);
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);
@@ -290,6 +297,10 @@ export default function ChallengeScreen() {
     if (!isComplete && answeredNewCardIds.current.size > 0) {
       recordNewWordsIntroduced(answeredNewCardIds.current.size);
     }
+    // Start grace period so reopening the source app won't re-trigger practice
+    if (isAutomation && correctCountRef.current >= automationThreshold) {
+      saveAutomationGraceStart();
+    }
     router.dismissAll();
   };
 
@@ -371,13 +382,37 @@ export default function ChallengeScreen() {
           onPress={handleClose}
           accessibilityLabel="Close challenge"
         />
-        <IconButton
-          icon={isMuted ? 'volume-off' : 'volume-high'}
-          size={22}
-          iconColor={theme.colors.onSurface}
-          onPress={toggleMute}
-          accessibilityLabel={isMuted ? 'Unmute audio' : 'Mute audio'}
-        />
+        <View style={styles.headerRight}>
+          {showContinueButton && (
+            <Pressable
+              onPress={async () => {
+                saveAutomationGraceStart();
+                if (canReturnToApp) {
+                  const result = await openSourceApp(source);
+                  if (!result.success) router.dismissAll();
+                } else {
+                  // "Other" apps: show grace screen with cooldown setup instructions
+                  router.replace({ pathname: '/grace', params: { source } });
+                }
+              }}
+              style={[styles.headerContinue, { backgroundColor: theme.colors.surfaceVariant }]}
+              accessibilityLabel={canReturnToApp ? `Continue to ${source}` : 'Done'}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.headerContinueText, { color: theme.colors.onSurfaceVariant }]}>
+                {canReturnToApp ? source : 'Done'}
+              </Text>
+              <Icon source={canReturnToApp ? 'arrow-right' : 'check'} size={12} color={theme.colors.onSurfaceVariant} />
+            </Pressable>
+          )}
+          <IconButton
+            icon={isMuted ? 'volume-off' : 'volume-high'}
+            size={22}
+            iconColor={theme.colors.onSurface}
+            onPress={toggleMute}
+            accessibilityLabel={isMuted ? 'Unmute audio' : 'Mute audio'}
+          />
+        </View>
       </View>
 
       {/* Progress */}
@@ -500,10 +535,6 @@ export default function ChallengeScreen() {
               </Pressable>
             )}
 
-            {/* Continue to [App] — appears after automation threshold met */}
-            {showContinueButton && (
-              <ContinueButton sourceApp={params.source!} />
-            )}
           </>
         )}
 
@@ -578,7 +609,7 @@ export default function ChallengeScreen() {
             )}
 
             <Pressable
-              onPress={() => router.dismissAll()}
+              onPress={() => { if (isAutomation && correctCountRef.current >= automationThreshold) saveAutomationGraceStart(); router.dismissAll(); }}
               style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
               accessibilityLabel="Done"
               accessibilityRole="button"
@@ -586,8 +617,8 @@ export default function ChallengeScreen() {
               <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>Done</Text>
             </Pressable>
 
-            {isAutomation && params.source && (
-              <ContinueButton sourceApp={params.source} />
+            {isAutomation && canReturnToApp && (
+              <ContinueButton sourceApp={source} onBeforeOpen={saveAutomationGraceStart} />
             )}
           </View>
         )}
@@ -606,6 +637,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 4,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerContinue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+  },
+  headerContinueText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   progressArea: {
     paddingHorizontal: 24,
