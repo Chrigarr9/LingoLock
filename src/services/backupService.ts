@@ -137,3 +137,122 @@ export async function createBackup(): Promise<void> {
     console.error('[Backup] Failed to create backup:', error);
   }
 }
+
+// ---------------------------------------------------------------------------
+// shouldPromptRestore — synchronous check
+// ---------------------------------------------------------------------------
+
+export function shouldPromptRestore(): boolean {
+  if (Platform.OS !== 'ios') return false;
+  if (getCardCount() > 0) return false;
+  return !isRestoreDismissed();
+}
+
+// ---------------------------------------------------------------------------
+// checkForBackup — reads and validates, does not restore
+// ---------------------------------------------------------------------------
+
+export async function checkForBackup(): Promise<BackupMeta | null> {
+  try {
+    const result = await Keychain.getGenericPassword({
+      service: BACKUP_SERVICE_NAME,
+    });
+    if (!result) return null;
+
+    const payload = decodePayload(result.password);
+    if (!payload) return null;
+
+    if (payload.v > BACKUP_VERSION) {
+      console.warn(`[Backup] Backup version ${payload.v} is newer than current ${BACKUP_VERSION}`);
+      return null;
+    }
+
+    return {
+      ts: payload.ts,
+      cardCount: Object.keys(payload.cards).length,
+      importedDecks: payload.importedDecks ?? [],
+    };
+  } catch (error) {
+    console.error('[Backup] Failed to check for backup:', error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// restoreFromBackup — writes card states back to MMKV
+// ---------------------------------------------------------------------------
+
+export async function restoreFromBackup(): Promise<{
+  restoredCards: number;
+  missingDecks: ImportedDeckMeta[];
+} | null> {
+  try {
+    const result = await Keychain.getGenericPassword({
+      service: BACKUP_SERVICE_NAME,
+    });
+    if (!result) return null;
+
+    const payload = decodePayload(result.password);
+    if (!payload) return null;
+
+    let restoredCards = 0;
+    for (const [key, state] of Object.entries(payload.cards)) {
+      cardStorage.set(key, JSON.stringify(state));
+      restoredCards++;
+    }
+
+    if (payload.activeBundle) {
+      saveActiveBundle(payload.activeBundle);
+    }
+    if (payload.enabledBundles?.length) {
+      saveEnabledBundles(payload.enabledBundles);
+    }
+
+    const currentDecks = getImportedDecks();
+    const currentDeckIds = new Set(currentDecks.map(d => d.id));
+    const missingDecks = (payload.importedDecks ?? []).filter(
+      d => !currentDeckIds.has(d.id)
+    );
+
+    console.log(`[Backup] Restored ${restoredCards} card states, ${missingDecks.length} imported decks missing`);
+    return { restoredCards, missingDecks };
+  } catch (error) {
+    console.error('[Backup] Failed to restore from backup:', error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// deleteBackup
+// ---------------------------------------------------------------------------
+
+export async function deleteBackup(): Promise<void> {
+  try {
+    await Keychain.resetGenericPassword({ service: BACKUP_SERVICE_NAME });
+  } catch (error) {
+    console.error('[Backup] Failed to delete backup:', error);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// dismissRestore
+// ---------------------------------------------------------------------------
+
+export function dismissRestore(): void {
+  setRestoreDismissed();
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function decodePayload(base64: string): BackupPayload | null {
+  try {
+    const compressed = base64ToUint8(base64);
+    const json = pako.ungzip(compressed, { to: 'string' });
+    return JSON.parse(json) as BackupPayload;
+  } catch {
+    console.error('[Backup] Failed to decode backup payload');
+    return null;
+  }
+}

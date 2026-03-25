@@ -53,12 +53,18 @@ import pako from 'pako';
 import {
   shouldBackup,
   createBackup,
+  checkForBackup,
+  restoreFromBackup,
+  deleteBackup,
+  shouldPromptRestore,
+  dismissRestore,
   BACKUP_SERVICE_NAME,
 } from './backupService';
-import { cardStorage, getLastBackupTs, setLastBackupTs } from './storage';
+import { cardStorage, getLastBackupTs, setLastBackupTs, isRestoreDismissed, setRestoreDismissed } from './storage';
 
 const mockKeychain = Keychain as any;
 const mockGetLastBackupTs = getLastBackupTs as jest.Mock;
+const mockIsRestoreDismissed = isRestoreDismissed as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -131,5 +137,125 @@ describe('createBackup', () => {
     cardStorage.set('es-de-buenos-aires:w1', '{}');
     mockKeychain.setGenericPassword.mockRejectedValueOnce(new Error('Keychain full'));
     await expect(createBackup()).resolves.not.toThrow();
+  });
+});
+
+describe('shouldPromptRestore', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (cardStorage as any).clearAll();
+  });
+
+  test('returns true when no cards and not dismissed', () => {
+    mockIsRestoreDismissed.mockReturnValue(false);
+    expect(shouldPromptRestore()).toBe(true);
+  });
+
+  test('returns false when cards exist', () => {
+    cardStorage.set('card1', '{}');
+    mockIsRestoreDismissed.mockReturnValue(false);
+    expect(shouldPromptRestore()).toBe(false);
+  });
+
+  test('returns false when dismissed', () => {
+    mockIsRestoreDismissed.mockReturnValue(true);
+    expect(shouldPromptRestore()).toBe(false);
+  });
+});
+
+describe('checkForBackup', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (cardStorage as any).clearAll();
+    mockKeychain.__reset();
+  });
+
+  test('returns null when no backup exists', async () => {
+    const result = await checkForBackup();
+    expect(result).toBeNull();
+  });
+
+  test('returns metadata when backup exists', async () => {
+    const card1 = { cardId: 'es-de-buenos-aires:w1', due: '2026-03-26', stability: 10, difficulty: 0.3, elapsed_days: 5, scheduled_days: 7, reps: 4, lapses: 0, state: 2 };
+    cardStorage.set('es-de-buenos-aires:w1', JSON.stringify(card1));
+    await createBackup();
+    (cardStorage as any).clearAll();
+
+    const result = await checkForBackup();
+    expect(result).not.toBeNull();
+    expect(result!.cardCount).toBe(1);
+    expect(result!.ts).toBeDefined();
+    expect(result!.importedDecks).toEqual([]);
+  });
+
+  test('returns null when backup is corrupted', async () => {
+    // Write corrupted data directly to mock Keychain
+    await mockKeychain.setGenericPassword('lingolock', 'not-valid-base64-gzip', { service: BACKUP_SERVICE_NAME });
+
+    const result = await checkForBackup();
+    expect(result).toBeNull();
+  });
+});
+
+describe('restoreFromBackup', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (cardStorage as any).clearAll();
+    mockKeychain.__reset();
+  });
+
+  test('restores card states to MMKV', async () => {
+    const card1 = { cardId: 'es-de-buenos-aires:w1', due: '2026-03-26', stability: 10, difficulty: 0.3, elapsed_days: 5, scheduled_days: 7, reps: 4, lapses: 0, state: 2 };
+    cardStorage.set('es-de-buenos-aires:w1', JSON.stringify(card1));
+    await createBackup();
+    (cardStorage as any).clearAll();
+    expect(cardStorage.getAllKeys().length).toBe(0);
+
+    const result = await restoreFromBackup();
+    expect(result).not.toBeNull();
+    expect(result!.restoredCards).toBe(1);
+    expect(cardStorage.getAllKeys().length).toBe(1);
+
+    const restored = JSON.parse(cardStorage.getString('es-de-buenos-aires:w1')!);
+    expect(restored.stability).toBe(10);
+  });
+
+  test('returns missingDecks for imported decks not on device', async () => {
+    const { getImportedDecks } = require('./importedDeckStore');
+    const deckMeta = { id: 'test-deck', name: 'Test Deck', cardCount: 50, importedAt: '2026-03-20', sizeBytes: 1024 };
+    (getImportedDecks as jest.Mock).mockReturnValue([deckMeta]);
+
+    cardStorage.set('es-de-buenos-aires:w1', '{"cardId":"es-de-buenos-aires:w1","state":0}');
+    await createBackup();
+    (cardStorage as any).clearAll();
+    (getImportedDecks as jest.Mock).mockReturnValue([]);
+
+    const result = await restoreFromBackup();
+    expect(result!.missingDecks).toEqual([deckMeta]);
+  });
+
+  test('returns null when no backup exists', async () => {
+    const result = await restoreFromBackup();
+    expect(result).toBeNull();
+  });
+});
+
+describe('deleteBackup', () => {
+  beforeEach(() => {
+    mockKeychain.__reset();
+  });
+
+  test('calls resetGenericPassword with correct service', async () => {
+    await deleteBackup();
+    expect(mockKeychain.resetGenericPassword).toHaveBeenCalledWith({
+      service: BACKUP_SERVICE_NAME,
+    });
+  });
+});
+
+describe('dismissRestore', () => {
+  test('calls setRestoreDismissed', () => {
+    dismissRestore();
+    expect(setRestoreDismissed).toHaveBeenCalled();
   });
 });
