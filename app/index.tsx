@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, StyleSheet, Platform, Pressable, Image, TouchableOpacity, AppState } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -25,18 +25,25 @@ export default function HomeScreen() {
   const [cardsDue, setCardsDue] = useState(0);
   const [currentChapter, setCurrentChapter] = useState(1);
   const [greeting, setGreeting] = useState(getGreeting);
-  // Refresh stats when screen gains focus (returning from challenge)
-  useFocusEffect(
-    useCallback(() => {
-      setStreak(getStreak());
-      const chapter = getCurrentChapterNumber(chapters);
-      setCurrentChapter(chapter);
-      setChapterProgress(getChapterMastery(chapters, chapter));
-      setCardsDue(getCardsDueCount(chapters));
-      // Refresh greeting in case time-of-day has changed
-      setGreeting(getGreeting());
-    }, [chapters])
-  );
+  const refreshStats = useCallback(() => {
+    setStreak(getStreak());
+    const chapter = getCurrentChapterNumber(chapters);
+    setCurrentChapter(chapter);
+    setChapterProgress(getChapterMastery(chapters, chapter));
+    setCardsDue(getCardsDueCount(chapters));
+    setGreeting(getGreeting());
+  }, [chapters]);
+
+  // Refresh when screen gains focus (returning from challenge)
+  useFocusEffect(refreshStats);
+
+  // Also refresh when app returns from background (cards may have become due)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshStats();
+    });
+    return () => sub.remove();
+  }, [refreshStats]);
 
   const glassStyle = getGlassStyle(theme);
   const cardStyle = getCardStyle(theme);

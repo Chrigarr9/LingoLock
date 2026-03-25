@@ -529,11 +529,12 @@ export function updateWidgetData(): void {
           return clean;
         });
       }
+      console.log('[Widget] Updating snapshot:', { cardId: cardData.cardId, answerType: cardData.answerType, cardsLeft: cardData.cardsLeft });
       widget.updateSnapshot(props);
+      console.log('[Widget] Snapshot updated + reload triggered');
     } else {
-      widget.updateSnapshot({
-        streakCount: getStreak(),
-      });
+      console.log('[Widget] No card data — showing empty state');
+      widget.updateSnapshot({ streakCount: getStreak() });
     }
   } catch (error) {
     console.error('[Widget] Failed to update widget data:', error);
