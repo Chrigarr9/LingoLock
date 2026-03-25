@@ -2,10 +2,10 @@ import { Platform, Alert, Linking, AppState, AppStateStatus } from 'react-native
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { validateAnswer } from '../utils/answerValidation';
-import { scheduleReview, createNewCardState } from './fsrs';
+import { scheduleReview, createNewCardState, isDue } from './fsrs';
 import { loadCardState, saveCardState, loadNotificationsEnabled } from './storage';
 import { updateStatsAfterSession, checkAndAdvanceStreak } from './statsService';
-import { scheduleNotificationBatch, dismissDeliveredVocabNotifications, cancelAllNotifications, initScheduler } from './notificationScheduler';
+import { scheduleNotificationBatch, dismissDeliveredVocabNotifications, rescheduleAfterExternalAnswer, cancelAllNotifications, initScheduler } from './notificationScheduler';
 import { updateWidgetData, syncPendingWidgetAnswers } from './widgetService';
 import { getCardById } from '../content/bundles';
 import type { ClozeCard } from '../types/vocabulary';
@@ -16,8 +16,18 @@ Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const id = notification.request.identifier;
 
-    // If this is a new vocab notification, dismiss any previously delivered ones
     if (id.startsWith('lingolock-vocab-')) {
+      // Check if the card is still due — if answered via widget, skip the notification
+      const data = notification.request.content.data as unknown as NotificationData | undefined;
+      if (data?.cardId) {
+        const state = loadCardState(data.cardId);
+        if (state && !isDue(state)) {
+          console.log('[Notifications] Card already reviewed, suppressing:', data.cardId);
+          return { shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: false, shouldShowList: false };
+        }
+      }
+
+      // Dismiss any previously delivered vocab notifications
       try {
         const delivered = await Notifications.getPresentedNotificationsAsync();
         for (const n of delivered) {
@@ -249,9 +259,9 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   // Refresh widget with updated data
   updateWidgetData();
 
-  // Dismiss any older delivered vocab notifications so they don't pile up
-  dismissDeliveredVocabNotifications().catch((err) => {
-    console.error('[Notifications] Failed to dismiss old notifications:', err);
+  // Cancel stale pending notifications and re-schedule with updated due queue
+  rescheduleAfterExternalAnswer().catch((err) => {
+    console.error('[Notifications] Failed to reschedule after answer:', err);
   });
 }
 

@@ -1,16 +1,16 @@
 /**
- * Notification Scheduler — batch scheduling logic for vocabulary reminders
+ * Notification Scheduler — queued scheduling for vocabulary reminders
  *
- * Schedules a batch of vocabulary notifications when the app goes to background.
- * Each notification contains a different due card, staggered at interval multiples.
+ * Schedules a queue of vocabulary notifications when the app goes to background,
+ * each with a unique ID but the same threadIdentifier for grouping.
+ * When the user answers any notification, all previously delivered ones are dismissed.
  *
  * Notification flow:
  *   1. App goes to background → scheduleNotificationBatch()
- *   2. Pick up to MAX_BATCH_SIZE due repetition cards
- *   3. For each card i: schedule notification at (i+1) × interval seconds
- *   4. User answers inline (app stays background) → FSRS updated, rest of batch untouched
+ *   2. Schedule up to MAX_BATCH_SIZE notifications at interval multiples
+ *   3. Each fires at its scheduled time
+ *   4. User answers one → dismissDeliveredVocabNotifications() cleans up older ones
  *   5. App returns to foreground → cancelAllNotifications()
- *   6. Background fetch fires → cancel all, reschedule fresh batch
  */
 
 import { AppState } from 'react-native';
@@ -28,6 +28,9 @@ import type { ClozeCard } from '../types/vocabulary';
 
 /** Maximum number of notifications in a single batch */
 const MAX_BATCH_SIZE = 8;
+
+/** Prefix for vocab notification identifiers */
+const VOCAB_ID_PREFIX = 'lingolock-vocab-';
 
 // ---------------------------------------------------------------------------
 // Module-level state
@@ -52,21 +55,19 @@ function buildMcMapping(choices: string[]): Record<string, string> {
   return mapping;
 }
 
-/** Format MC choices for notification body (e.g., "A) word1  B) word2  C) word3  D) word4") */
+/** Format MC choices for notification body */
 function formatChoicesForBody(choices: string[]): string {
   const labels = ['A', 'B', 'C', 'D'];
   return choices.map((choice, i) => `${labels[i]}) ${choice}`).join('  ');
 }
 
-/** Get all due ClozeCard repetition cards across all enabled builtin bundles.
- *  Imported deck SimpleCards are excluded — notifications require cloze sentences. */
+/** Get all due ClozeCard repetition cards across all enabled builtin bundles. */
 function getDueReviewCards(): ClozeCard[] {
   const dueCards: ClozeCard[] = [];
   for (const chapter of getAllEnabledChapters()) {
     for (const card of chapter.cards) {
-      if (card.kind !== 'cloze') continue; // Skip SimpleCards
+      if (card.kind !== 'cloze') continue;
       const state = loadCardState(card.id);
-      // Only repetition cards (have state) where FSRS says due
       if (state !== null && isDue(state)) {
         dueCards.push(card);
       }
@@ -77,7 +78,6 @@ function getDueReviewCards(): ClozeCard[] {
 
 /**
  * Build notification content for a single card.
- * Returns the content object and trigger-independent data.
  */
 function buildNotificationContent(card: ClozeCard): {
   content: Notifications.NotificationContentInput;
@@ -86,7 +86,7 @@ function buildNotificationContent(card: ClozeCard): {
   const cardState = loadCardState(card.id);
   const answerType = getAnswerType(cardState);
 
-  let body = card.sentence; // Cloze sentence
+  let body = `${card.sentence} [${card.germanHint}]`;
   let categoryIdentifier = 'vocabulary-text';
   let choices: string[] | undefined;
   let mcMapping: Record<string, string> | undefined;
@@ -121,26 +121,15 @@ function buildNotificationContent(card: ClozeCard): {
 // Active hours helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Calculate seconds until the active window opens.
- * Returns null if we are currently within the active window.
- */
 function getSecondsUntilWindowOpen(startHour: number, endHour: number): number | null {
   const now = new Date();
   const currentHour = now.getHours();
-
-  // If within window, return null (already open)
   if (currentHour >= startHour && currentHour < endHour) return null;
-
-  // Calculate seconds until startHour
   let hoursUntil = startHour - currentHour;
-  if (hoursUntil <= 0) hoursUntil += 24; // next day
+  if (hoursUntil <= 0) hoursUntil += 24;
   return hoursUntil * 3600 - now.getMinutes() * 60 - now.getSeconds();
 }
 
-/**
- * Check whether a given fire date falls within the active hours window.
- */
 function isWithinActiveHours(fireDate: Date, startHour: number, endHour: number): boolean {
   const hour = fireDate.getHours();
   return hour >= startHour && hour < endHour;
@@ -152,41 +141,29 @@ function isWithinActiveHours(fireDate: Date, startHour: number, endHour: number)
 
 /**
  * Schedule a batch of vocabulary notifications, one per due card, staggered
- * at interval multiples (1×interval, 2×interval, ...).
+ * at interval multiples. Each gets a unique ID so they all fire independently.
  *
- * Respects the user's configured active hours window — notifications will
- * only fire within that window. If currently outside the window, the batch
- * is offset to start when the next window opens.
- *
- * Guards:
- *   - Returns early if app is currently in foreground (active)
- *   - Returns early if no due cards
- *
- * Cancels all existing notifications before scheduling the new batch.
+ * @param force  Skip the "app is active" guard. Used after widget answers to
+ *               re-schedule with the updated due queue while backgrounded.
  */
-export async function scheduleNotificationBatch(): Promise<void> {
-  // Guard: don't schedule while app is in foreground
-  if (AppState.currentState === 'active') {
+export async function scheduleNotificationBatch(force = false): Promise<void> {
+  console.log('[NotificationScheduler] scheduleNotificationBatch called, AppState:', AppState.currentState, 'force:', force);
+  if (!force && AppState.currentState === 'active') {
     console.log('[NotificationScheduler] App is active — not scheduling');
     return;
   }
 
-  // Get due cards
   const dueCards = getDueReviewCards();
+  console.log('[NotificationScheduler] Due cards found:', dueCards.length);
 
-  // Guard: no cards due
   if (dueCards.length === 0) {
     console.log('[NotificationScheduler] No due cards — not scheduling');
     return;
   }
 
-  // Cancel existing notifications first
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Pick up to MAX_BATCH_SIZE cards
   const batchSize = Math.min(dueCards.length, MAX_BATCH_SIZE);
-
-  // Load active hours
   const { startHour, endHour } = loadNotificationActiveHours();
   const secondsUntilOpen = getSecondsUntilWindowOpen(startHour, endHour);
 
@@ -199,52 +176,46 @@ export async function scheduleNotificationBatch(): Promise<void> {
   });
 
   let scheduled = 0;
+  const baseOffset = secondsUntilOpen ?? 0;
 
-  if (secondsUntilOpen !== null) {
-    // Case B: Currently outside active hours — offset batch to next window open
-    for (let i = 0; i < batchSize; i++) {
-      const card = dueCards[i];
-      const { content } = buildNotificationContent(card);
-      const triggerSeconds = secondsUntilOpen + notificationInterval * (i + 1);
+  for (let i = 0; i < batchSize; i++) {
+    const triggerSeconds = baseOffset + notificationInterval * (i + 1);
+    const fireDate = new Date(Date.now() + triggerSeconds * 1000);
 
-      // Verify the fire time still lands within the window
-      const fireDate = new Date(Date.now() + triggerSeconds * 1000);
-      if (!isWithinActiveHours(fireDate, startHour, endHour)) break;
+    if (!isWithinActiveHours(fireDate, startHour, endHour)) break;
 
-      await Notifications.scheduleNotificationAsync({
-        content,
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: triggerSeconds,
-          repeats: false,
-        },
-      });
-      scheduled++;
-    }
-  } else {
-    // Case A: Currently within active hours — schedule only those within window
-    for (let i = 0; i < batchSize; i++) {
-      const triggerSeconds = notificationInterval * (i + 1);
-      const fireDate = new Date(Date.now() + triggerSeconds * 1000);
+    const card = dueCards[i];
+    const { content } = buildNotificationContent(card);
 
-      if (!isWithinActiveHours(fireDate, startHour, endHour)) break;
-
-      const card = dueCards[i];
-      const { content } = buildNotificationContent(card);
-
-      await Notifications.scheduleNotificationAsync({
-        content,
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: triggerSeconds,
-          repeats: false,
-        },
-      });
-      scheduled++;
-    }
+    await Notifications.scheduleNotificationAsync({
+      identifier: `${VOCAB_ID_PREFIX}${i}`,
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: triggerSeconds,
+        repeats: false,
+      },
+    });
+    scheduled++;
   }
 
   console.log('[NotificationScheduler] Batch scheduled:', scheduled, 'notifications');
+}
+
+/**
+ * Dismiss all previously delivered vocab notifications.
+ * Called after the user answers one, so older cards don't pile up.
+ */
+export async function dismissDeliveredVocabNotifications(): Promise<void> {
+  try {
+    const delivered = await Notifications.getPresentedNotificationsAsync();
+    const vocabIds = delivered
+      .filter(n => n.request.identifier.startsWith(VOCAB_ID_PREFIX))
+      .map(n => n.request.identifier);
+    await Promise.allSettled(vocabIds.map(id => Notifications.dismissNotificationAsync(id)));
+  } catch (err) {
+    console.error('[NotificationScheduler] Failed to dismiss delivered notifications:', err);
+  }
 }
 
 /**
@@ -256,30 +227,36 @@ export async function cancelAllNotifications(): Promise<void> {
 }
 
 /**
- * Set notification interval and reschedule batch.
+ * Re-sync the notification queue after a card was answered outside of
+ * notifications (e.g. widget or in-app).
  *
- * @param seconds - Interval in seconds (minimum 1 second)
+ * The notification batch and widget draw from the same due-card pool.
+ * When a card is answered on the widget, its FSRS state changes so it's
+ * no longer due — but the pending notification for it is still scheduled.
+ * This function cancels all pending notifications, dismisses any already
+ * delivered ones, and re-schedules a fresh batch that reflects the new
+ * due queue.
+ */
+export async function rescheduleAfterExternalAnswer(): Promise<void> {
+  await dismissDeliveredVocabNotifications();
+  await scheduleNotificationBatch(true);
+}
+
+/**
+ * Set notification interval and reschedule.
  */
 export async function setNotificationInterval(seconds: number): Promise<void> {
   console.log('[NotificationScheduler] Setting interval to', seconds, 'seconds');
   notificationInterval = Math.max(1, seconds);
   saveNotificationInterval(notificationInterval);
-
-  // Reschedule batch with new interval
   await scheduleNotificationBatch();
 }
 
 /**
  * Initialize the scheduler: load persisted settings.
- * Called from setupNotifications().
  */
 export function initScheduler(): void {
   console.log('[NotificationScheduler] Initializing scheduler');
-
-  // Load persisted interval
   notificationInterval = loadNotificationInterval();
-
-  console.log('[NotificationScheduler] Initialized', {
-    interval: notificationInterval,
-  });
+  console.log('[NotificationScheduler] Initialized', { interval: notificationInterval });
 }

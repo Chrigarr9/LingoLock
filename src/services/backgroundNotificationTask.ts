@@ -1,4 +1,4 @@
-import * as BackgroundFetch from 'expo-background-fetch';
+import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 
 export const BACKGROUND_NOTIFICATION_TASK = 'background-notification-reschedule';
@@ -9,9 +9,9 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async () => {
     const { cancelAllNotifications, scheduleNotificationBatch } = await import('./notificationScheduler');
     await cancelAllNotifications();
     await scheduleNotificationBatch();
-    return BackgroundFetch.BackgroundFetchResult.NewData;
+    return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+    return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
 
@@ -19,10 +19,8 @@ export async function registerBackgroundNotificationTask(): Promise<void> {
   const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
   if (isRegistered) return;
 
-  await BackgroundFetch.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK, {
-    minimumInterval: 15 * 60, // 15 minutes (iOS may adjust)
-    stopOnTerminate: false,
-    startOnBoot: false,
+  await BackgroundTask.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK, {
+    minimumInterval: 15, // minutes (expo-background-task uses minutes, not seconds)
   });
 }
 
@@ -30,5 +28,5 @@ export async function unregisterBackgroundNotificationTask(): Promise<void> {
   const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
   if (!isRegistered) return;
 
-  await BackgroundFetch.unregisterTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+  await BackgroundTask.unregisterTaskAsync(BACKGROUND_NOTIFICATION_TASK);
 }
