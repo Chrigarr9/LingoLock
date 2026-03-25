@@ -1,6 +1,6 @@
-import React, { Component, useCallback, useEffect } from 'react';
+import React, { Component, useCallback, useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { Platform, View, useColorScheme, Text, StyleSheet } from 'react-native';
+import { AppState, Platform, View, useColorScheme, Text, StyleSheet, type AppStateStatus } from 'react-native';
 import { IconButton, PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useDeepLink } from '../src/hooks/useDeepLink';
@@ -15,6 +15,9 @@ import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 import { setupAutomationListener } from '../src/services/automationService';
 import { consumeAutomationSource } from '../modules/expo-app-intents/src';
 import { isKnownApp, openSourceApp } from '../src/utils/deepLinkOpener';
+import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
+import { RestorePrompt } from '../src/components/RestorePrompt';
+import type { BackupMeta } from '../src/services/backupService';
 
 // ---------------------------------------------------------------------------
 // Error boundary — catches render errors and shows a recovery screen
@@ -230,6 +233,47 @@ export default function RootLayout() {
     }
   }, [router]);
 
+  // ---------------------------------------------------------------------------
+  // Keychain backup — restore on fresh install, daily backup on foreground
+  // ---------------------------------------------------------------------------
+  const [backupMeta, setBackupMeta] = useState<BackupMeta | null>(null);
+  const [showRestore, setShowRestore] = useState(false);
+
+  // Check for backup on mount (fresh install detection)
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    if (!shouldPromptRestore()) return;
+
+    checkForBackup().then((meta) => {
+      if (meta) {
+        setBackupMeta(meta);
+        setShowRestore(true);
+      }
+    });
+  }, []);
+
+  // Backup trigger on app foreground
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && shouldBackup()) {
+        createBackup();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handleRestore = useCallback(async () => {
+    await restoreFromBackup();
+    setShowRestore(false);
+  }, []);
+
+  const handleStartFresh = useCallback(() => {
+    dismissRestore();
+    setShowRestore(false);
+  }, []);
+
   useDeepLink(handleDeepLink);
 
   const themedHeaderOptions = {
@@ -309,6 +353,14 @@ export default function RootLayout() {
     <AppErrorBoundary>
       <SafeAreaProvider>
       <PaperProvider theme={theme}>
+        {showRestore && backupMeta && (
+          <RestorePrompt
+            visible={showRestore}
+            meta={backupMeta}
+            onRestore={handleRestore}
+            onStartFresh={handleStartFresh}
+          />
+        )}
         {Platform.OS === 'web' ? (
           <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
             <View style={{ flex: 1, width: '100%', maxWidth: 480 }}>
