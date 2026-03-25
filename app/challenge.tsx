@@ -227,7 +227,6 @@ export default function ChallengeScreen() {
     const currentState = existing ?? createNewCardState(cardId);
     const nextState = scheduleReview(currentState, grade);
     saveCardState(cardId, nextState);
-    updateWidgetData();
   };
 
   // --------------------------------------------------------------------------
