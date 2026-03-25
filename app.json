@@ -7,8 +7,6 @@
     "userInterfaceStyle": "automatic",
     "scheme": "lingolock",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
@@ -25,9 +23,6 @@
         ]
       },
       "infoPlist": {
-        "UIBackgroundModes": [
-          "fetch"
-        ],
         "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals.",
         "LSApplicationQueriesSchemes": [
           "instagram",
@@ -122,7 +117,6 @@
               "supportedFamilies": [
                 "systemSmall",
                 "systemMedium",
-                "systemLarge",
                 "accessoryRectangular"
               ]
             }
@@ -130,10 +124,21 @@
         }
       ],
       "expo-sqlite",
-      "expo-background-fetch",
+      "expo-background-task",
       "expo-task-manager",
-      "./plugins/withWidgetNotificationSync",
-      "./plugins/withAppIntents"
+      "./plugins/withAppIntents",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#1C2E4A"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
