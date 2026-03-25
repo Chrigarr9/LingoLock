@@ -7,8 +7,10 @@ export const BACKGROUND_NOTIFICATION_TASK = 'background-notification-reschedule'
 TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async () => {
   try {
     const { cancelAllNotifications, scheduleNotificationBatch } = await import('./notificationScheduler');
+    const { updateWidgetData } = await import('./widgetService');
     await cancelAllNotifications();
     await scheduleNotificationBatch();
+    updateWidgetData();
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;
