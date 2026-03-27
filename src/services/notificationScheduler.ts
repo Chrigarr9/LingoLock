@@ -1,22 +1,25 @@
 /**
  * Notification Scheduler — queued scheduling for vocabulary reminders
  *
- * Schedules a queue of vocabulary notifications when the app goes to background,
- * each with a unique ID but the same threadIdentifier for grouping.
- * When the user answers any notification, all previously delivered ones are dismissed.
+ * Pre-schedules up to 64 notifications (iOS limit) when the app goes to
+ * background. Cards are assigned to time slots based on their FSRS due date:
+ * currently-due cards fill the earliest slots, future-due cards are placed at
+ * the first slot on or after their due date.
  *
  * Notification flow:
  *   1. App goes to background → scheduleNotificationBatch()
- *   2. Schedule up to MAX_BATCH_SIZE notifications at interval multiples
- *   3. Each fires at its scheduled time
- *   4. User answers one → dismissDeliveredVocabNotifications() cleans up older ones
- *   5. App returns to foreground → cancelAllNotifications()
+ *   2. Scan all reviewed cards, sort by FSRS due date
+ *   3. Generate up to 64 slots at interval multiples, filtered to active hours
+ *   4. Assign one card per slot (earliest-due first)
+ *   5. Each fires at its scheduled time; handleNotification suppresses stale ones
+ *   6. User answers one → dismissDeliveredVocabNotifications() cleans up older ones
+ *   7. App returns to foreground → cancelAllNotifications()
  */
 
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { loadCardState, loadNotificationInterval, saveNotificationInterval, loadNotificationActiveHours } from './storage';
-import { isDue, getAnswerType } from './fsrs';
+import { getAnswerType } from './fsrs';
 import { getAllEnabledChapters } from '../content/bundles';
 import { buildMcChoices } from '../utils/cardChoices';
 import type { NotificationData } from './notificationService';
@@ -26,8 +29,8 @@ import type { ClozeCard } from '../types/vocabulary';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Maximum number of notifications in a single batch */
-const MAX_BATCH_SIZE = 8;
+/** iOS allows up to 64 locally scheduled notifications */
+const MAX_BATCH_SIZE = 64;
 
 /** Prefix for vocab notification identifiers */
 const VOCAB_ID_PREFIX = 'lingolock-vocab-';
@@ -61,19 +64,30 @@ function formatChoicesForBody(choices: string[]): string {
   return choices.map((choice, i) => `${labels[i]}) ${choice}`).join('  ');
 }
 
-/** Get all due ClozeCard repetition cards across all enabled builtin bundles. */
-function getDueReviewCards(): ClozeCard[] {
-  const dueCards: ClozeCard[] = [];
+interface UpcomingCard {
+  card: ClozeCard;
+  dueAt: number; // ms since epoch
+}
+
+/**
+ * Get all reviewed ClozeCards across enabled bundles, with their FSRS due
+ * timestamps. Includes both currently-due and future-due cards so we can
+ * pre-schedule notifications for cards that will become due later.
+ * Sorted by due date ascending (earliest due first).
+ */
+function getUpcomingReviewCards(): UpcomingCard[] {
+  const cards: UpcomingCard[] = [];
   for (const chapter of getAllEnabledChapters()) {
     for (const card of chapter.cards) {
       if (card.kind !== 'cloze') continue;
       const state = loadCardState(card.id);
-      if (state !== null && isDue(state)) {
-        dueCards.push(card);
+      if (state !== null) {
+        cards.push({ card, dueAt: new Date(state.due).getTime() });
       }
     }
   }
-  return dueCards;
+  cards.sort((a, b) => a.dueAt - b.dueAt);
+  return cards;
 }
 
 /**
@@ -140,11 +154,16 @@ function isWithinActiveHours(fireDate: Date, startHour: number, endHour: number)
 // ---------------------------------------------------------------------------
 
 /**
- * Schedule a batch of vocabulary notifications, one per due card, staggered
- * at interval multiples. Each gets a unique ID so they all fire independently.
+ * Schedule up to 64 vocabulary notifications at interval multiples.
  *
- * @param force  Skip the "app is active" guard. Used after widget answers to
- *               re-schedule with the updated due queue while backgrounded.
+ * Generates time slots (now + interval×1, now + interval×2, …) within the
+ * active hours window, then assigns cards sorted by FSRS due date: each card
+ * lands on the first slot at or after its due time. This means currently-due
+ * cards fill the earliest slots, and cards becoming due in the future fire at
+ * the right time without relying on background task wakeups.
+ *
+ * @param force  Skip the "app is active" guard. Used after widget/notification
+ *               answers to re-schedule with the updated due queue.
  */
 export async function scheduleNotificationBatch(force = false): Promise<void> {
   console.log('[NotificationScheduler] scheduleNotificationBatch called, AppState:', AppState.currentState, 'force:', force);
@@ -153,42 +172,63 @@ export async function scheduleNotificationBatch(force = false): Promise<void> {
     return;
   }
 
-  const dueCards = getDueReviewCards();
-  console.log('[NotificationScheduler] Due cards found:', dueCards.length);
+  const upcomingCards = getUpcomingReviewCards();
+  console.log('[NotificationScheduler] Reviewed cards found:', upcomingCards.length);
 
-  if (dueCards.length === 0) {
-    console.log('[NotificationScheduler] No due cards — not scheduling');
+  if (upcomingCards.length === 0) {
+    console.log('[NotificationScheduler] No reviewed cards — not scheduling');
     return;
   }
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  const batchSize = Math.min(dueCards.length, MAX_BATCH_SIZE);
   const { startHour, endHour } = loadNotificationActiveHours();
+  const now = Date.now();
   const secondsUntilOpen = getSecondsUntilWindowOpen(startHour, endHour);
+  const baseOffset = secondsUntilOpen ?? 0;
 
-  console.log('[NotificationScheduler] Scheduling batch', {
-    dueCount: dueCards.length,
-    batchSize,
+  // Generate time slots at interval multiples, filtered to active hours
+  const slots: number[] = []; // ms timestamps
+  for (let i = 0; i < MAX_BATCH_SIZE; i++) {
+    const triggerSeconds = baseOffset + notificationInterval * (i + 1);
+    const fireTime = now + triggerSeconds * 1000;
+    if (!isWithinActiveHours(new Date(fireTime), startHour, endHour)) break;
+    slots.push(fireTime);
+  }
+
+  if (slots.length === 0) {
+    console.log('[NotificationScheduler] No slots within active hours');
+    return;
+  }
+
+  console.log('[NotificationScheduler] Scheduling', {
+    reviewedCards: upcomingCards.length,
+    availableSlots: slots.length,
     interval: notificationInterval,
     activeHours: `${startHour}:00–${endHour}:00`,
     withinWindow: secondsUntilOpen === null,
+    windowEnd: new Date(slots[slots.length - 1]).toLocaleTimeString(),
   });
 
+  // Assign cards to slots: cards are sorted by dueAt ascending.
+  // Walk both arrays forward — each card gets the first slot where slotTime >= dueAt.
+  let cardIdx = 0;
   let scheduled = 0;
-  const baseOffset = secondsUntilOpen ?? 0;
 
-  for (let i = 0; i < batchSize; i++) {
-    const triggerSeconds = baseOffset + notificationInterval * (i + 1);
-    const fireDate = new Date(Date.now() + triggerSeconds * 1000);
+  for (let slotIdx = 0; slotIdx < slots.length && cardIdx < upcomingCards.length; slotIdx++) {
+    const slotTime = slots[slotIdx];
 
-    if (!isWithinActiveHours(fireDate, startHour, endHour)) break;
+    // Current card isn't due yet at this slot — skip slot, try the next one
+    if (upcomingCards[cardIdx].dueAt > slotTime) {
+      continue;
+    }
 
-    const card = dueCards[i];
+    const { card } = upcomingCards[cardIdx];
     const { content } = buildNotificationContent(card);
+    const triggerSeconds = Math.max(1, Math.round((slotTime - now) / 1000));
 
     await Notifications.scheduleNotificationAsync({
-      identifier: `${VOCAB_ID_PREFIX}${i}`,
+      identifier: `${VOCAB_ID_PREFIX}${slotIdx}`,
       content,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -196,10 +236,14 @@ export async function scheduleNotificationBatch(force = false): Promise<void> {
         repeats: false,
       },
     });
+
+    cardIdx++;
     scheduled++;
   }
 
-  console.log('[NotificationScheduler] Batch scheduled:', scheduled, 'notifications');
+  const beyond = upcomingCards.length - cardIdx;
+  console.log('[NotificationScheduler] Batch scheduled:', scheduled, 'notifications' +
+    (beyond > 0 ? ` (${beyond} cards due beyond window)` : ''));
 }
 
 /**
