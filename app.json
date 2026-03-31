@@ -20,7 +20,8 @@
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.lingolock.app"
-        ]
+        ],
+        "com.apple.developer.family-controls": true
       },
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "LingoLock uses notifications to remind you to practice vocabulary at regular intervals.",
@@ -138,7 +139,11 @@
             "backgroundColor": "#1C2E4A"
           }
         }
-      ]
+      ],
+      ["react-native-device-activity", {
+        "appleTeamId": "XYZTEAMID",
+        "appGroup": "group.com.lingolock.app"
+      }]
     ],
     "experiments": {
       "typedRoutes": true
@@ -157,6 +162,30 @@
                     "com.apple.security.application-groups": [
                       "group.com.lingolock.app"
                     ]
+                  }
+                },
+                {
+                  "targetName": "ActivityMonitorExtension",
+                  "bundleIdentifier": "com.lingolock.app.ActivityMonitorExtension",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": ["group.com.lingolock.app"]
+                  }
+                },
+                {
+                  "targetName": "ShieldConfiguration",
+                  "bundleIdentifier": "com.lingolock.app.ShieldConfiguration",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": ["group.com.lingolock.app"]
+                  }
+                },
+                {
+                  "targetName": "ShieldAction",
+                  "bundleIdentifier": "com.lingolock.app.ShieldAction",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": ["group.com.lingolock.app"]
                   }
                 }
               ]
