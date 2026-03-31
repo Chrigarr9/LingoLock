@@ -19,9 +19,19 @@ import {
   loadActiveBundle,
   loadEnabledBundles,
   saveEnabledBundles,
-  loadAutomationCardThreshold,
-  saveAutomationCardThreshold,
+  loadScreenTimeEnabled,
+  saveScreenTimeEnabled,
+  loadUnlockCount,
 } from '../src/services/storage';
+import {
+  isScreenTimeAvailable,
+  getScreenTimeAuthStatus,
+  requestScreenTimeAuth,
+  configureShield,
+  blockApps,
+  disableBlocking,
+  getSelectionId,
+} from '../src/services/screenTimeService';
 import {
   setNotificationInterval,
   scheduleNotificationBatch,
@@ -113,7 +123,14 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadNotificationsEnabled());
   const [notificationInterval, setNotificationIntervalState] = useState(() => loadNotificationInterval());
   const [activeHours, setActiveHours] = useState(() => loadNotificationActiveHours());
-  const [automationThreshold, setAutomationThreshold] = useState(() => loadAutomationCardThreshold());
+
+  // Screen Time state
+  const screenTimeAvailable = isScreenTimeAvailable();
+  const [screenTimeEnabled, setScreenTimeEnabled] = useState(() => loadScreenTimeEnabled());
+  const [screenTimeAuthorized, setScreenTimeAuthorized] = useState(
+    () => screenTimeAvailable && getScreenTimeAuthStatus() === 2,
+  );
+  const [showAppPicker, setShowAppPicker] = useState(false);
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -176,16 +193,33 @@ export default function SettingsScreen() {
     await scheduleNotificationBatch();
   }
 
-  function handleThresholdDecrement() {
-    const next = Math.max(1, automationThreshold - 1);
-    setAutomationThreshold(next);
-    saveAutomationCardThreshold(next);
+  async function handleScreenTimeToggle(value: boolean) {
+    if (value) {
+      if (!screenTimeAuthorized) {
+        try {
+          await requestScreenTimeAuth();
+          setScreenTimeAuthorized(true);
+        } catch {
+          return; // user denied authorization
+        }
+      }
+      configureShield();
+      blockApps();
+      setScreenTimeEnabled(true);
+      saveScreenTimeEnabled(true);
+    } else {
+      disableBlocking();
+      setScreenTimeEnabled(false);
+      saveScreenTimeEnabled(false);
+    }
   }
 
-  function handleThresholdIncrement() {
-    const next = Math.min(10, automationThreshold + 1);
-    setAutomationThreshold(next);
-    saveAutomationCardThreshold(next);
+  function handleAppSelectionChange() {
+    // Selection is auto-persisted by DeviceActivitySelectionViewPersisted
+    // Re-apply blocks with the updated selection if blocking is enabled
+    if (screenTimeEnabled) {
+      blockApps();
+    }
   }
 
   const glassStyle = getGlassStyle(theme);
@@ -316,55 +350,91 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* ── Automation Settings (native only) ── */}
-        {Platform.OS !== 'web' && (
+        {/* ── App Blocking (iOS with Screen Time) ── */}
+        {screenTimeAvailable && (
           <View style={[styles.card, glassStyle]}>
             <Text
               variant="titleSmall"
               style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
             >
-              App Automation
+              App Blocking
             </Text>
 
             <View style={styles.settingRow}>
               <View style={styles.settingLabelGroup}>
                 <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                  Cards Before App
+                  Block Distracting Apps
                 </Text>
                 <Text
                   variant="bodySmall"
                   style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  Correct answers needed before you can continue to the app
+                  Complete vocabulary cards to unlock apps for 10 minutes
                 </Text>
               </View>
-              <View style={styles.stepper}>
-                <IconButton
-                  icon="minus"
-                  size={20}
-                  iconColor={theme.custom.brandBlue}
-                  onPress={handleThresholdDecrement}
-                  disabled={automationThreshold <= 1}
-                  style={styles.stepperButton}
-                />
-                <Text
-                  variant="titleMedium"
-                  style={[styles.stepperValue, { color: theme.colors.onSurface }]}
-                >
-                  {automationThreshold}
-                </Text>
-                <IconButton
-                  icon="plus"
-                  size={20}
-                  iconColor={theme.custom.brandBlue}
-                  onPress={handleThresholdIncrement}
-                  disabled={automationThreshold >= 10}
-                  style={styles.stepperButton}
-                />
-              </View>
+              <Switch
+                value={screenTimeEnabled}
+                onValueChange={handleScreenTimeToggle}
+                color={theme.custom.brandBlue}
+              />
             </View>
+
+            {screenTimeEnabled && (
+              <>
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <Pressable
+                  onPress={() => setShowAppPicker(true)}
+                  style={styles.settingRow}
+                >
+                  <View style={styles.settingLabelGroup}>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                      Blocked Apps
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      Choose which apps require vocabulary practice
+                    </Text>
+                  </View>
+                  <IconButton
+                    icon="chevron-right"
+                    size={20}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                </Pressable>
+
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <View style={styles.settingRow}>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Unlock duration: 10 minutes
+                  </Text>
+                </View>
+
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <View style={styles.settingRow}>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Today: {loadUnlockCount()} unlocks
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         )}
+
+        {/* App Picker Sheet */}
+        {showAppPicker && (() => {
+          const { DeviceActivitySelectionSheetViewPersisted } = require('react-native-device-activity');
+          return (
+            <DeviceActivitySelectionSheetViewPersisted
+              familyActivitySelectionId={getSelectionId()}
+              headerText="Select apps to block"
+              footerText="You'll need to complete vocabulary cards before using these apps."
+              onSelectionChange={handleAppSelectionChange}
+              onDismissRequest={() => setShowAppPicker(false)}
+            />
+          );
+        })()}
 
         {/* ── Notification Settings (native only) ── */}
         {Platform.OS !== 'web' && (
