@@ -10,7 +10,7 @@ interface ProgressDotsProps {
 
 export function ProgressDots({ total, current }: ProgressDotsProps) {
   const theme = useAppTheme();
-  const progress = total > 0 ? current / total : 0;
+  const progress = total > 0 ? Math.min(current / total, 1) : 0;
 
   return (
     <View style={styles.container}>

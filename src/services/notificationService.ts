@@ -88,36 +88,8 @@ export async function registerNotificationCategories(): Promise<void> {
     },
   ]);
 
-  await Notifications.setNotificationCategoryAsync('vocabulary-mc', [
-    {
-      identifier: 'answer-a',
-      buttonTitle: 'A',
-      options: {
-        opensAppToForeground: false,
-      },
-    },
-    {
-      identifier: 'answer-b',
-      buttonTitle: 'B',
-      options: {
-        opensAppToForeground: false,
-      },
-    },
-    {
-      identifier: 'answer-c',
-      buttonTitle: 'C',
-      options: {
-        opensAppToForeground: false,
-      },
-    },
-    {
-      identifier: 'answer-d',
-      buttonTitle: 'D',
-      options: {
-        opensAppToForeground: false,
-      },
-    },
-  ]);
+  // MC categories are registered dynamically per notification slot
+  // in notificationScheduler.ts with actual word choices as button titles.
 }
 
 /**
@@ -190,6 +162,7 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   }
 
   let isCorrect = false;
+  let isFuzzy = false;
   let userAnswer = '';
 
   // Handle MC button answer
@@ -203,8 +176,10 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   // Handle text answer
   else if (actionIdentifier === 'answer-text' && userText) {
     userAnswer = userText;
-    isCorrect = validateAnswer(userText, data.correctAnswer);
-    console.log('[Notifications] Text answer:', { userText, correctAnswer: data.correctAnswer, isCorrect });
+    const textResult = validateAnswer(userText, data.correctAnswer);
+    isCorrect = textResult.correct;
+    isFuzzy = textResult.correct ? textResult.fuzzy : false;
+    console.log('[Notifications] Text answer:', { userText, correctAnswer: data.correctAnswer, isCorrect, isFuzzy });
   }
   // Handle default action (tapped notification body to open app → navigate to challenge)
   else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
@@ -225,7 +200,8 @@ async function processNotificationAnswer(response: Notifications.NotificationRes
   // Update FSRS state
   const existingState = loadCardState(card.id);
   const cardState = existingState ?? createNewCardState(card.id);
-  const updatedState = scheduleReview(cardState, isCorrect ? 'good' : 'again');
+  const grade = isCorrect ? (isFuzzy ? 'hard' : 'good') : 'again';
+  const updatedState = scheduleReview(cardState, grade);
   saveCardState(card.id, updatedState);
 
   // Update stats (1 card session from 'notification' source)

@@ -13,7 +13,7 @@
  */
 
 import { loadStats, saveStats, loadCardState, loadNewWordsPerDay, loadNewWordsIntroducedToday, loadEnabledBundles } from './storage';
-import { isCardMastered, isDue } from './fsrs';
+import { isCardMastered, isDue, getCardProgressLevel, PROGRESS_LEVELS } from './fsrs';
 import { getTodayString, getYesterdayString } from '../utils/dateHelpers';
 import type { ChapterData } from '../types/vocabulary';
 import type { SimpleCard } from '../types/simpleCard';
@@ -196,6 +196,29 @@ export function getChapterMastery(chapters: ChapterData[], chapterNumber: number
   }, 0);
 
   return Math.round((masteredCount / cards.length) * 100);
+}
+
+// ---------------------------------------------------------------------------
+// getChapterProgress — granular progress based on FSRS stability levels
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns granular progress percentage for a chapter (0-100, integer).
+ *
+ * Each card has a progress level from 0 (new) to PROGRESS_LEVELS (mastered).
+ * Progress = sum of all card levels / (total cards × PROGRESS_LEVELS) × 100.
+ * This shows incremental progress — even a single review moves the bar.
+ */
+export function getChapterProgress(chapters: ChapterData[], chapterNumber: number): number {
+  const cards = chapters.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
+  if (cards.length === 0) return 0;
+
+  const totalLevel = cards.reduce((sum, card) => {
+    const state = loadCardState(card.id);
+    return sum + getCardProgressLevel(state);
+  }, 0);
+
+  return Math.round((totalLevel / (cards.length * PROGRESS_LEVELS)) * 100);
 }
 
 // ---------------------------------------------------------------------------

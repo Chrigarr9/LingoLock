@@ -4,6 +4,9 @@ dist/
 web-build/
 .expo-shared/
 
+# Superpowers brainstorm
+.superpowers/
+
 # Prebuild generated native directories
 ios/
 android/

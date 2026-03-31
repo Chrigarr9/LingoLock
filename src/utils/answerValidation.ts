@@ -64,23 +64,28 @@ function editDistance(a: string, b: string): number {
  * validateAnswer('pregumta', 'pregunta') // true (1 typo in 8 chars)
  * validateAnswer('goodbye', 'hello') // false (wrong answer)
  */
-export function validateAnswer(userInput: string, correctAnswer: string): boolean {
+export type AnswerResult = { correct: false } | { correct: true; fuzzy: boolean };
+
+export function validateAnswer(userInput: string, correctAnswer: string): AnswerResult {
   const normalizedInput = normalize(userInput);
   const normalizedCorrect = normalize(correctAnswer);
 
   // Fast path: exact match after normalization
   if (normalizedInput === normalizedCorrect) {
-    return true;
+    return { correct: true, fuzzy: false };
   }
 
   // Fuzzy match: allow edit distance up to 20% of the longer string
   const maxLen = Math.max(normalizedInput.length, normalizedCorrect.length);
-  if (maxLen === 0) return true;
+  if (maxLen === 0) return { correct: true, fuzzy: false };
 
   const maxDistance = Math.floor(maxLen * 0.2);
-  if (maxDistance === 0) return false; // Very short words: require exact match
+  if (maxDistance === 0) return { correct: false }; // Very short words: require exact match
 
-  return editDistance(normalizedInput, normalizedCorrect) <= maxDistance;
+  if (editDistance(normalizedInput, normalizedCorrect) <= maxDistance) {
+    return { correct: true, fuzzy: true };
+  }
+  return { correct: false };
 }
 
 /**

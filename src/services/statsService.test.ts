@@ -26,6 +26,8 @@ jest.mock('./storage', () => ({
 jest.mock('./fsrs', () => ({
   isCardMastered: jest.fn(),
   isDue: jest.fn(),
+  getCardProgressLevel: jest.fn(),
+  PROGRESS_LEVELS: 5,
 }));
 
 jest.mock('./cardSelector', () => ({
@@ -61,12 +63,13 @@ import {
   getStreak,
   getSuccessRate,
   getChapterMastery,
+  getChapterProgress,
   getCardsDueCount,
   getCurrentChapterNumber,
   checkAndAdvanceStreak,
 } from './statsService';
 import { loadStats, saveStats, loadCardState, loadEnabledBundles } from './storage';
-import { isCardMastered, isDue } from './fsrs';
+import { isCardMastered, isDue, getCardProgressLevel } from './fsrs';
 import { getBundle, isImportedBundle } from '../content/bundles';
 import type { ChapterData } from '../types/vocabulary';
 
@@ -80,6 +83,7 @@ const mockSaveStats = saveStats as jest.MockedFunction<typeof saveStats>;
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
+const mockGetCardProgressLevel = getCardProgressLevel as jest.MockedFunction<typeof getCardProgressLevel>;
 const mockLoadEnabledBundles = loadEnabledBundles as jest.MockedFunction<typeof loadEnabledBundles>;
 const mockGetBundle = getBundle as jest.MockedFunction<typeof getBundle>;
 const mockIsImportedBundle = isImportedBundle as jest.MockedFunction<typeof isImportedBundle>;
@@ -434,6 +438,36 @@ describe('getChapterMastery', () => {
     mockIsCardMastered.mockReturnValue(true);
 
     expect(getChapterMastery(CHAPTERS, 1)).toBe(100);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getChapterProgress tests
+// ---------------------------------------------------------------------------
+
+describe('getChapterProgress', () => {
+  test('all cards at max level returns 100', () => {
+    mockLoadCardState.mockImplementation((id) => makeCardState(id));
+    mockGetCardProgressLevel.mockReturnValue(5); // max level
+
+    expect(getChapterProgress(CHAPTERS, 1)).toBe(100);
+  });
+
+  test('all cards new (level 0) returns 0', () => {
+    mockLoadCardState.mockReturnValue(null);
+    mockGetCardProgressLevel.mockReturnValue(0);
+
+    expect(getChapterProgress(CHAPTERS, 1)).toBe(0);
+  });
+
+  test('mixed levels returns weighted average', () => {
+    // 5 cards: levels 0, 1, 2, 3, 5 → sum=11, max=25 → 44%
+    const levels = [0, 1, 2, 3, 5];
+    let callIdx = 0;
+    mockLoadCardState.mockImplementation((id) => makeCardState(id));
+    mockGetCardProgressLevel.mockImplementation(() => levels[callIdx++] ?? 0);
+
+    expect(getChapterProgress(CHAPTERS, 1)).toBe(44);
   });
 });
 

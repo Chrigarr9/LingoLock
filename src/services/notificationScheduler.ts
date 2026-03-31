@@ -58,11 +58,6 @@ function buildMcMapping(choices: string[]): Record<string, string> {
   return mapping;
 }
 
-/** Format MC choices for notification body */
-function formatChoicesForBody(choices: string[]): string {
-  const labels = ['A', 'B', 'C', 'D'];
-  return choices.map((choice, i) => `${labels[i]}) ${choice}`).join('  ');
-}
 
 interface UpcomingCard {
   card: ClozeCard;
@@ -93,30 +88,61 @@ function getUpcomingReviewCards(): UpcomingCard[] {
 /**
  * Build notification content for a single card.
  */
-function buildNotificationContent(card: ClozeCard): {
-  content: Notifications.NotificationContentInput;
-  categoryIdentifier: string;
-} {
+/**
+ * Register a dynamic MC category for a specific notification slot.
+ * Each MC notification gets its own category with the actual word choices
+ * as button titles (instead of generic A/B/C/D).
+ */
+async function registerMcCategoryForSlot(
+  slotIdx: number,
+  choices: string[],
+): Promise<string> {
+  const categoryId = `vocabulary-mc-${slotIdx}`;
+  const actionIds = ['answer-a', 'answer-b', 'answer-c', 'answer-d'];
+  await Notifications.setNotificationCategoryAsync(
+    categoryId,
+    choices.map((choice, i) => ({
+      identifier: actionIds[i],
+      buttonTitle: choice,
+      options: { opensAppToForeground: false },
+    })),
+  );
+  return categoryId;
+}
+
+/**
+ * Build notification content for a single card.
+ * For MC cards, registers a per-slot category with word choices as button titles.
+ */
+async function buildNotificationContent(
+  card: ClozeCard,
+  slotIdx: number,
+): Promise<{ content: Notifications.NotificationContentInput }> {
   const cardState = loadCardState(card.id);
-  const answerType = getAnswerType(cardState);
+  const rawAnswerType = getAnswerType(cardState);
 
   let body = `${card.sentence} [${card.germanHint}]`;
   let categoryIdentifier = 'vocabulary-text';
   let choices: string[] | undefined;
   let mcMapping: Record<string, string> | undefined;
+  // For notification data, scramble falls back to text (user types answer)
+  const notifAnswerType: 'text' | 'mc4' = rawAnswerType === 'mc4' ? 'mc4' : 'text';
 
-  if (answerType === 'mc4') {
-    categoryIdentifier = 'vocabulary-mc';
+  if (rawAnswerType === 'mc4') {
     choices = buildMcChoices(card);
     mcMapping = buildMcMapping(choices);
-    body += '\n\n' + formatChoicesForBody(choices);
+    categoryIdentifier = await registerMcCategoryForSlot(slotIdx, choices);
+  } else if (rawAnswerType === 'scramble') {
+    // Text input with scrambled letters as hint
+    const scrambled = card.wordInContext.split('').sort(() => Math.random() - 0.5).join(' ');
+    body += `\n\nLetters: ${scrambled}`;
   }
 
   const data: NotificationData = {
     cardId: card.id,
     correctAnswer: card.wordInContext,
     choices,
-    answerType,
+    answerType: notifAnswerType,
     mcMapping,
   };
 
@@ -127,7 +153,6 @@ function buildNotificationContent(card: ClozeCard): {
       data: data as unknown as Record<string, unknown>,
       categoryIdentifier,
     },
-    categoryIdentifier,
   };
 }
 
@@ -224,7 +249,7 @@ export async function scheduleNotificationBatch(force = false): Promise<void> {
     }
 
     const { card } = upcomingCards[cardIdx];
-    const { content } = buildNotificationContent(card);
+    const { content } = await buildNotificationContent(card, slotIdx);
     const triggerSeconds = Math.max(1, Math.round((slotTime - now) / 1000));
 
     await Notifications.scheduleNotificationAsync({

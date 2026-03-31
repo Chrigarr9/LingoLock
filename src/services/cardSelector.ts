@@ -127,6 +127,10 @@ function toSessionCard(
     };
   }
 
+  if (answerType === 'scramble') {
+    return { card: activeCard, answerType, isFirstEncounter };
+  }
+
   return {
     card: activeCard,
     answerType,

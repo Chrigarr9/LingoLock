@@ -286,7 +286,7 @@ export default function RootLayout() {
   const content = (
     <ActiveBundleProvider>
     <Stack screenOptions={themedHeaderOptions}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="index" options={{ headerShown: false, headerBackTitle: '' }} />
       <Stack.Screen
         name="challenge"
         options={{
@@ -335,11 +335,33 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="vocabulary"
-        options={{ title: 'Vocabulary' }}
+        options={{
+          title: 'Vocabulary',
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              size={22}
+              iconColor={theme.colors.onSurface}
+              onPress={() => router.back()}
+              accessibilityLabel="Back"
+            />
+          ),
+        }}
       />
       <Stack.Screen
         name="stats"
-        options={{ title: 'Progress' }}
+        options={{
+          title: 'Progress',
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              size={22}
+              iconColor={theme.colors.onSurface}
+              onPress={() => router.back()}
+              accessibilityLabel="Back"
+            />
+          ),
+        }}
       />
       <Stack.Screen
         name="vocabulary/[id]"

@@ -4,10 +4,10 @@ import { Text, ProgressBar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getCardStyle, labelOverlineStyle } from '../src/theme';
-import { getStreak, getSuccessRate, getChapterMastery } from '../src/services/statsService';
+import { getStreak, getSuccessRate, getChapterProgress } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { loadCardState } from '../src/services/storage';
-import { isCardMastered, isDue } from '../src/services/fsrs';
+import { isCardMastered, isDue, getCardProgressLevel, PROGRESS_LEVELS } from '../src/services/fsrs';
 import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
 
 export default function StatsScreen() {
@@ -19,21 +19,25 @@ export default function StatsScreen() {
   // ---------------------------------------------------------------------------
   // Compute all stats in a single pass over all card states
   // ---------------------------------------------------------------------------
-  const { successRate, streak, totalCards, totalMastered, chapterStats } = useMemo(() => {
-    // Load all card states once — single pass for both totalMastered and chapterStats
+  const { successRate, streak, totalCards, overallProgress, chapterStats } = useMemo(() => {
+    // Load all card states once — single pass for progress and chapterStats
+    let totalLevels = 0;
+    let totalCardCount = 0;
     const chapterList = chapters.map((ch) => {
       let mastered = 0;
       let dueCount = 0;
       for (const card of ch.cards) {
         const state = loadCardState(card.id);
+        totalLevels += getCardProgressLevel(state);
         if (state !== null) {
           if (isCardMastered(state)) mastered++;
           if (isDue(state)) dueCount++;
         }
       }
+      totalCardCount += ch.cards.length;
       return {
         chapterNumber: ch.chapterNumber,
-        mastery: getChapterMastery(chapters, ch.chapterNumber),
+        progress: getChapterProgress(chapters, ch.chapterNumber),
         total: ch.cards.length,
         mastered,
         dueCount,
@@ -43,8 +47,10 @@ export default function StatsScreen() {
     return {
       successRate: getSuccessRate(),
       streak: getStreak(),
-      totalCards: chapters.flatMap(ch => ch.cards).length,
-      totalMastered: chapterList.reduce((sum, ch) => sum + ch.mastered, 0),
+      totalCards: totalCardCount,
+      overallProgress: totalCardCount > 0
+        ? Math.round((totalLevels / (totalCardCount * PROGRESS_LEVELS)) * 100)
+        : 0,
       chapterStats: chapterList,
     };
   }, [focusKey, chapters]);
@@ -103,19 +109,19 @@ export default function StatsScreen() {
               </Text>
             </View>
 
-            {/* Mastered */}
+            {/* Overall Progress */}
             <View style={styles.summaryItem}>
               <Text
                 variant="headlineLarge"
                 style={[styles.summaryHero, { color: theme.custom.success }]}
               >
-                {totalMastered}
+                {overallProgress}%
               </Text>
               <Text
                 variant="labelSmall"
                 style={[styles.summaryItemLabel, { color: theme.colors.onSurfaceVariant }]}
               >
-                MASTERED
+                PROGRESS
               </Text>
             </View>
 
@@ -155,7 +161,7 @@ export default function StatsScreen() {
               })
             }
             style={[styles.chapterCard, cardStyle]}
-            accessibilityLabel={`Chapter ${ch.chapterNumber}, ${ch.mastery}% mastered. Tap to view vocabulary.`}
+            accessibilityLabel={`Chapter ${ch.chapterNumber}, ${ch.progress}% progress. Tap to view vocabulary.`}
             accessibilityRole="button"
           >
             {/* Row: title + mastery % */}
@@ -170,13 +176,13 @@ export default function StatsScreen() {
                 variant="labelMedium"
                 style={[styles.masteryPercent, { color: theme.custom.brandBlue }]}
               >
-                {ch.mastery}%
+                {ch.progress}%
               </Text>
             </View>
 
             {/* Progress bar */}
             <ProgressBar
-              progress={ch.mastery / 100}
+              progress={ch.progress / 100}
               color={theme.custom.brandBlue}
               style={styles.progressBar}
             />

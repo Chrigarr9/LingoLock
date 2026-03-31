@@ -7,6 +7,7 @@ import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../src/theme';
 import { ClozeCardDisplay } from '../src/components/ClozeCard';
 import { AnswerReveal } from '../src/components/AnswerReveal';
 import { AnswerInput } from '../src/components/AnswerInput';
+import { LetterScramble } from '../src/components/LetterScramble';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
 import { ContinueButton } from '../src/components/ContinueButton';
 import { isKnownApp, openSourceApp } from '../src/utils/deepLinkOpener';
@@ -80,6 +81,7 @@ export default function ChallengeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isFuzzy, setIsFuzzy] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function ChallengeScreen() {
   const [isEmpty, setIsEmpty] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
   const [hasMoreCards, setHasMoreCards] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
   const keyboard = useKeyboard();
 
   // --------------------------------------------------------------------------
@@ -138,6 +141,7 @@ export default function ChallengeScreen() {
   const currentCard: SessionCard | undefined = queue[currentIndex];
   const answerType = currentCard?.answerType ?? 'mc4';
   const isMC = answerType === 'mc4';
+  const isScramble = answerType === 'scramble';
   const isSelfRated = answerType === 'selfRated';
 
   const toggleMute = () => {
@@ -179,6 +183,7 @@ export default function ChallengeScreen() {
       if (nextIndex < totalCardCount.current) {
         setShowAnswer(false);
         setIsCorrect(null);
+        setIsFuzzy(false);
         setAnsweredChoice(null);
         setUserAnswer(null);
         setShowReveal(false);
@@ -204,17 +209,16 @@ export default function ChallengeScreen() {
   }, [advanceToNext]);
 
   const handleAudioFinish = useCallback(() => {
-    // Only auto-advance on correct answers when audio finishes.
-    // Wrong answers always require manual "Next" tap.
-    // Read isCorrect from the ref-based approach: since this is called from
-    // ClozeCard's audio finish, we check the current state via a functional pattern.
-    // The ClozeCard only fires onAudioFinish after showAnswer=true, so isCorrect
-    // is already set by the time this fires.
-    setIsCorrect((current) => {
-      if (current === true) {
-        advanceToNext();
+    // Only auto-advance on correct, non-fuzzy answers when audio finishes.
+    // Wrong and fuzzy answers always require manual "Next" tap.
+    setIsCorrect((currentCorrect) => {
+      if (currentCorrect === true) {
+        setIsFuzzy((currentFuzzy) => {
+          if (!currentFuzzy) advanceToNext();
+          return currentFuzzy;
+        });
       }
-      return current;
+      return currentCorrect;
     });
   }, [advanceToNext]);
 
@@ -232,7 +236,7 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   // Answer handlers
   // --------------------------------------------------------------------------
-  const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade) => {
+  const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade, fuzzy = false) => {
     updateCardFSRS(sessionCard, grade);
     if (sessionCard.isFirstEncounter) answeredNewCardIds.current.add(sessionCard.card.id);
     setIsCorrect(true);
@@ -243,9 +247,12 @@ export default function ChallengeScreen() {
       correctCountRef.current = next;
       return next;
     });
-    const hasAudio = !!sessionCard.card.audio && !isMuted;
-    if (!hasAudio) {
-      scheduleAdvance();
+    // Don't auto-advance on fuzzy matches — user should see the typo feedback
+    if (!fuzzy) {
+      const hasAudio = !!sessionCard.card.audio && !isMuted;
+      if (!hasAudio) {
+        scheduleAdvance();
+      }
     }
   };
 
@@ -271,10 +278,11 @@ export default function ChallengeScreen() {
   const handleTextSubmit = (typedAnswer: string) => {
     if (!currentCard || currentCard.card.kind !== 'cloze') return;
     setUserAnswer(typedAnswer);
-    const correct = validateAnswer(typedAnswer, currentCard.card.wordInContext);
-    if (correct) {
-      // Hint used → Hard (shorter interval), otherwise Good
-      handleCorrect(currentCard, hintUsed ? 'hard' : 'good');
+    const result = validateAnswer(typedAnswer, currentCard.card.wordInContext);
+    if (result.correct) {
+      setIsFuzzy(result.fuzzy);
+      // Fuzzy match (typo) or hint used → Hard (shorter interval), otherwise Good
+      handleCorrect(currentCard, result.fuzzy || hintUsed ? 'hard' : 'good', result.fuzzy);
     } else {
       handleIncorrect(currentCard);
     }
@@ -319,6 +327,7 @@ export default function ChallengeScreen() {
     setCurrentIndex(0);
     setShowAnswer(false);
     setIsCorrect(null);
+    setIsFuzzy(false);
     setAnsweredChoice(null);
     setUserAnswer(null);
     setShowReveal(false);
@@ -367,7 +376,7 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   // Celebration data (computed when complete)
   // --------------------------------------------------------------------------
-  const accuracyPercent = Math.round((correctCount / (originalCardCount.current || 1)) * 100);
+  const accuracyPercent = Math.min(100, Math.round((correctCount / (totalCardCount.current || 1)) * 100));
   const streakCount = isComplete && !isEmpty ? getStreak() : 0;
   const motivationalMessage = getMotivationalMessage(accuracyPercent);
 
@@ -445,7 +454,10 @@ export default function ChallengeScreen() {
       <View
         style={[styles.keyboardAvoid, Platform.OS === 'ios' && keyboard.height > 0 && { paddingBottom: keyboard.height }]}
       >
-        <View style={[styles.contentScroll, styles.content, keyboard.height > 0 && styles.contentKeyboardUp]}>
+        <View
+          style={[styles.contentScroll, styles.content, keyboard.height > 0 && styles.contentKeyboardUp]}
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        >
 
         {!isComplete && currentCard && (
           <>
@@ -462,6 +474,7 @@ export default function ChallengeScreen() {
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                   userAnswer={userAnswer ?? undefined}
+                  contentHeight={contentHeight}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -484,9 +497,9 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {!isMC && !isSelfRated && (
-              /* Text input mode */
-              <View style={styles.textArea}>
+            {isScramble && (
+              /* Letter scramble mode */
+              <View style={styles.mcArea}>
                 <ClozeCardDisplay
                   key={currentCard.card.id}
                   sessionCard={currentCard}
@@ -495,11 +508,44 @@ export default function ChallengeScreen() {
                   isMuted={isMuted}
                   playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
+                  onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
+                  userAnswer={userAnswer ?? undefined}
+                  contentHeight={contentHeight}
+                />
+
+                {/* Answer reveal — shown after answering */}
+                <AnswerReveal
+                  sessionCard={currentCard}
+                  visible={showReveal}
+                />
+
+                {!showAnswer && currentCard.card.kind === 'cloze' && (
+                  <LetterScramble
+                    word={currentCard.card.wordInContext}
+                    onSubmit={handleTextSubmit}
+                  />
+                )}
+              </View>
+            )}
+
+            {!isMC && !isScramble && !isSelfRated && (
+              /* Text input mode */
+              <View style={styles.textArea}>
+                <ClozeCardDisplay
+                  key={currentCard.card.id}
+                  sessionCard={currentCard}
+                  showAnswer={showAnswer}
+                  isCorrect={isCorrect ?? undefined}
+                  isFuzzy={isFuzzy}
+                  isMuted={isMuted}
+                  playbackSpeed={audioSpeed}
+                  onAudioFinish={handleAudioFinish}
                   hintText={currentHintText}
                   hintUsed={hintUsed}
                   onHintRequest={handleHintRequest}
                   keyboardHeight={keyboard.height}
                   userAnswer={userAnswer ?? undefined}
+                  contentHeight={contentHeight}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -580,7 +626,7 @@ export default function ChallengeScreen() {
                   variant="bodyMedium"
                   style={[styles.accuracySubtitle, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  {correctCount}/{originalCardCount.current} correct answers
+                  {correctCount}/{totalCardCount.current} correct answers
                 </Text>
                 <Text
                   variant="bodyLarge"
@@ -680,7 +726,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingBottom: 32,
   },

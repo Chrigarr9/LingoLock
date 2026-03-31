@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image, Pressable, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { View, StyleSheet, Platform, Image, Pressable, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
@@ -10,6 +10,8 @@ interface ClozeCardDisplayProps {
   sessionCard: SessionCard;
   showAnswer: boolean;
   isCorrect?: boolean;
+  /** Answer was accepted via fuzzy matching (typo tolerated) */
+  isFuzzy?: boolean;
   /** Whether audio is muted (user preference from header toggle) */
   isMuted: boolean;
   /** Playback speed multiplier (0.75, 1.0, 1.25) — defaults to 1.0 */
@@ -28,6 +30,8 @@ interface ClozeCardDisplayProps {
   keyboardHeight?: number;
   /** The answer the user actually gave (shown in feedback when incorrect) */
   userAnswer?: string;
+  /** Measured height of the content area — used to size image so card never overflows */
+  contentHeight?: number;
 }
 
 /**
@@ -41,6 +45,7 @@ export function ClozeCardDisplay({
   sessionCard,
   showAnswer,
   isCorrect,
+  isFuzzy,
   isMuted,
   playbackSpeed = 1.0,
   onAudioFinish,
@@ -50,6 +55,7 @@ export function ClozeCardDisplay({
   onAlreadyKnow,
   keyboardHeight = 0,
   userAnswer,
+  contentHeight = 0,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
@@ -61,19 +67,19 @@ export function ClozeCardDisplay({
   const onAudioFinishRef = useRef(onAudioFinish);
   onAudioFinishRef.current = onAudioFinish;
 
-  const { height: windowHeight } = useWindowDimensions();
-  // Calculate available height for the image:
-  // Total screen minus fixed UI elements minus keyboard.
-  // Fixed overhead: safe area ~89 + header ~44 + progress ~30 + card text/hint ~94
-  //   + MC grid ~190 + next button ~60 + padding ~53 = ~560 for MC
-  //   + input ~56 + padding ~45 = ~390 for text
-  const fixedOverhead = answerType === 'text' ? 340 : 560;
-  const availableForImage = windowHeight - fixedOverhead - keyboardHeight;
+  // Calculate available height for the image from the measured content area.
+  // Subtract the non-image parts of the card (text, hint, padding) and siblings
+  // (MC grid / input area, answer reveal, next button, area padding).
+  // MC: card text ~94 + grid ~190 + next ~60 + gaps ~48 = ~392
+  // Text: card text ~94 + input ~56 + gaps ~44 = ~194 (+ keyboard shrinks contentHeight)
+  const nonImageOverhead = answerType === 'text' ? 194 : 392;
+  const availableForImage = contentHeight - nonImageOverhead;
   const imageMaxHeight = Math.max(0, Math.min(220, availableForImage));
   const shouldShowImage = imageMaxHeight >= 40;
 
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
+  const fuzzyColor = theme.custom.brandOrange;
 
   const sentenceParts = card.sentence.split('_____');
 
@@ -168,7 +174,7 @@ export function ClozeCardDisplay({
             {sentenceParts[0]}
             <Text
               style={{
-                color: isCorrect === false ? incorrectColor : correctColor,
+                color: isCorrect === false ? incorrectColor : isFuzzy ? fuzzyColor : correctColor,
                 fontWeight: '700',
               }}
             >
@@ -204,7 +210,15 @@ export function ClozeCardDisplay({
           {`\u2717 ${userAnswer}`}
         </Text>
       )}
-      {showAnswer && isCorrect === true && (
+      {showAnswer && isCorrect === true && isFuzzy && userAnswer && (
+        <Text
+          variant="bodyMedium"
+          style={[styles.feedbackText, { color: fuzzyColor }]}
+        >
+          {`\u2248 ${userAnswer}`}
+        </Text>
+      )}
+      {showAnswer && isCorrect === true && !isFuzzy && (
         <Text
           variant="bodyMedium"
           style={[styles.feedbackText, { color: correctColor }]}
@@ -225,11 +239,11 @@ export function ClozeCardDisplay({
             <Icon
               source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
               size={22}
-              color={theme.custom.brandBlue}
+              color={hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue}
             />
             <Text
               variant="bodyLarge"
-              style={[styles.germanHint, { color: theme.custom.brandBlue }]}
+              style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
             >
               {card.germanHint}
             </Text>

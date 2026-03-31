@@ -111,18 +111,19 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
 /**
  * Determine the answer input type based on FSRS state and stability.
  *
- * - Graduated (Review) cards always use active recall (text).
- * - Learning/Relearning cards use stability as the MC→text signal:
- *   after a correct MC answer stability crosses ~2.0, meaning the card
- *   is ready for active recall even within the learning phase.
- * - Wrong answers drop stability back below the threshold → MC again.
+ * Progression: mc4 → scramble → text
+ *   - New cards (null state) → mc4 (recognition)
+ *   - stability < 1.0 → mc4 (still learning, recognition)
+ *   - stability 1.0–2.0 → scramble (letter rearrangement, guided recall)
+ *   - stability >= 2.0 or graduated (Review) → text (free recall)
  *
- * New cards (null state) default to 'mc4'.
+ * Wrong answers drop stability → may fall back to scramble or mc4.
  */
-export function getAnswerType(cardState: CardState | null): 'mc4' | 'text' {
+export function getAnswerType(cardState: CardState | null): 'mc4' | 'scramble' | 'text' {
   if (cardState === null) return 'mc4';
   if (cardState.state === (State.Review as number)) return 'text';
-  if (cardState.stability >= 1.0) return 'text';
+  if (cardState.stability >= 2.0) return 'text';
+  if (cardState.stability >= 1.0) return 'scramble';
   return 'mc4';
 }
 

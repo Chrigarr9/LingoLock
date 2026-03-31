@@ -176,7 +176,9 @@ function getWidgetCardBatch(count: number): WidgetCardData[] {
     const entry = dueCloze[i];
     const card = entry.card;
     const cardState = loadCardState(card.id);
-    const answerType = getAnswerType(cardState);
+    const rawAnswerType = getAnswerType(cardState);
+    // Scramble falls back to text/spell on the widget (not MC)
+    const answerType = rawAnswerType === 'scramble' ? 'text' as const : rawAnswerType;
 
     const widgetData: WidgetCardData = {
       cardId: card.id,
@@ -193,7 +195,7 @@ function getWidgetCardBatch(count: number): WidgetCardData[] {
       widgetData.choices = buildMcChoices(card);
     }
 
-    // For spell mode, only first card gets spell state; others start fresh
+    // For spell/text mode, only first card gets spell state; others start fresh
     if (answerType === 'text') {
       if (i === 0) {
         const spellInput = getSpellingState(card.id);
@@ -652,7 +654,8 @@ export function processSpellAction(
   }
 
   // Validate using fuzzy matching (same as in-app text mode)
-  const isCorrect = validateAnswer(userInput, card.wordInContext);
+  const validation = validateAnswer(userInput, card.wordInContext);
+  const isCorrect = validation.correct;
 
   // Load or create CardState
   const loadedState = loadCardState(cardId);
@@ -660,8 +663,9 @@ export function processSpellAction(
     ? createNewCardState(cardId)
     : loadedState;
 
-  // Update FSRS state
-  const updatedState = scheduleReview(cardState, isCorrect ? 'good' : 'again');
+  // Update FSRS state — fuzzy match (typo accepted) → hard, not good
+  const grade = isCorrect ? (validation.fuzzy ? 'hard' : 'good') : 'again';
+  const updatedState = scheduleReview(cardState, grade);
   saveCardState(cardId, updatedState);
 
   // Update stats

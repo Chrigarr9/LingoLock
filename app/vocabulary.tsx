@@ -4,11 +4,11 @@ import { Text, Searchbar } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, labelOverlineStyle } from '../src/theme';
-import { getChapterMastery } from '../src/services/statsService';
+import { getChapterProgress } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
-import { deriveMastery, getMasteryColor } from '../src/utils/mastery';
+import { getProgressPercent, getProgressColor } from '../src/utils/mastery';
 import { useFocusRefresh } from '../src/hooks/useFocusRefresh';
-import type { ClozeCard, ChapterData, MasteryStatus } from '../src/types/vocabulary';
+import type { ClozeCard, ChapterData } from '../src/types/vocabulary';
 import type { SimpleCard } from '../src/types/simpleCard';
 import { useState } from 'react';
 
@@ -47,22 +47,25 @@ export default function VocabularyScreen() {
 
   const filterChapter = params.chapter ? parseInt(params.chapter, 10) : null;
 
-  // Compute mastery status for every card (memoized)
-  const masteryMap = useMemo<Record<string, MasteryStatus>>(() => {
-    const map: Record<string, MasteryStatus> = {};
+  // Compute progress data for every card (memoized)
+  const progressMap = useMemo<Record<string, { percent: number; color: string }>>(() => {
+    const map: Record<string, { percent: number; color: string }> = {};
     for (const ch of chapters) {
       for (const card of ch.cards) {
-        map[card.id] = deriveMastery(card.id);
+        map[card.id] = {
+          percent: getProgressPercent(card.id),
+          color: getProgressColor(card.id, theme),
+        };
       }
     }
     return map;
-  }, [focusKey, chapters]);
+  }, [focusKey, chapters, theme]);
 
   // Chapter mastery percentages (memoized alongside masteryMap)
   const chapterMastery = useMemo<Record<number, number>>(() => {
     const m: Record<number, number> = {};
     for (const ch of chapters) {
-      m[ch.chapterNumber] = getChapterMastery(chapters, ch.chapterNumber);
+      m[ch.chapterNumber] = getChapterProgress(chapters, ch.chapterNumber);
     }
     return m;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +102,7 @@ export default function VocabularyScreen() {
   );
 
   const renderItem = ({ item }: { item: AnyCard }) => {
-    const status = masteryMap[item.id] ?? 'New';
+    const progress = progressMap[item.id] ?? { percent: 0, color: theme.custom.brandBlue };
     const { primary, secondary } = getCardDisplay(item);
     return (
       <Pressable
@@ -116,15 +119,7 @@ export default function VocabularyScreen() {
           },
         ]}
       >
-        {/* Mastery dot */}
-        <View
-          style={[
-            styles.masteryDot,
-            { backgroundColor: getMasteryColor(status, theme) },
-          ]}
-        />
-
-        {/* Word info */}
+        {/* Word info + progress bar */}
         <View style={styles.wordInfo}>
           <Text
             variant="bodyLarge"
@@ -138,6 +133,17 @@ export default function VocabularyScreen() {
           >
             {secondary}
           </Text>
+          {/* Progress bar */}
+          <View style={[styles.progressTrack, { backgroundColor: theme.colors.surfaceVariant }]}>
+            {progress.percent > 0 && (
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progress.percent}%`, backgroundColor: progress.color },
+                ]}
+              />
+            )}
+          </View>
         </View>
 
         {/* Chevron */}
@@ -217,18 +223,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
-  },
-  masteryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   wordInfo: {
     flex: 1,
     gap: 2,
+  },
+  progressTrack: {
+    marginTop: 6,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   spanishWord: {
     fontWeight: '600',

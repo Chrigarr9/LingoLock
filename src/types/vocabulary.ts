@@ -141,6 +141,7 @@ export interface CardState {
 /** Card in the active session queue — discriminated union ties card type to answer mode */
 export type SessionCard =
   | { answerType: 'mc4'; card: ClozeCard; choices: string[]; isFirstEncounter?: boolean }
+  | { answerType: 'scramble'; card: ClozeCard; isFirstEncounter?: boolean }
   | { answerType: 'text'; card: ClozeCard; hintLevel?: 'full' | 'medium' | 'minimal'; isFirstEncounter?: boolean }
   | { answerType: 'selfRated'; card: import('./simpleCard').SimpleCard; isFirstEncounter?: boolean };
 

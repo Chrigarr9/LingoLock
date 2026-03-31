@@ -21,10 +21,8 @@ export function AnswerInput({
   const theme = useAppTheme();
 
   const handleSubmit = () => {
-    if (answer.trim()) {
-      onSubmit(answer);
-      setAnswer('');
-    }
+    onSubmit(answer);
+    setAnswer('');
   };
 
   return (
@@ -36,6 +34,8 @@ export function AnswerInput({
         placeholder={placeholder}
         autoCapitalize="none"
         autoCorrect={false}
+        autoComplete="off"
+        spellCheck={false}
         autoFocus
         returnKeyType="done"
         onSubmitEditing={handleSubmit}
@@ -49,7 +49,7 @@ export function AnswerInput({
         <Button
           mode="contained"
           onPress={handleSubmit}
-          disabled={disabled || !answer.trim()}
+          disabled={disabled}
           style={styles.button}
           contentStyle={styles.buttonContent}
           labelStyle={styles.buttonLabel}
