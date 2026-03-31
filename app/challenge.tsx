@@ -530,7 +530,7 @@ export default function ChallengeScreen() {
 
             {!isMC && !isScramble && !isSelfRated && (
               /* Text input mode */
-              <View style={styles.textArea}>
+              <View style={[styles.textArea, keyboard.height > 0 && styles.textAreaKeyboardUp]}>
                 <ClozeCardDisplay
                   key={currentCard.card.id}
                   sessionCard={currentCard}
@@ -553,6 +553,9 @@ export default function ChallengeScreen() {
                   sessionCard={currentCard}
                   visible={showReveal}
                 />
+
+                {/* Spacer pushes input toward keyboard while card stays pinned to top */}
+                {keyboard.height > 0 && !showAnswer && <View style={styles.keyboardSpacer} />}
 
                 {!showAnswer && (
                   <View style={styles.inputArea}>
@@ -731,7 +734,6 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   contentKeyboardUp: {
-    justifyContent: 'flex-end',
     paddingBottom: 12,
   },
   mcArea: {
@@ -741,6 +743,12 @@ const styles = StyleSheet.create({
   textArea: {
     paddingTop: 16,
     gap: 0,
+  },
+  textAreaKeyboardUp: {
+    flex: 1,
+  },
+  keyboardSpacer: {
+    flex: 1,
   },
   mcGrid: {
     width: '100%',
