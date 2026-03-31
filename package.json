@@ -38,6 +38,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "^0.83.2",
+    "react-native-device-activity": "^0.6.1",
     "react-native-keychain": "^10.0.0",
     "react-native-mmkv": "^4.1.2",
     "react-native-nitro-modules": "^0.34.1",
