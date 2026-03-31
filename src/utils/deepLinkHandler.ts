@@ -10,7 +10,6 @@ import { ChallengeParams, WidgetAnswerParams, WidgetSpellParams, WidgetRevealPar
 
 export type DeepLinkParams =
   | { type: 'challenge'; params: ChallengeParams }
-  | { type: 'grace'; params: ChallengeParams }
   | { type: 'widget-answer'; params: WidgetAnswerParams }
   | { type: 'widget-spell'; params: WidgetSpellParams }
   | { type: 'widget-reveal'; params: WidgetRevealParams }
@@ -33,8 +32,6 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
     // Route based on hostname
     if (parsed.hostname === 'challenge') {
       return parseChallengeLink(parsed);
-    } else if (parsed.hostname === 'grace') {
-      return parseGraceLink(parsed);
     } else if (parsed.hostname === 'widget-answer') {
       return parseWidgetAnswerLink(parsed);
     } else if (parsed.hostname === 'widget-spell') {
@@ -57,15 +54,6 @@ function parseSourceParam(parsed: ReturnType<typeof Linking.parse>): string | nu
   const rawSource = parsed.queryParams?.source as string;
   const source = rawSource ? rawSource.slice(0, 64).replace(/[^\x20-\x7E]/g, '') : rawSource;
   return source || null;
-}
-
-/**
- * Parses a grace deep link (bounce-back after practice)
- */
-function parseGraceLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkParams | null {
-  const source = parseSourceParam(parsed);
-  if (!source) return null;
-  return { type: 'grace', params: { source } };
 }
 
 /**

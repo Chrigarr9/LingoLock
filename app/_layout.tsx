@@ -299,14 +299,6 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
-        name="grace"
-        options={{
-          presentation: 'fullScreenModal',
-          headerShown: false,
-          animation: 'fade',
-        }}
-      />
-      <Stack.Screen
         name="tutorial"
         options={{
           presentation: 'modal',

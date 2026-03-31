@@ -8,8 +8,6 @@
 import { createMMKV } from 'react-native-mmkv';
 
 import type { CardState, PersistedStats } from '../types/vocabulary';
-import { setGraceTimestamp } from '../../modules/expo-app-intents/src';
-
 // ---------------------------------------------------------------------------
 // Singleton storage instances
 // ---------------------------------------------------------------------------
@@ -260,53 +258,6 @@ export function loadNotificationsEnabled(): boolean {
  */
 export function saveNotificationsEnabled(enabled: boolean): void {
   statsStorage.set(NOTIFICATIONS_ENABLED_KEY, enabled);
-}
-
-// ---------------------------------------------------------------------------
-// Automation preferences
-// ---------------------------------------------------------------------------
-
-const AUTOMATION_CARD_THRESHOLD_KEY = 'automation_card_threshold';
-
-/**
- * Load the number of correct cards required before the "Continue to [App]"
- * button appears during automation-triggered sessions.
- * Returns 3 if never set.
- */
-export function loadAutomationCardThreshold(): number {
-  return statsStorage.getNumber(AUTOMATION_CARD_THRESHOLD_KEY) ?? 3;
-}
-
-/**
- * Persist the automation card threshold.
- * Clamped to [1, 10].
- */
-export function saveAutomationCardThreshold(n: number): void {
-  statsStorage.set(AUTOMATION_CARD_THRESHOLD_KEY, Math.max(1, Math.min(10, n)));
-}
-
-const AUTOMATION_GRACE_KEY = 'automation_grace_ts';
-const AUTOMATION_GRACE_MINUTES = 5;
-
-/**
- * Record that the user just completed an automation practice session.
- * Subsequent automations within AUTOMATION_GRACE_MINUTES will be skipped.
- * Writes to both MMKV (JS-side check) and shared UserDefaults (Swift-side
- * check in the intent — prevents the app from opening at all during grace).
- */
-export function saveAutomationGraceStart(): void {
-  const now = Date.now();
-  statsStorage.set(AUTOMATION_GRACE_KEY, now);
-  setGraceTimestamp(now);
-}
-
-/**
- * Check whether the automation grace period is still active.
- */
-export function isWithinAutomationGrace(): boolean {
-  const ts = statsStorage.getNumber(AUTOMATION_GRACE_KEY);
-  if (ts === undefined) return false;
-  return (Date.now() - ts) < AUTOMATION_GRACE_MINUTES * 60 * 1000;
 }
 
 // ---------------------------------------------------------------------------

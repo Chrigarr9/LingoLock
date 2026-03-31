@@ -127,7 +127,6 @@
       "expo-sqlite",
       "expo-background-task",
       "expo-task-manager",
-      "./plugins/withAppIntents",
       [
         "expo-splash-screen",
         {
