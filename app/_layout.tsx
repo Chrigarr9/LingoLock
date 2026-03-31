@@ -12,9 +12,8 @@ import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWi
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
-import { setupAutomationListener } from '../src/services/automationService';
-import { consumeAutomationSource } from '../modules/expo-app-intents/src';
-import { isKnownApp, openSourceApp } from '../src/utils/deepLinkOpener';
+import { loadScreenTimeEnabled } from '../src/services/storage';
+import { isScreenTimeAvailable, isBlocking } from '../src/services/screenTimeService';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
 import type { BackupMeta } from '../src/services/backupService';
@@ -94,7 +93,7 @@ export default function RootLayout() {
     // Native: Setup notifications, widget, automation listener
     let cleanupNotifications: (() => void) | undefined;
     let cleanupWidgetListener: (() => void) | undefined;
-    let cleanupAutomation: (() => void) | undefined;
+    let screenTimeSub: ReturnType<typeof AppState.addEventListener> | undefined;
     if (Platform.OS !== 'web') {
       cleanupNotifications = setupNotifications();
       // Register background fetch so notifications keep firing even when app isn't opened
@@ -152,14 +151,31 @@ export default function RootLayout() {
       });
       cleanupWidgetListener = () => widgetSub.remove();
 
-      // Setup automation listener for App Intent triggers
-      cleanupAutomation = setupAutomationListener();
+      // Screen Time: detect when app opens while shields are active
+      // This handles the shield button's "openApp" action
+      let lastBackgroundTime = 0;
+      screenTimeSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+        if (state === 'background') {
+          lastBackgroundTime = Date.now();
+        }
+        if (state === 'active' && loadScreenTimeEnabled() && isScreenTimeAvailable()) {
+          // If the app just came from background (< 2 seconds ago) and shields are
+          // active, the user likely tapped the shield button. Navigate to challenge.
+          const wasRecentlyBackgrounded = Date.now() - lastBackgroundTime < 2000;
+          if (wasRecentlyBackgrounded && isBlocking()) {
+            router.replace({
+              pathname: '/challenge',
+              params: { source: 'screentime' },
+            });
+          }
+        }
+      });
     }
 
     return () => {
       cleanupNotifications?.();
       cleanupWidgetListener?.();
-      cleanupAutomation?.();
+      screenTimeSub?.remove();
     };
   }, []);
 
@@ -167,24 +183,10 @@ export default function RootLayout() {
     console.log('[App] Deep link received:', deepLink);
 
     if (deepLink.type === 'challenge') {
-      // Consume any pending UserDefaults value so the automation listener
-      // doesn't also handle this same trigger (prevents double navigation)
-      consumeAutomationSource();
       router.replace({
         pathname: '/challenge',
         params: { source: deepLink.params.source },
       });
-    } else if (deepLink.type === 'grace') {
-      // Grace period bounce-back: practice was recently completed
-      consumeAutomationSource();
-      const { source } = deepLink.params;
-      if (isKnownApp(source)) {
-        // Known app: redirect back immediately
-        openSourceApp(source);
-      } else {
-        // "Other": show grace screen — user switches back manually
-        router.replace({ pathname: '/grace', params: { source } });
-      }
     } else if (deepLink.type === 'widget-answer') {
       const { cardId, choice } = deepLink.params;
       console.log('[App] Processing widget answer:', { cardId, choice });
