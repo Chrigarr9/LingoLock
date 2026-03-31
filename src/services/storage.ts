@@ -408,6 +408,72 @@ export function setLastBackupTs(ts: number): void {
 }
 
 // ---------------------------------------------------------------------------
+// Screen Time blocking preferences
+// ---------------------------------------------------------------------------
+
+const SCREEN_TIME_ENABLED_KEY = 'screen_time_enabled';
+const SCREEN_TIME_UNLOCK_COUNT_KEY = 'screen_time_unlock_count';
+const SCREEN_TIME_UNLOCK_DATE_KEY = 'screen_time_unlock_date';
+const SCREEN_TIME_DUE_CLEARED_KEY = 'screen_time_due_cleared';
+const SCREEN_TIME_DUE_CLEARED_DATE_KEY = 'screen_time_due_cleared_date';
+
+/**
+ * Load whether Screen Time app blocking is enabled.
+ */
+export function loadScreenTimeEnabled(): boolean {
+  return statsStorage.getBoolean(SCREEN_TIME_ENABLED_KEY) ?? false;
+}
+
+/**
+ * Persist Screen Time app blocking enabled state.
+ */
+export function saveScreenTimeEnabled(enabled: boolean): void {
+  statsStorage.set(SCREEN_TIME_ENABLED_KEY, enabled);
+}
+
+/**
+ * Load today's unlock count (for escalation calculation).
+ * Returns 0 if on a new calendar day or never set.
+ */
+export function loadUnlockCount(): number {
+  const today = new Date().toISOString().slice(0, 10);
+  const storedDate = statsStorage.getString(SCREEN_TIME_UNLOCK_DATE_KEY);
+  if (storedDate !== today) return 0;
+  return statsStorage.getNumber(SCREEN_TIME_UNLOCK_COUNT_KEY) ?? 0;
+}
+
+/**
+ * Increment today's unlock count after a successful unlock.
+ */
+export function incrementUnlockCount(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = loadUnlockCount();
+  statsStorage.set(SCREEN_TIME_UNLOCK_DATE_KEY, today);
+  statsStorage.set(SCREEN_TIME_UNLOCK_COUNT_KEY, current + 1);
+}
+
+/**
+ * Load whether all due cards have been cleared today.
+ * Returns false if on a new calendar day or never set.
+ */
+export function loadDueCardsCleared(): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  const storedDate = statsStorage.getString(SCREEN_TIME_DUE_CLEARED_DATE_KEY);
+  if (storedDate !== today) return false;
+  return statsStorage.getBoolean(SCREEN_TIME_DUE_CLEARED_KEY) ?? false;
+}
+
+/**
+ * Mark that all due cards have been cleared today.
+ * Switches escalation from exponential to flat rate for the rest of the day.
+ */
+export function saveDueCardsCleared(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  statsStorage.set(SCREEN_TIME_DUE_CLEARED_DATE_KEY, today);
+  statsStorage.set(SCREEN_TIME_DUE_CLEARED_KEY, true);
+}
+
+// ---------------------------------------------------------------------------
 // Debug / testing utilities
 // ---------------------------------------------------------------------------
 
