@@ -104,7 +104,7 @@ export function checkAndAdvanceStreak(): void {
  * Card IDs are pre-namespaced by getBundle() (e.g. "es-de-buenos-aires:gato-ch01-s03"),
  * so we just use card.id directly for storage lookups.
  */
-function getTotalDueCount(): number {
+export function getTotalDueCount(): number {
   const enabledIds = loadEnabledBundles();
   let totalDue = 0;
 
