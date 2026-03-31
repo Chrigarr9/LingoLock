@@ -190,7 +190,7 @@ export default function ChallengeScreen() {
         setHintUsed(false);
         return nextIndex;
       } else {
-        updateStatsAfterSession(correctCountRef.current, originalCardCount.current, params.source ?? 'unknown');
+        updateStatsAfterSession(correctCountRef.current, totalCardCount.current, params.source ?? 'unknown');
         checkAndAdvanceStreak();
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
         updateWidgetData();
