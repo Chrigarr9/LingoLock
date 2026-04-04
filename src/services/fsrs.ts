@@ -109,62 +109,36 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
 }
 
 /**
- * Determine the answer input type based on FSRS state and stability.
+ * Determine the answer input type based purely on FSRS stability.
  *
  * Progression: mc4 → scramble → text
- *   - New cards (null state) → mc4 (recognition)
- *   - stability < 1.0 → mc4 (still learning, recognition)
- *   - stability 1.0–2.0 → scramble (letter rearrangement, guided recall)
- *   - stability >= 2.0 or graduated (Review) → text (free recall)
+ *   - New cards (null state) or stability < 1.0 → mc4 (recognition)
+ *   - stability 1.0–4.99 → scramble (letter rearrangement, guided recall)
+ *   - stability >= 5.0 → text (free recall)
  *
- * Wrong answers drop stability → may fall back to scramble or mc4.
+ * After the first Good answer stability jumps to ~2.3, landing solidly in
+ * scramble territory. It takes multiple successful reviews to cross 5.0 into
+ * text. Lapses drop stability — below 1.0 falls all the way back to mc4.
+ *
+ * State is intentionally NOT checked: a lapse puts the card into Relearning
+ * but one Good answer returns it to Review with low stability (~1.5). Using
+ * stability alone ensures the user rebuilds recall through scramble before
+ * returning to free text.
  */
 export function getAnswerType(cardState: CardState | null): 'mc4' | 'scramble' | 'text' {
   if (cardState === null) return 'mc4';
-  if (cardState.state === (State.Review as number)) return 'text';
-  if (cardState.stability >= 2.0) return 'text';
+  if (cardState.stability >= 5.0) return 'text';
   if (cardState.stability >= 1.0) return 'scramble';
   return 'mc4';
 }
 
-/** Hint level for text mode — controls how many letters are revealed */
-export type HintLevel = 'full' | 'medium' | 'minimal';
-
 /**
- * Determine hint generosity based on stability (text mode only).
- *
- *   stability 2.0–5.0  → 'full'    (first letter + last letter + word length)
- *   stability 5.0–10.0 → 'medium'  (first letter + word length)
- *   stability >= 10.0   → 'minimal' (first letter only)
+ * Demote an answer type by one level (used when the user requests a hint).
+ *   text → scramble, scramble → mc4, mc4 → mc4 (no further demotion)
  */
-export function getHintLevel(cardState: CardState): HintLevel {
-  if (cardState.stability < 5.0) return 'full';
-  if (cardState.stability < 10.0) return 'medium';
-  return 'minimal';
-}
-
-/**
- * Generate hint text for a word based on hint level.
- *
- * Examples for "pregunta":
- *   full:    "P _ _ _ _ _ _ A"
- *   medium:  "P _ _ _ _ _ _ _"
- *   minimal: "P"
- */
-export function generateHintText(word: string, level: HintLevel): string {
-  if (word.length === 0) return '';
-  const first = word[0].toUpperCase();
-  if (word.length === 1) return first;
-  if (level === 'minimal') return first;
-  const last = word[word.length - 1].toUpperCase();
-  const middleCount = Math.max(0, word.length - 2);
-  const blanks = Array(middleCount).fill('_').join(' ');
-  if (level === 'full') {
-    return middleCount > 0 ? `${first} ${blanks} ${last}` : `${first} ${last}`;
-  }
-  // medium: first + length (all remaining as blanks)
-  const allBlanks = Array(word.length - 1).fill('_').join(' ');
-  return `${first} ${allBlanks}`;
+export function demoteAnswerType(answerType: 'mc4' | 'scramble' | 'text'): 'mc4' | 'scramble' | 'text' {
+  if (answerType === 'text') return 'scramble';
+  return 'mc4';
 }
 
 /**
@@ -226,10 +200,10 @@ export const PROGRESS_LEVELS = 5;
 /**
  * Returns a card's learning progress level (0-5) based on FSRS stability.
  *
- *   0 = never seen (null state)
- *   1 = fragile / learning / relearning (stability < 2.0)
- *   2 = early recall, just entered text mode (stability 2.0–5.0)
- *   3 = building recall (stability 5.0–10)
+ *   0 = never seen (null state)                          → mc4
+ *   1 = fragile / learning / relearning (stability < 2.0) → scramble
+ *   2 = early recall (stability 2.0–5.0)                  → scramble
+ *   3 = building recall (stability 5.0–10)                → text (full hints)
  *   4 = familiar (stability 10–21)
  *   5 = mastered (stability >= 21)
  *

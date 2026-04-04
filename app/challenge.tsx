@@ -18,7 +18,7 @@ import { SelfRatedCard } from '../src/components/SelfRatedCard';
 import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
 import type { SimpleCard } from '../src/types/simpleCard';
 import type { ClozeCard } from '../src/types/vocabulary';
-import { scheduleReview, createNewCardState, generateHintText } from '../src/services/fsrs';
+import { scheduleReview, createNewCardState, demoteAnswerType } from '../src/services/fsrs';
 import type { ReviewGrade } from '../src/services/fsrs';
 import {
   saveCardState,
@@ -31,6 +31,7 @@ import {
 } from '../src/services/storage';
 import { updateStatsAfterSession, getStreak, checkAndAdvanceStreak } from '../src/services/statsService';
 import { validateAnswer } from '../src/utils/answerValidation';
+import { buildMcChoices } from '../src/utils/cardChoices';
 import { useKeyboard } from '../src/hooks/useKeyboardVisible';
 import { updateWidgetData } from '../src/services/widgetService';
 import { rescheduleAfterExternalAnswer } from '../src/services/notificationScheduler';
@@ -92,7 +93,8 @@ export default function ChallengeScreen() {
   const [isMuted, setIsMuted] = useState(() => loadAudioMuted());
   const [audioSpeed] = useState(() => loadAudioSpeed());
   const [isEmpty, setIsEmpty] = useState(false);
-  const [hintUsed, setHintUsed] = useState(false);
+  /** When user taps hint, the answer type is demoted one level (text→scramble, scramble→mc4) */
+  const [demotedMode, setDemotedMode] = useState<'mc4' | 'scramble' | 'text' | null>(null);
   const [hasMoreCards, setHasMoreCards] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const keyboard = useKeyboard();
@@ -141,10 +143,16 @@ export default function ChallengeScreen() {
   // Derived values
   // --------------------------------------------------------------------------
   const currentCard: SessionCard | undefined = queue[currentIndex];
-  const answerType = currentCard?.answerType ?? 'mc4';
+  const baseAnswerType = currentCard?.answerType ?? 'mc4';
+  const answerType = demotedMode ?? baseAnswerType;
   const isMC = answerType === 'mc4';
   const isScramble = answerType === 'scramble';
-  const isSelfRated = answerType === 'selfRated';
+  const isSelfRated = baseAnswerType === 'selfRated';
+  const hintUsed = demotedMode !== null;
+  /** MC choices — from session card if available, generated on demand for hint demotion */
+  const mcChoices = isMC && currentCard?.card.kind === 'cloze'
+    ? (currentCard.answerType === 'mc4' ? currentCard.choices : buildMcChoices(currentCard.card))
+    : [];
 
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -189,7 +197,7 @@ export default function ChallengeScreen() {
         setAnsweredChoice(null);
         setUserAnswer(null);
         setShowReveal(false);
-        setHintUsed(false);
+        setDemotedMode(null);
         return nextIndex;
       } else {
         updateStatsAfterSession(correctCountRef.current, totalCardCount.current, params.source ?? 'unknown');
@@ -309,7 +317,9 @@ export default function ChallengeScreen() {
   };
 
   const handleHintRequest = () => {
-    setHintUsed(true);
+    if (answerType === 'text' || answerType === 'scramble') {
+      setDemotedMode(demoteAnswerType(answerType));
+    }
   };
 
   const handleClose = () => {
@@ -339,7 +349,7 @@ export default function ChallengeScreen() {
     setAnsweredChoice(null);
     setUserAnswer(null);
     setShowReveal(false);
-    setHintUsed(false);
+    setDemotedMode(null);
     setIsComplete(false);
     setIsEmpty(false);
     setHasMoreCards(false);
@@ -368,11 +378,6 @@ export default function ChallengeScreen() {
     setShowAnswer(true);
     advanceToNext();
   };
-
-  // Generate hint text for current card (text mode only)
-  const currentHintText = currentCard?.answerType === 'text' && currentCard.hintLevel
-    ? generateHintText(currentCard.card.wordInContext, currentCard.hintLevel)
-    : undefined;
 
   const glassStyle = getGlassStyle(theme);
 
@@ -490,7 +495,7 @@ export default function ChallengeScreen() {
                 {!showAnswer && (
                   <View style={styles.mcGrid}>
                     <MultipleChoiceGrid
-                      choices={currentCard.answerType === 'mc4' ? currentCard.choices : []}
+                      choices={mcChoices}
                       correctAnswer={currentCard.card.kind === 'cloze' ? currentCard.card.wordInContext : ''}
                       answeredChoice={answeredChoice}
                       onSelect={handleMCSelect}
@@ -500,7 +505,7 @@ export default function ChallengeScreen() {
               </View>
             )}
 
-            {isScramble && (
+            {isScramble && !isSelfRated && (
               /* Letter scramble mode */
               <View style={styles.mcArea}>
                 <ClozeCardDisplay
@@ -512,6 +517,7 @@ export default function ChallengeScreen() {
                   playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
+                  onHintRequest={!showAnswer ? handleHintRequest : undefined}
                   userAnswer={userAnswer ?? undefined}
                   contentHeight={contentHeight}
                 />
@@ -543,9 +549,7 @@ export default function ChallengeScreen() {
                   isMuted={isMuted}
                   playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
-                  hintText={currentHintText}
-                  hintUsed={hintUsed}
-                  onHintRequest={handleHintRequest}
+                  onHintRequest={!showAnswer ? handleHintRequest : undefined}
                   keyboardHeight={keyboard.height}
                   userAnswer={userAnswer ?? undefined}
                   contentHeight={contentHeight}

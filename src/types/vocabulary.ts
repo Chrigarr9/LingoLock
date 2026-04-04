@@ -142,7 +142,7 @@ export interface CardState {
 export type SessionCard =
   | { answerType: 'mc4'; card: ClozeCard; choices: string[]; isFirstEncounter?: boolean }
   | { answerType: 'scramble'; card: ClozeCard; isFirstEncounter?: boolean }
-  | { answerType: 'text'; card: ClozeCard; hintLevel?: 'full' | 'medium' | 'minimal'; isFirstEncounter?: boolean }
+  | { answerType: 'text'; card: ClozeCard; isFirstEncounter?: boolean }
   | { answerType: 'selfRated'; card: import('./simpleCard').SimpleCard; isFirstEncounter?: boolean };
 
 /** Mastery status for display in vocabulary screens. */

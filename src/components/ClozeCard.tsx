@@ -18,11 +18,7 @@ interface ClozeCardDisplayProps {
   playbackSpeed?: number;
   /** Called when sentence audio finishes playing. Challenge screen uses this for advance timing. */
   onAudioFinish?: () => void;
-  /** Pre-generated hint text (e.g., "P _ _ _ _ _ _ A") */
-  hintText?: string;
-  /** Whether hint has been used for this card presentation */
-  hintUsed?: boolean;
-  /** Called when user taps the hint button */
+  /** Called when user taps the hint button (demotes answer type) */
   onHintRequest?: () => void;
   /** Called when user taps "Already know this?" */
   onAlreadyKnow?: () => void;
@@ -49,8 +45,6 @@ export function ClozeCardDisplay({
   isMuted,
   playbackSpeed = 1.0,
   onAudioFinish,
-  hintText,
-  hintUsed,
   onHintRequest,
   onAlreadyKnow,
   keyboardHeight = 0,
@@ -158,8 +152,8 @@ export function ClozeCardDisplay({
   }, [card.id]);
   const showImage = !!imageSource && !imageError && shouldShowImage;
 
-  // Can the German hint be tapped to reveal a spelling hint? (text mode only)
-  const hintIsTappable = answerType === 'text' && !hintUsed && !!onHintRequest;
+  // Can the German hint be tapped to demote the answer type? (text/scramble only)
+  const hintIsTappable = !!onHintRequest;
 
   // Text content rendered below the image (or as sole card content)
   const textContent = (
@@ -188,14 +182,7 @@ export function ClozeCardDisplay({
             style={[styles.sentenceText, { color: theme.colors.onSurface }]}
           >
             {sentenceParts[0]}
-            {/* Blank or spelling hint replacing the blank */}
-            {answerType === 'text' && hintUsed && hintText ? (
-              <Text style={[styles.hintInBlank, { color: theme.colors.onSurfaceVariant }]}>
-                {hintText}
-              </Text>
-            ) : (
-              <Text style={[styles.blankSpan, { color: theme.colors.onSurfaceVariant }]}>{'______'}</Text>
-            )}
+            <Text style={[styles.blankSpan, { color: theme.colors.onSurfaceVariant }]}>{'______'}</Text>
             {sentenceParts[1] ?? ''}
           </Text>
         )}
@@ -234,7 +221,7 @@ export function ClozeCardDisplay({
             onPress={hintIsTappable ? onHintRequest : undefined}
             style={styles.hintRow}
             accessibilityRole={hintIsTappable ? 'button' : undefined}
-            accessibilityLabel={hintIsTappable ? 'Show spelling hint' : undefined}
+            accessibilityLabel={hintIsTappable ? 'Make it easier' : undefined}
           >
             <Icon
               source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
@@ -340,12 +327,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -1,
     fontSize: 20,
-  },
-  hintInBlank: {
-    fontFamily: 'monospace',
-    fontWeight: '400',
-    letterSpacing: 2,
-    textDecorationLine: 'underline',
   },
   hintArea: {
     flexDirection: 'row',

@@ -11,7 +11,7 @@
  * ahead so the user sees them again soon without stopping the session flow.
  */
 
-import { isDue, getAnswerType, getHintLevel, isCardLearned } from './fsrs';
+import { isDue, getAnswerType, isCardLearned } from './fsrs';
 import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
 import { shuffle } from '../utils/shuffle';
 import { buildMcChoices } from '../utils/cardChoices';
@@ -119,12 +119,7 @@ function toSessionCard(
   const activeCard = pickVariant(card, currentChapter, seenByChapter);
 
   if (answerType === 'text') {
-    return {
-      card: activeCard,
-      answerType,
-      isFirstEncounter,
-      hintLevel: cardState !== null ? getHintLevel(cardState) : 'full',
-    };
+    return { card: activeCard, answerType, isFirstEncounter };
   }
 
   if (answerType === 'scramble') {

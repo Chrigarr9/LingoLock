@@ -25,7 +25,6 @@ jest.mock('./storage', () => ({
 jest.mock('./fsrs', () => ({
   isDue: jest.fn(),
   getAnswerType: jest.fn(),
-  getHintLevel: jest.fn(),
   isCardLearned: jest.fn(),
   isCardMastered: jest.fn(),
   createNewCardState: jest.fn(),
@@ -99,13 +98,12 @@ jest.mock('../content/bundle', () => {
 import { buildSession, handleWrongAnswer, getCurrentChapter } from './cardSelector';
 import { CHAPTERS } from '../content/bundle';
 import { loadCardState, loadAllCardStates, loadNewWordsIntroducedToday } from './storage';
-import { isDue, getAnswerType, getHintLevel, isCardLearned, isCardMastered } from './fsrs';
+import { isDue, getAnswerType, isCardLearned, isCardMastered } from './fsrs';
 
 const mockLoadCardState = loadCardState as jest.MockedFunction<typeof loadCardState>;
 const mockLoadAllCardStates = loadAllCardStates as jest.MockedFunction<typeof loadAllCardStates>;
 const mockIsDue = isDue as jest.MockedFunction<typeof isDue>;
 const mockGetAnswerType = getAnswerType as jest.MockedFunction<typeof getAnswerType>;
-const mockGetHintLevel = getHintLevel as jest.MockedFunction<typeof getHintLevel>;
 const mockIsCardLearned = isCardLearned as jest.MockedFunction<typeof isCardLearned>;
 const mockIsCardMastered = isCardMastered as jest.MockedFunction<typeof isCardMastered>;
 const mockLoadNewWordsIntroducedToday = loadNewWordsIntroducedToday as jest.MockedFunction<typeof loadNewWordsIntroducedToday>;
@@ -133,8 +131,6 @@ beforeEach(() => {
   mockLoadAllCardStates.mockReturnValue([]);
   // Default: getAnswerType for null returns 'mc4' (no more mc2)
   mockGetAnswerType.mockReturnValue('mc4');
-  // Default: getHintLevel returns 'full'
-  mockGetHintLevel.mockReturnValue('full');
   // Default: isDue returns false
   mockIsDue.mockReturnValue(false);
   // Default: isCardLearned/isCardMastered returns false
