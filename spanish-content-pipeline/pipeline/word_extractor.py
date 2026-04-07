@@ -45,8 +45,17 @@ Words to annotate:
 
 For each word, provide:
 - "source": the word exactly as listed above
-- "target": the correct {config.languages.native} translation in the context of its sentence
-- "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural")
+- "target": the correct {config.languages.native} translation IN THE CONTEXT of its sentence
+- "target_general": the most common dictionary translation of the LEMMA — the meaning a \
+learner should know first. This must be the general, broadly useful translation, NOT the \
+sentence-specific one. If "target" and "target_general" would be identical, set \
+"target_general" to "". Examples:
+  - "tipo" in "Es un tipo especial" → target: "Mensch", target_general: "Typ, Art"
+  - "bueno" as interjection → target: "na gut", target_general: "gut"
+  - "maleta" → target: "Koffer", target_general: "" (same meaning, leave empty)
+- "context_note": brief grammar note (e.g. "3rd person singular present", "feminine plural"). \
+For idiomatic expressions, note the full expression and its meaning. E.g. for "dan" in \
+"dar un abrazo" → "3rd person plural present of dar; idiomatic: dar un abrazo = to hug"
 - "similar_words": 6-8 semantically similar {config.languages.target} words in lemma form \
 (used as multiple-choice distractors — same semantic category but clearly different words)
 
@@ -169,6 +178,7 @@ class WordExtractor:
             words.append(WordAnnotation(
                 source=sw["source"],
                 target=ann.get("target", ""),
+                target_general=ann.get("target_general", ""),
                 lemma=sw["lemma"],      # From spaCy (deterministic)
                 pos=sw["pos"],          # From spaCy (deterministic)
                 context_note=ann.get("context_note", ""),

@@ -1,10 +1,12 @@
 /**
  * Build-time content transform: pipeline JSON → TypeScript content bundle
  *
- * Reads spanish-content-pipeline/output/es-de-buenos-aires/ chapter files
- * and generates src/content/bundle.ts with typed ClozeCard data.
+ * Reads spanish-content-pipeline/output/<bundle-id>/ chapter files
+ * and generates src/content/bundles/<bundle-id>/ with typed ClozeCard data.
  *
- * Usage: npx tsx scripts/build-content.ts
+ * Usage: npx tsx scripts/build-content.ts [bundle-id]
+ *   npx tsx scripts/build-content.ts                    # defaults to es-de-buenos-aires
+ *   npx tsx scripts/build-content.ts hu-de-budapest     # Hungarian travel deck
  */
 
 import * as fs from 'fs';
@@ -24,6 +26,7 @@ interface PipelineSentence {
 interface PipelineWord {
   source: string;      // Surface form in sentence (e.g., "habitación")
   target: string;      // Contextual German translation (e.g., "Zimmer")
+  target_general: string;  // General/dictionary translation of the lemma (e.g., "Typ, Art")
   lemma: string;       // Base form (e.g., "habitación")
   pos: string;         // Part of speech
   context_note: string;
@@ -57,6 +60,7 @@ interface ClozeCardData {
   lemma: string;
   wordInContext: string;
   germanHint: string;
+  germanHintGeneral?: string;
   sentence: string;
   sentenceTranslation: string;
   pos: string;
@@ -170,21 +174,47 @@ function makeCardId(lemma: string, form: string, chapter: number, sentenceIndex:
 // ---------------------------------------------------------------------------
 
 const PROJECT_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const BUNDLE_ID = 'es-de-buenos-aires';
+const BUNDLE_ID = process.argv[2] || 'es-de-buenos-aires';
 const PIPELINE_DIR = path.join(PROJECT_ROOT, 'spanish-content-pipeline', 'output', BUNDLE_ID);
 const WORDS_DIR = path.join(PIPELINE_DIR, 'words');
 const VOCAB_FILE = path.join(PIPELINE_DIR, 'vocabulary.json');
 const OUTPUT_DIR = path.join(PROJECT_ROOT, 'src', 'content', 'bundles', BUNDLE_ID);
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'chapters.ts');
 
-console.log('Build-content: reading pipeline output...');
+console.log(`Build-content: reading pipeline output for ${BUNDLE_ID}...`);
+
+// ---------------------------------------------------------------------------
+// Load pipeline YAML config (for language-specific config.ts generation)
+// ---------------------------------------------------------------------------
+
+// @ts-ignore — js-yaml has no bundled type declarations
+import * as yaml from 'js-yaml';
+
+interface PipelineConfig {
+  deck: { name: string; id: string; type?: string };
+  languages: { target: string; target_code: string; native: string; native_code: string };
+  destination?: { country: string; city: string };
+}
+
+let pipelineConfig: PipelineConfig | null = null;
+const configGlob = fs.readdirSync(path.join(PROJECT_ROOT, 'spanish-content-pipeline', 'configs'));
+for (const f of configGlob) {
+  if (!f.endsWith('.yaml')) continue;
+  const cfgPath = path.join(PROJECT_ROOT, 'spanish-content-pipeline', 'configs', f);
+  const raw = yaml.load(fs.readFileSync(cfgPath, 'utf-8')) as any;
+  if (raw?.deck?.id === BUNDLE_ID) {
+    pipelineConfig = raw as PipelineConfig;
+    console.log(`  Loaded config from configs/${f}`);
+    break;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Load image manifest (if available from pipeline Pass 5)
 // ---------------------------------------------------------------------------
 
 const IMAGE_MANIFEST_FILE = path.join(PIPELINE_DIR, 'image_manifest.json');
-const IMAGES_DEST_DIR = path.join(PROJECT_ROOT, 'assets', 'images', 'cards');
+const IMAGES_DEST_DIR = path.join(PROJECT_ROOT, 'assets', 'images', 'cards', BUNDLE_ID);
 
 interface ImageManifestEntry {
   file: string | null;
@@ -227,7 +257,7 @@ if (fs.existsSync(IMAGE_MANIFEST_FILE)) {
 // ---------------------------------------------------------------------------
 
 const AUDIO_MANIFEST_FILE = path.join(PIPELINE_DIR, 'audio_manifest.json');
-const AUDIO_DEST_DIR = path.join(PROJECT_ROOT, 'assets', 'audio', 'cards');
+const AUDIO_DEST_DIR = path.join(PROJECT_ROOT, 'assets', 'audio', 'cards', BUNDLE_ID);
 
 interface AudioManifestEntry { file: string | null; status: string; }
 interface AudioManifest { audio: Record<string, AudioManifestEntry>; }
@@ -416,6 +446,7 @@ for (const { chapterNum, chapterData } of loadedChapters) {
       lemma,
       wordInContext: first.word.source,
       germanHint: first.word.target,
+      ...(first.word.target_general ? { germanHintGeneral: first.word.target_general } : {}),
       sentence: first.cloze,
       sentenceTranslation: first.sentence.target,
       pos: first.word.pos,
@@ -450,6 +481,7 @@ for (const ch of allChapters) {
   for (const card of ch.cards) {
     const distStr = JSON.stringify(card.distractors);
     const optionalFields: string[] = [];
+    if (card.germanHintGeneral) optionalFields.push(`    germanHintGeneral: ${JSON.stringify(card.germanHintGeneral)},`);
     if (card.image !== undefined) optionalFields.push(`    image: ${JSON.stringify(card.image)},`);
     if (card.audio !== undefined) optionalFields.push(`    audio: ${JSON.stringify(card.audio)},`);
     if (card.sentenceVariants) optionalFields.push(`    sentenceVariants: ${JSON.stringify(card.sentenceVariants)},`);
@@ -484,7 +516,7 @@ for (const ch of allChapters) {
 let imageMapBlock: string;
 if (imageKeys.size > 0) {
   const entries = [...imageKeys.entries()].sort(([a], [b]) => a.localeCompare(b)).map(
-    ([key, ext]) => `  '${key}': require('../../../../assets/images/cards/${key}${ext}'),`
+    ([key, ext]) => `  '${key}': require('../../../../assets/images/cards/${BUNDLE_ID}/${key}${ext}'),`
   ).join('\n');
   imageMapBlock = `/** Image assets keyed by sentence ID — use cardImages[card.image] as Image source */
 export const cardImages: Record<string, number> = {
@@ -498,7 +530,7 @@ ${entries}
 let audioMapBlock: string;
 if (audioKeys.size > 0) {
   const entries = [...audioKeys].sort().map(
-    key => `  '${key}': require('../../../../assets/audio/cards/${key}.wav'),`
+    key => `  '${key}': require('../../../../assets/audio/cards/${BUNDLE_ID}/${key}.wav'),`
   ).join('\n');
   audioMapBlock = `/** Audio assets keyed by sentence ID — use cardAudios[card.audio] for playback */\nexport const cardAudios: Record<string, number> = {\n${entries}\n};`;
 } else {
@@ -523,7 +555,7 @@ ${chapterLines.join(',\n')},
 ];
 
 /** Flat array of all cards across chapters */
-export const ALL_CARDS: ClozeCard[] = CHAPTERS.flatMap(ch => ch.cards);
+export const ALL_CARDS = CHAPTERS.flatMap(ch => ch.cards) as ClozeCard[];
 
 /** Look up card by ID */
 export function getCardById(id: string): ClozeCard | undefined {
@@ -532,7 +564,7 @@ export function getCardById(id: string): ClozeCard | undefined {
 
 /** Get cards for a specific chapter */
 export function getChapterCards(chapterNumber: number): ClozeCard[] {
-  return CHAPTERS.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? [];
+  return (CHAPTERS.find(ch => ch.chapterNumber === chapterNumber)?.cards ?? []) as ClozeCard[];
 }
 
 /** Total card count */
@@ -545,29 +577,54 @@ fs.writeFileSync(OUTPUT_FILE, output, 'utf-8');
 console.log(`\nWrote ${OUTPUT_FILE}`);
 
 // Auto-generate config.ts alongside chapters.ts
-// NOTE: Language-specific values are hardcoded for now.
-// Future: read from pipeline YAML config.
+// Language-specific values are read from the pipeline YAML config.
+const LANG_PRESETS: Record<string, {
+  nativeName: string; targetName: string;
+  greetings: { morning: string; afternoon: string; evening: string };
+  motivational: { perfect: string; great: string; good: string; encouragement: string };
+  spellChars: string;
+}> = {
+  es: {
+    nativeName: 'Deutsch', targetName: 'Español',
+    greetings: { morning: 'Buenos días', afternoon: 'Buenas tardes', evening: 'Buenas noches' },
+    motivational: { perfect: '¡Perfecto! Every answer correct.', great: '¡Muy bien! Great session.', good: '¡Bien! Keep practising.', encouragement: 'Every mistake is a lesson. ¡Ánimo!' },
+    spellChars: 'abcdefghijklmnñopqrstuvwxyzáéíóú',
+  },
+  hu: {
+    nativeName: 'Deutsch', targetName: 'Magyar',
+    greetings: { morning: 'Jó reggelt', afternoon: 'Jó napot', evening: 'Jó estét' },
+    motivational: { perfect: 'Tökéletes!', great: 'Nagyon jó!', good: 'Jó munka!', encouragement: 'Csak így tovább!' },
+    spellChars: 'abcdefghijklmnopqrstuvwxyzáéíóöőúüű',
+  },
+};
+
+const langCode = pipelineConfig?.languages?.target_code ?? 'es';
+const preset = LANG_PRESETS[langCode] ?? LANG_PRESETS['es'];
+const nativeName = preset.nativeName;
+const targetName = preset.targetName;
+
 const configContent = `// AUTO-GENERATED by scripts/build-content.ts — DO NOT EDIT
 import type { BundleConfig } from '../../../types/bundle';
 
 export const config: BundleConfig = {
   id: '${BUNDLE_ID}',
-  nativeLanguage: 'Deutsch',
-  targetLanguage: 'Español',
-  displayLabel: 'Deutsch → Español',
+  type: 'builtin',
+  nativeLanguage: '${nativeName}',
+  targetLanguage: '${targetName}',
+  displayLabel: '${nativeName} → ${targetName}',
   greetings: {
-    morning: 'Buenos días',
-    afternoon: 'Buenas tardes',
-    evening: 'Buenas noches',
+    morning: '${preset.greetings.morning}',
+    afternoon: '${preset.greetings.afternoon}',
+    evening: '${preset.greetings.evening}',
   },
   motivational: {
-    perfect: '¡Perfecto! Every answer correct.',
-    great: '¡Muy bien! Great session.',
-    good: '¡Bien! Keep practising.',
-    encouragement: 'Every mistake is a lesson. ¡Ánimo!',
+    perfect: '${preset.motivational.perfect}',
+    great: '${preset.motivational.great}',
+    good: '${preset.motivational.good}',
+    encouragement: '${preset.motivational.encouragement}',
   },
-  spellCharacters: 'abcdefghijklmnñopqrstuvwxyzáéíóú'.split(''),
-  searchPlaceholder: 'Search Spanish or German...',
+  spellCharacters: '${preset.spellChars}'.split(''),
+  searchPlaceholder: 'Search ${targetName} or ${nativeName}...',
 };
 `;
 

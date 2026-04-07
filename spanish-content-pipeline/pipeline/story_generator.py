@@ -49,10 +49,22 @@ reaching, pointing at). Show hands/body, not talking heads.
 of two characters facing each other — these all look identical.
   Do NOT include art style prefixes or "no text" suffixes — these are added later.
   Keep under 200 characters.
-- "sentences": array of 1-3 sentences for this shot (prefer 1-2). Each has:
+- "sentences": array of 1-2 sentences for this shot. Each has:
   - "source": EXACTLY ONE sentence in the target language — one subject-verb pair, \
 one terminating punctuation mark. Never combine two sentences into one source field.
   - "sentence_index": sequential 0-based index across ALL scenes in the chapter
+
+## Shot-sentence visual coherence (critical)
+Every sentence in a shot shares ONE illustration. Before grouping 2 sentences in a shot, \
+ask: "Can one picture show BOTH sentences?" If not, split them into separate shots.
+- BOTH sentences MUST reference or depict the same concrete visual focus. If sentence A \
+is about packing a suitcase and sentence B mentions a nearby park, they CANNOT share a shot \
+because no single picture shows both.
+- Pure dialogue responses ("You're right, Mom!") that contain no visual object MUST be in \
+their OWN shot whose focus is whatever the speaker is doing or holding at that moment.
+- Sentences about different topics or different locations MUST be in separate shots.
+- Having many 1-sentence shots is perfectly fine and preferred over forcing unrelated \
+sentences together. Quality of image-sentence match matters more than shot count.
 
 ## Sentence rules (most important)
 - ONE grammatical sentence per "source" field. End with ONE period, exclamation mark, or \
@@ -63,8 +75,7 @@ two separate sentences with their own sentence_index.
 - Consecutive sentences within a shot must connect — avoid repeating the same idea.
 - Include vivid color and size vocabulary: "una maleta roja enorme". Match the cartoon style.
 - Include emotions and small narrative details (smells, sounds) where natural.
-- Write naturally — use the full richness of Spanish. Vary sentence length and structure \
-freely. Use any tenses, moods, or constructions that serve the story.
+{grammar_instruction}
 
 ## Direct dialogue (mandatory)
 Whenever two or more characters share a scene, at least 1 in 3 sentences MUST be \
@@ -143,11 +154,23 @@ def _build_system_prompt(config: DeckConfig) -> str:
     style = getattr(config.story, "narration_style", "third-person")
     template = _NARRATION_INSTRUCTIONS.get(style, _NARRATION_INSTRUCTIONS["third-person"])
     narration_instruction = template.format(name=p.name)
+
+    # Grammar: either free-form or constrained (travel decks)
+    constraints = getattr(config.story, "grammar_constraints", "")
+    if constraints:
+        grammar_instruction = f"- GRAMMAR CONSTRAINT (CRITICAL — do NOT violate): {constraints.strip()}"
+    else:
+        grammar_instruction = (
+            "- Write naturally — use the full richness of Spanish. Vary sentence length "
+            "and structure freely. Use any tenses, moods, or constructions that serve the story."
+        )
+
     return _SYSTEM_PROMPT_TEMPLATE.format(
         protagonist_name=p.name,
         protagonist_visual_tag=p.visual_tag,
         narration_instruction=narration_instruction,
         min_sentences=min_sentences,
+        grammar_instruction=grammar_instruction,
     )
 
 
@@ -250,7 +273,7 @@ Destination: {d.city}, {d.country}
 
 Chapter context: {chapter.context}{protagonist_intro}{secondary_section}{vocab_section}{story_so_far}
 
-IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot should have 1-2 sentences (maximum 3). Each shot illustrates ONE visual moment — keep it focused. Aim for {min_sentences}-{max_sentences} sentences.
+IMPORTANT: You MUST generate at least {min_sentences} sentences total. Create enough scenes and shots. Each shot has 1-2 sentences — but ONLY group 2 sentences if both can be shown in ONE picture. If a sentence introduces a new visual subject (different object, different location, abstract thought), it MUST start a new shot. 1-sentence shots are perfectly fine. Aim for {min_sentences}-{max_sentences} sentences.
 Return the chapter as a JSON object with a "scenes" array following the format above.
 Ensure sentence_index values are sequential starting from 0."""
 
