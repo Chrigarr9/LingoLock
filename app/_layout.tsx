@@ -182,12 +182,7 @@ export default function RootLayout() {
   const handleDeepLink = useCallback((deepLink: DeepLinkParams) => {
     console.log('[App] Deep link received:', deepLink);
 
-    if (deepLink.type === 'challenge') {
-      router.replace({
-        pathname: '/challenge',
-        params: { source: deepLink.params.source },
-      });
-    } else if (deepLink.type === 'widget-answer') {
+    if (deepLink.type === 'widget-answer') {
       const { cardId, choice } = deepLink.params;
       console.log('[App] Processing widget answer:', { cardId, choice });
 

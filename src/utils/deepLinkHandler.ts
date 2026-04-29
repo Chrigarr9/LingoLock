@@ -1,15 +1,13 @@
 /**
  * Deep link URL parser for lingolock:// scheme
  * Extracts parameters from URLs like:
- * - lingolock://challenge?source=Instagram
  * - lingolock://widget-answer?cardId=gato-ch01-s03&choice=gato
  */
 
 import * as Linking from 'expo-linking';
-import { ChallengeParams, WidgetAnswerParams, WidgetSpellParams, WidgetRevealParams, WidgetRateParams } from '../types/vocabulary';
+import { WidgetAnswerParams, WidgetSpellParams, WidgetRevealParams, WidgetRateParams } from '../types/vocabulary';
 
 export type DeepLinkParams =
-  | { type: 'challenge'; params: ChallengeParams }
   | { type: 'widget-answer'; params: WidgetAnswerParams }
   | { type: 'widget-spell'; params: WidgetSpellParams }
   | { type: 'widget-reveal'; params: WidgetRevealParams }
@@ -30,9 +28,7 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
     const parsed = Linking.parse(url);
 
     // Route based on hostname
-    if (parsed.hostname === 'challenge') {
-      return parseChallengeLink(parsed);
-    } else if (parsed.hostname === 'widget-answer') {
+    if (parsed.hostname === 'widget-answer') {
       return parseWidgetAnswerLink(parsed);
     } else if (parsed.hostname === 'widget-spell') {
       return parseWidgetSpellLink(parsed);
@@ -48,21 +44,6 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
     console.error('[DeepLink] Failed to parse URL:', url, error);
     return null;
   }
-}
-
-function parseSourceParam(parsed: ReturnType<typeof Linking.parse>): string | null {
-  const rawSource = parsed.queryParams?.source as string;
-  const source = rawSource ? rawSource.slice(0, 64).replace(/[^\x20-\x7E]/g, '') : rawSource;
-  return source || null;
-}
-
-/**
- * Parses a challenge deep link
- */
-function parseChallengeLink(parsed: ReturnType<typeof Linking.parse>): DeepLinkParams | null {
-  const source = parseSourceParam(parsed);
-  if (!source) return null;
-  return { type: 'challenge', params: { source } };
 }
 
 /**

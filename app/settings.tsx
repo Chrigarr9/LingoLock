@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Platform, Pressable, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Text, Switch, IconButton } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -199,8 +199,17 @@ export default function SettingsScreen() {
         try {
           await requestScreenTimeAuth();
           setScreenTimeAuthorized(true);
-        } catch {
-          return; // user denied authorization
+        } catch (error) {
+          console.warn('[Settings] Screen Time authorization denied or failed:', error);
+          Alert.alert(
+            'Screen Time permission required',
+            'LingoLock needs Screen Time access to block apps. Enable it in Settings → Screen Time → Lock Apps & Website Activity, then try again.',
+            [
+              { text: 'OK', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') },
+            ],
+          );
+          return;
         }
       }
       configureShield();

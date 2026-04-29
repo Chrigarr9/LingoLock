@@ -3,14 +3,6 @@
  */
 
 /**
- * Parameters for challenge screen deep linking and routing
- */
-export interface ChallengeParams {
-  /** Source app or label (e.g. "Instagram", "Practice", "Notification") */
-  source: string;
-}
-
-/**
  * Parameters for widget answer deep linking
  * Used when user taps an answer button on the Home Screen or Lock Screen widget
  */

@@ -31,7 +31,8 @@ export function isScreenTimeAvailable(): boolean {
   try {
     const { isAvailable } = require('react-native-device-activity');
     return isAvailable();
-  } catch {
+  } catch (error) {
+    console.error('[ScreenTime] Failed to load native module:', error);
     return false;
   }
 }
@@ -134,11 +135,19 @@ export function startUnlockWindow(): void {
   // Lift shields
   resetBlocks();
 
-  // Calculate 10-minute window from now
+  // DeviceActivityMonitor takes wall-clock time-of-day components, not
+  // absolute dates. If our 10-minute window would cross midnight, clamp
+  // intervalEnd to 23:59:59 today rather than wrap into tomorrow — iOS's
+  // straddle-midnight semantics for `repeats: false` are ambiguous across
+  // versions. Users who unlock right before midnight get a shorter window;
+  // a future improvement could chain a second monitor for after midnight.
   const now = new Date();
-  const end = new Date(now.getTime() + UNLOCK_MINUTES * 60 * 1000);
+  const intendedEnd = new Date(now.getTime() + UNLOCK_MINUTES * 60 * 1000);
+  const crossesMidnight = intendedEnd.getDate() !== now.getDate();
+  const end = crossesMidnight
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    : intendedEnd;
 
-  // Start monitor — intervalDidEnd will fire and execute the re-blocking action
   startMonitoring(
     MONITOR_NAME,
     {
