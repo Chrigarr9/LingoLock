@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class DeckInfo(BaseModel):
     name: str
     id: str
+    type: str = "story"  # "story" (full pipeline) or "travel" (lightweight)
 
 
 class Languages(BaseModel):
@@ -56,6 +57,7 @@ class StoryConfig(BaseModel):
     frequency_file: str | None = None  # Path to frequency word list (relative to config dir)
     narration_style: str = "third-person"  # "third-person" or "first-person"
     audit_max_iterations: int = 1  # Max find→fix cycles in story audit
+    grammar_constraints: str = ""  # Travel decks: injected into story gen prompt (e.g. "simple present only")
 
 
 class ModelConfig(BaseModel):
@@ -67,18 +69,23 @@ class ModelConfig(BaseModel):
 
 
 class ModelsConfig(BaseModel):
-    """Per-step model configuration. Each pipeline pass uses its own model."""
+    """Per-step model configuration. Each pipeline pass uses its own model.
+
+    Travel decks only require story_generation, translation, and word_extraction.
+    Other fields are optional and only used by the full story pipeline.
+    """
     story_generation: ModelConfig
-    cefr_simplification: ModelConfig
-    grammar: ModelConfig
-    gap_filling: ModelConfig
-    chapter_audit: ModelConfig
-    story_review: ModelConfig      # Pass 5a: find issues (e.g. Sonnet)
-    story_fix: ModelConfig         # Pass 5b: fix issues in parallel (e.g. Gemini Flash)
-    image_review: ModelConfig      # Pass 5c: review image prompts
-    image_fix: ModelConfig         # Pass 5c: fix image prompts in parallel
     translation: ModelConfig
     word_extraction: ModelConfig
+    # Full pipeline only — optional for travel decks
+    cefr_simplification: ModelConfig | None = None
+    grammar: ModelConfig | None = None
+    gap_filling: ModelConfig | None = None
+    chapter_audit: ModelConfig | None = None
+    story_review: ModelConfig | None = None      # Pass 5a: find issues (e.g. Sonnet)
+    story_fix: ModelConfig | None = None         # Pass 5b: fix issues in parallel (e.g. Gemini Flash)
+    image_review: ModelConfig | None = None      # Pass 5c: review image prompts
+    image_fix: ModelConfig | None = None         # Pass 5c: fix image prompts in parallel
     lemmatization: ModelConfig | None = None  # Falls back to cefr_simplification
 
 
@@ -129,3 +136,32 @@ def load_config(path: Path) -> DeckConfig:
     with open(path) as f:
         raw = yaml.safe_load(f)
     return DeckConfig(**raw)
+
+
+# ── Travel deck config ────────────────────────────────────────────────────
+
+class TravelModelsConfig(BaseModel):
+    """Model config for the travel pipeline — only phrase generation is required."""
+    phrase_generation: ModelConfig
+
+
+class TravelDeckConfig(BaseModel):
+    """Lightweight config for travel quick-decks.
+
+    No story, no characters, no CEFR levels — just a language pair,
+    a destination, and model config for phrase generation + media.
+    """
+    deck: DeckInfo
+    languages: Languages
+    destination: Destination
+    models: TravelModelsConfig
+    image_generation: ImageGenerationConfig | None = None
+    audio_generation: AudioGenerationConfig | None = None
+
+
+def load_travel_config(path: Path) -> TravelDeckConfig:
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with open(path) as f:
+        raw = yaml.safe_load(f)
+    return TravelDeckConfig(**raw)

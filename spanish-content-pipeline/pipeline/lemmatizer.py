@@ -46,10 +46,19 @@ _models: dict[str, Language] = {}
 
 
 def _get_model(lang: str) -> Language:
-    """Load and cache a spaCy model for the given language code."""
+    """Load and cache a spaCy model for the given language code.
+
+    Falls back to the multi-language model (xx_sent_ud_sm) for languages
+    without a dedicated spaCy model. The multi-language model provides
+    tokenization and sentence splitting but limited POS/lemma support.
+    """
     if lang not in _models:
         model_name = f"{lang}_core_news_sm"
-        _models[lang] = spacy.load(model_name)
+        try:
+            _models[lang] = spacy.load(model_name)
+        except OSError:
+            print(f"  [lemmatizer] No spaCy model for '{lang}', falling back to multi-language model")
+            _models[lang] = spacy.load("xx_sent_ud_sm")
     return _models[lang]
 
 
@@ -66,12 +75,16 @@ def lemmatize_text(text: str, lang: str) -> list[TokenInfo]:
 
     for sent_idx, sent in enumerate(doc.sents):
         for token in sent:
-            if token.pos_ in ("PUNCT", "SPACE", "X", "SYM"):
+            pos = token.pos_
+            # Skip punctuation/space (by POS or by character class for fallback models)
+            if pos in ("PUNCT", "SPACE", "X", "SYM"):
                 continue
+            if not pos and token.text.strip() and not token.text[0].isalpha():
+                continue  # Fallback model: skip non-alphabetic tokens
             tokens.append(TokenInfo(
                 text=token.text,
-                lemma=token.lemma_.lower(),
-                pos=token.pos_,
+                lemma=token.lemma_.lower() if token.lemma_ else token.text.lower(),
+                pos=pos or "UNKNOWN",
                 morph=str(token.morph),
                 sentence_index=sent_idx,
             ))

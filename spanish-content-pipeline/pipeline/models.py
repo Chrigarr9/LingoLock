@@ -17,6 +17,7 @@ class SentencePair(BaseModel):
 class WordAnnotation(BaseModel):
     source: str        # Word as it appears in text
     target: str        # Contextual translation in native language
+    target_general: str = ""  # General/dictionary translation of the lemma (e.g. "Typ, Art" for "tipo")
     lemma: str         # Base/dictionary form
     pos: str           # Part of speech
     context_note: str = ""  # Grammar note (e.g. "3rd person singular present")

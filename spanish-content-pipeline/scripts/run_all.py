@@ -242,20 +242,39 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
         print(f"  Chapter {i+1}: {ch.title} ({scenes_count} scenes, {shots_count} shots)")
 
     # Pass 1: CEFR simplification → stories/
-    cost.begin("Pass 1: CEFR Simplification")
-    print("\n=== Pass 1: CEFR Simplification ===")
-    llm_simplify = create_model_client(config.models.cefr_simplification)
-    simplifier = CEFRSimplifier(config, llm_simplify, output_base=output_base)
+    # Travel decks skip simplification — raw stories are already at target level.
+    is_travel = getattr(config.deck, "type", "story") == "travel"
     chapter_scenes: dict[int, ChapterScene] = {}
     stories: dict[int, str] = {}
-    for idx, i in enumerate(chapter_range):
-        ch = config.story.chapters[i]
-        cefr = ch.cefr_level or config.story.cefr_level
-        print(f"  Chapter {i+1}: {ch.title} [{cefr}]...", end=" ", flush=True)
-        chapter_scenes[i], resp = simplifier.simplify_chapter(i, raw_chapters[idx])
-        cost.add(resp)
-        stories[i] = extract_flat_text(chapter_scenes[i])
-        print("done")
+    if is_travel:
+        cost.begin("Pass 1: Copy Raw → Stories (travel)")
+        print("\n=== Pass 1: Copy Raw → Stories (travel — no CEFR simplification) ===")
+        stories_dir = output_base / config.deck.id / "stories"
+        stories_dir.mkdir(parents=True, exist_ok=True)
+        for idx, i in enumerate(chapter_range):
+            ch = config.story.chapters[i]
+            chapter_scenes[i] = raw_chapters[idx]
+            stories[i] = extract_flat_text(chapter_scenes[i])
+            # Write to stories/ (same format as CEFR output)
+            story_path = stories_dir / f"chapter_{i + 1:02d}.json"
+            if not story_path.exists():
+                story_path.write_text(json.dumps(
+                    chapter_scenes[i].model_dump(), ensure_ascii=False, indent=2,
+                ))
+            print(f"  Chapter {i+1}: {ch.title} (copied)")
+    else:
+        cost.begin("Pass 1: CEFR Simplification")
+        print("\n=== Pass 1: CEFR Simplification ===")
+        llm_simplify = create_model_client(config.models.cefr_simplification)
+        simplifier = CEFRSimplifier(config, llm_simplify, output_base=output_base)
+        for idx, i in enumerate(chapter_range):
+            ch = config.story.chapters[i]
+            cefr = ch.cefr_level or config.story.cefr_level
+            print(f"  Chapter {i+1}: {ch.title} [{cefr}]...", end=" ", flush=True)
+            chapter_scenes[i], resp = simplifier.simplify_chapter(i, raw_chapters[idx])
+            cost.add(resp)
+            stories[i] = extract_flat_text(chapter_scenes[i])
+            print("done")
 
     # Pass 2: Grammar Audit + Gap Fill (before translation — source only)
     if config.story.grammar_targets:
@@ -458,77 +477,83 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
                 print("  Coverage target met — no gaps to fill.")
 
     # Pass 4b: Per-Chapter Narrative Audit (runs for all chapters, not just gap-filled ones)
-    cost.begin("Pass 4b: Chapter Audit")
-    from pipeline.chapter_auditor import audit_chapter, apply_chapter_actions
+    # Travel decks skip this — simple stories don't need narrative auditing.
+    if is_travel:
+        print("\n=== Pass 4b: Chapter Audit [SKIPPED — travel] ===")
+    else:
+        cost.begin("Pass 4b: Chapter Audit")
+        from pipeline.chapter_auditor import audit_chapter, apply_chapter_actions
 
-    print("\n=== Pass 4b: Per-Chapter Narrative Audit ===")
-    llm_ch_audit = create_model_client(config.models.chapter_audit)
+        print("\n=== Pass 4b: Per-Chapter Narrative Audit ===")
+        llm_ch_audit = create_model_client(config.models.chapter_audit)
 
-    for ch_idx in chapter_range:
-        if ch_idx not in chapter_scenes:
-            continue
-        ch_num = ch_idx + 1
+        for ch_idx in chapter_range:
+            if ch_idx not in chapter_scenes:
+                continue
+            ch_num = ch_idx + 1
 
-        ch_config = {
-            "title": config.story.chapters[ch_idx].title,
-            "cefr_level": config.story.chapters[ch_idx].cefr_level or config.story.cefr_level,
-            "context": config.story.chapters[ch_idx].context,
-        }
+            ch_config = {
+                "title": config.story.chapters[ch_idx].title,
+                "cefr_level": config.story.chapters[ch_idx].cefr_level or config.story.cefr_level,
+                "context": config.story.chapters[ch_idx].context,
+            }
 
-        # Filter characters to this chapter
-        ch_chars = [{"name": config.protagonist.name, "role": "protagonist"}]
-        for sc_char in config.secondary_characters:
-            if ch_num in sc_char.chapters:
-                ch_chars.append({"name": sc_char.name, "role": sc_char.role or "secondary character"})
+            # Filter characters to this chapter
+            ch_chars = [{"name": config.protagonist.name, "role": "protagonist"}]
+            for sc_char in config.secondary_characters:
+                if ch_num in sc_char.chapters:
+                    ch_chars.append({"name": sc_char.name, "role": sc_char.role or "secondary character"})
 
-        gap_words = gap_words_by_chapter.get(ch_num, [])
+            gap_words = gap_words_by_chapter.get(ch_num, [])
 
-        actions, ch_audit_resp = audit_chapter(
-            chapter_scene=chapter_scenes[ch_idx],
-            chapter_config=ch_config,
-            characters=ch_chars,
-            llm=llm_ch_audit,
-            gap_words=gap_words,
-        )
-        cost.add(ch_audit_resp)
+            actions, ch_audit_resp = audit_chapter(
+                chapter_scene=chapter_scenes[ch_idx],
+                chapter_config=ch_config,
+                characters=ch_chars,
+                llm=llm_ch_audit,
+                gap_words=gap_words,
+            )
+            cost.add(ch_audit_resp)
 
-        if actions:
-            rewrites = sum(1 for a in actions if a.action == "rewrite")
-            moves = sum(1 for a in actions if a.action == "move_shot")
-            removals = sum(1 for a in actions if a.action == "remove_shot")
-            parts = []
-            if rewrites: parts.append(f"{rewrites} rewrites")
-            if moves: parts.append(f"{moves} moves")
-            if removals: parts.append(f"{removals} removals")
-            print(f"  Chapter {ch_num}: {', '.join(parts)}")
-            for a in actions:
-                if a.action == "rewrite":
-                    print(f"    [sent {a.sentence_index}] {a.reason}")
-                    print(f"      {a.original}")
-                    print(f"      → {a.fixed}")
-                elif a.action == "move_shot":
-                    print(f"    [shot {a.shot_index}] MOVE after shot {a.move_after}: {a.reason}")
-                else:
-                    print(f"    [shot {a.shot_index}] REMOVE: {a.reason}")
+            if actions:
+                rewrites = sum(1 for a in actions if a.action == "rewrite")
+                moves = sum(1 for a in actions if a.action == "move_shot")
+                removals = sum(1 for a in actions if a.action == "remove_shot")
+                parts = []
+                if rewrites: parts.append(f"{rewrites} rewrites")
+                if moves: parts.append(f"{moves} moves")
+                if removals: parts.append(f"{removals} removals")
+                print(f"  Chapter {ch_num}: {', '.join(parts)}")
+                for a in actions:
+                    if a.action == "rewrite":
+                        print(f"    [sent {a.sentence_index}] {a.reason}")
+                        print(f"      {a.original}")
+                        print(f"      → {a.fixed}")
+                    elif a.action == "move_shot":
+                        print(f"    [shot {a.shot_index}] MOVE after shot {a.move_after}: {a.reason}")
+                    else:
+                        print(f"    [shot {a.shot_index}] REMOVE: {a.reason}")
 
-            chapter_scenes[ch_idx] = apply_chapter_actions(chapter_scenes[ch_idx], actions)
-            story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"
-            story_path.write_text(json.dumps(
-                chapter_scenes[ch_idx].model_dump(), ensure_ascii=False, indent=2,
-            ))
-            stories[ch_idx] = extract_flat_text(chapter_scenes[ch_idx])
-        else:
-            print(f"  Chapter {ch_num}: no issues found")
+                chapter_scenes[ch_idx] = apply_chapter_actions(chapter_scenes[ch_idx], actions)
+                story_path = output_base / config.deck.id / "stories" / f"chapter_{ch_num:02d}.json"
+                story_path.write_text(json.dumps(
+                    chapter_scenes[ch_idx].model_dump(), ensure_ascii=False, indent=2,
+                ))
+                stories[ch_idx] = extract_flat_text(chapter_scenes[ch_idx])
+            else:
+                print(f"  Chapter {ch_num}: no issues found")
 
     # Pass 5: Story Audit — iterative find→fix loop
-    cost.begin("Pass 5: Story Audit")
-    from pipeline.story_auditor import find_issues, fix_issues_parallel, apply_fixes, dedup_consecutive_sentences
-
+    # Travel decks skip this (audit_max_iterations=0 in config).
     max_iterations = config.story.audit_max_iterations
-    llm_review = create_model_client(config.models.story_review)
-    llm_fix = create_model_client(config.models.story_fix)
-
     audit_log: dict = {"iterations": [], "image_audit": None, "unnamed_characters": []}
+
+    if max_iterations > 0 and not is_travel:
+        cost.begin("Pass 5: Story Audit")
+        from pipeline.story_auditor import find_issues, fix_issues_parallel, apply_fixes, dedup_consecutive_sentences
+
+        llm_review = create_model_client(config.models.story_review)
+        llm_fix = create_model_client(config.models.story_fix)
 
     # Build characters list from config
     characters = [{"name": config.protagonist.name, "role": "protagonist"}]

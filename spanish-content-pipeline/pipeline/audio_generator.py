@@ -65,8 +65,11 @@ class AudioGenerator:
         """Call Gemini TTS generateContent. Returns raw PCM16 bytes."""
         model = self._audio_config.model
         url = f"{GEMINI_TTS_BASE_URL}/{model}:generateContent"
+        # Prepend a spoken-style instruction in the text itself.
+        # systemInstruction causes 500 errors on the preview TTS model.
+        tts_text = f"Say the following out loud, clearly and naturally: {text}"
         payload = {
-            "contents": [{"parts": [{"text": text}]}],
+            "contents": [{"parts": [{"text": tts_text}]}],
             "generationConfig": {
                 "responseModalities": ["AUDIO"],
                 "speechConfig": {

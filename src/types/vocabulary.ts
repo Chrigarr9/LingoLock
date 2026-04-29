@@ -92,6 +92,8 @@ export interface ClozeCard {
   wordInContext: string;
   /** Contextual German translation hint (e.g., "Zimmer") */
   germanHint: string;
+  /** General/dictionary translation when it differs from contextual (e.g., "Typ, Art" when germanHint is "Mensch") */
+  germanHintGeneral?: string;
   /** Spanish sentence with _____ replacing the target word */
   sentence: string;
   /** Full German translation of the sentence (shown after answering) */

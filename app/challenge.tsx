@@ -529,10 +529,12 @@ export default function ChallengeScreen() {
                 />
 
                 {!showAnswer && currentCard.card.kind === 'cloze' && (
-                  <LetterScramble
-                    word={currentCard.card.wordInContext}
-                    onSubmit={handleTextSubmit}
-                  />
+                  <View style={styles.mcGrid}>
+                    <LetterScramble
+                      word={currentCard.card.wordInContext}
+                      onSubmit={handleTextSubmit}
+                    />
+                  </View>
                 )}
               </View>
             )}

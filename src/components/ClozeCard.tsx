@@ -65,8 +65,11 @@ export function ClozeCardDisplay({
   // Subtract the non-image parts of the card (text, hint, padding) and siblings
   // (MC grid / input area, answer reveal, next button, area padding).
   // MC: card text ~94 + grid ~190 + next ~60 + gaps ~48 = ~392
-  // Text: card text ~94 + input ~56 + gaps ~44 = ~194 (+ keyboard shrinks contentHeight)
-  const nonImageOverhead = answerType === 'text' ? 194 : 392;
+  // Text (no keyboard): card text ~94 + input ~56 + gaps ~44 = ~194
+  // Text (keyboard up): card text with padding ~140 + input area ~76 + margins ~44 = ~260
+  //   The input field must remain visible above the keyboard, so reserve more space.
+  const textOverhead = keyboardHeight > 0 ? 260 : 194;
+  const nonImageOverhead = answerType === 'text' ? textOverhead : 392;
   const availableForImage = contentHeight - nonImageOverhead;
   const imageMaxHeight = Math.max(0, Math.min(220, availableForImage));
   const shouldShowImage = imageMaxHeight >= 40;
@@ -233,6 +236,11 @@ export function ClozeCardDisplay({
               style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
             >
               {card.germanHint}
+              {card.germanHintGeneral ? (
+                <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
+                  {`  (${card.germanHintGeneral})`}
+                </Text>
+              ) : null}
             </Text>
           </Pressable>
           {sessionCard.isFirstEncounter && onAlreadyKnow && (
@@ -344,6 +352,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     fontSize: 17,
+  },
+  germanHintGeneral: {
+    fontWeight: '400',
+    fontSize: 14,
+    opacity: 0.7,
   },
   alreadyKnowLink: {
     textDecorationLine: 'underline',
