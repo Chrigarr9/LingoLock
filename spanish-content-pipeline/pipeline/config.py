@@ -136,3 +136,32 @@ def load_config(path: Path) -> DeckConfig:
     with open(path) as f:
         raw = yaml.safe_load(f)
     return DeckConfig(**raw)
+
+
+# ── Travel deck config ────────────────────────────────────────────────────
+
+class TravelModelsConfig(BaseModel):
+    """Model config for the travel pipeline — only phrase generation is required."""
+    phrase_generation: ModelConfig
+
+
+class TravelDeckConfig(BaseModel):
+    """Lightweight config for travel quick-decks.
+
+    No story, no characters, no CEFR levels — just a language pair,
+    a destination, and model config for phrase generation + media.
+    """
+    deck: DeckInfo
+    languages: Languages
+    destination: Destination
+    models: TravelModelsConfig
+    image_generation: ImageGenerationConfig | None = None
+    audio_generation: AudioGenerationConfig | None = None
+
+
+def load_travel_config(path: Path) -> TravelDeckConfig:
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with open(path) as f:
+        raw = yaml.safe_load(f)
+    return TravelDeckConfig(**raw)

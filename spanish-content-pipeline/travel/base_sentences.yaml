@@ -1,0 +1,308 @@
+# Universal travel phrase base — language-agnostic
+#
+# `en` is the source concept (used to generate phrases in any language pair).
+# `image_prompt` is used to generate the shared image once for all decks.
+# Images are stored in output/travel-base/images/<id>.<ext> and reused.
+
+sentences:
+
+  # ── GREETINGS ────────────────────────────────────────────────────────────
+
+  - id: "hello"
+    category: "greetings"
+    en: "Hello"
+    image_prompt: "Two people smiling and waving hello to each other on a sunny city street, warm and friendly, cartoon illustration style"
+
+  - id: "good_morning"
+    category: "greetings"
+    en: "Good morning"
+    image_prompt: "Person greeting someone cheerfully at a bright sunny morning, coffee in hand, friendly smile, cartoon illustration style"
+
+  - id: "good_evening"
+    category: "greetings"
+    en: "Good evening"
+    image_prompt: "Two people greeting each other warmly at dusk, city lights beginning to glow in the background, cartoon illustration style"
+
+  - id: "good_night"
+    category: "greetings"
+    en: "Good night"
+    image_prompt: "Person waving goodnight at a doorway, warm indoor light behind them, night sky visible, cartoon illustration style"
+
+  - id: "goodbye"
+    category: "greetings"
+    en: "Goodbye"
+    image_prompt: "Two people waving goodbye to each other outside, one walking away with a suitcase, friendly parting, cartoon illustration style"
+
+  - id: "see_you_later"
+    category: "greetings"
+    en: "See you later"
+    image_prompt: "Two friends parting on a street corner, one waving and smiling, casual and relaxed, cartoon illustration style"
+
+  - id: "please"
+    category: "greetings"
+    en: "Please"
+    image_prompt: "Person politely gesturing with open hand, friendly and respectful expression, cafe or shop setting, cartoon illustration style"
+
+  - id: "thank_you"
+    category: "greetings"
+    en: "Thank you"
+    image_prompt: "Person nodding thankfully with a warm smile, hand on chest, receiving something from another person, cartoon illustration style"
+
+  - id: "thank_you_very_much"
+    category: "greetings"
+    en: "Thank you very much"
+    image_prompt: "Person bowing slightly in gratitude, big warm smile, both hands pressed together in appreciation, cartoon illustration style"
+
+  # ── COMMUNICATION ────────────────────────────────────────────────────────
+
+  - id: "excuse_me"
+    category: "communication"
+    en: "Excuse me / Sorry"
+    image_prompt: "Person politely raising a hand to get attention, gentle expression, busy public setting, cartoon illustration style"
+
+  - id: "yes"
+    category: "communication"
+    en: "Yes"
+    image_prompt: "Person nodding enthusiastically with a thumbs up and a big smile, clear and positive, cartoon illustration style"
+
+  - id: "no"
+    category: "communication"
+    en: "No"
+    image_prompt: "Person shaking their head gently with a polite smile, friendly refusal gesture, cartoon illustration style"
+
+  - id: "do_you_speak_english"
+    category: "communication"
+    en: "Do you speak English?"
+    image_prompt: "Tourist holding a small phrasebook asking a local, speech bubble with question mark, hopeful expression, cartoon illustration style"
+
+  - id: "i_dont_understand"
+    category: "communication"
+    en: "I don't understand"
+    image_prompt: "Person with a puzzled expression and raised eyebrows, tilting head slightly, friendly confusion, cartoon illustration style"
+
+  - id: "more_slowly_please"
+    category: "communication"
+    en: "More slowly, please"
+    image_prompt: "Person gently gesturing with both hands palm-down in a slow-down motion, patient expression, cartoon illustration style"
+
+  - id: "i_speak_a_little"
+    category: "communication"
+    en: "I speak a little [language]"
+    image_prompt: "Person holding up two fingers close together to indicate 'a little', modest and friendly smile, cartoon illustration style"
+
+  # ── ORDERING FOOD & DRINKS ───────────────────────────────────────────────
+
+  - id: "the_menu_please"
+    category: "ordering"
+    en: "The menu, please"
+    image_prompt: "Diner at a restaurant table holding up a finger to get a waiter's attention, menu visible nearby, cartoon illustration style"
+
+  - id: "what_do_you_recommend"
+    category: "ordering"
+    en: "What do you recommend?"
+    image_prompt: "Customer leaning forward curiously at a restaurant counter, waiter pointing to a dish with enthusiasm, cartoon illustration style"
+
+  - id: "a_beer_please"
+    category: "ordering"
+    en: "A beer, please"
+    image_prompt: "Hand raising a golden beer glass in a cheerful bar setting, warm amber light, foam on top, cartoon illustration style"
+
+  - id: "a_coffee_please"
+    category: "ordering"
+    en: "A coffee, please"
+    image_prompt: "Person at a cafe counter pointing to a coffee cup with a friendly smile, barista ready to help, cartoon illustration style"
+
+  - id: "a_glass_of_wine_please"
+    category: "ordering"
+    en: "A glass of wine, please"
+    image_prompt: "Elegant wine glass being poured at a restaurant table, warm candlelight ambiance, cartoon illustration style"
+
+  - id: "water_please"
+    category: "ordering"
+    en: "Water, please"
+    image_prompt: "Person pointing to a glass of water on a cafe table, refreshing and simple, bright setting, cartoon illustration style"
+
+  - id: "one_more_please"
+    category: "ordering"
+    en: "One more, please"
+    image_prompt: "Person holding up one finger cheerfully at a bar, empty glass in front of them, smiling at the bartender, cartoon illustration style"
+
+  - id: "delicious"
+    category: "ordering"
+    en: "Delicious!"
+    image_prompt: "Person tasting food at a restaurant, eyes wide with delight, hand on cheek, genuinely happy expression, cartoon illustration style"
+
+  - id: "the_bill_please"
+    category: "ordering"
+    en: "The bill, please"
+    image_prompt: "Person at a restaurant table making a writing gesture in the air to signal for the check, smiling at waiter, cartoon illustration style"
+
+  - id: "i_pay_by_card"
+    category: "ordering"
+    en: "I'll pay by card"
+    image_prompt: "Hand holding a credit card over a card payment terminal, simple modern cafe counter, cartoon illustration style"
+
+  # ── GETTING AROUND ───────────────────────────────────────────────────────
+
+  - id: "where_is_the_toilet"
+    category: "navigation"
+    en: "Where is the toilet?"
+    image_prompt: "Person looking around in a public place, gesturing questioningly, restroom sign visible in background, cartoon illustration style"
+
+  - id: "where_is_the_train_station"
+    category: "navigation"
+    en: "Where is the train station?"
+    image_prompt: "Tourist with a backpack looking at a phone map, train station building visible in the background, cartoon illustration style"
+
+  - id: "where_is_the_airport"
+    category: "navigation"
+    en: "Where is the airport?"
+    image_prompt: "Person with luggage asking for directions, airplane visible in the sky above a city street, cartoon illustration style"
+
+  - id: "a_taxi_please"
+    category: "navigation"
+    en: "A taxi, please"
+    image_prompt: "Person standing on a curb with arm raised hailing a yellow taxi cab on a busy city street, cartoon illustration style"
+
+  - id: "how_much_is_the_fare"
+    category: "navigation"
+    en: "How much is the fare?"
+    image_prompt: "Passenger leaning forward in a taxi asking the driver, meter visible on the dashboard, cartoon illustration style"
+
+  - id: "to_the_left"
+    category: "navigation"
+    en: "To the left"
+    image_prompt: "Street corner with a clear left-pointing arrow sign, bright and simple, cartoon illustration style"
+
+  - id: "to_the_right"
+    category: "navigation"
+    en: "To the right"
+    image_prompt: "Street corner with a clear right-pointing arrow sign, bright and simple, cartoon illustration style"
+
+  - id: "straight_ahead"
+    category: "navigation"
+    en: "Straight ahead"
+    image_prompt: "Long straight city street with a forward-pointing arrow on the road, clear blue sky above, cartoon illustration style"
+
+  - id: "one_ticket_please"
+    category: "navigation"
+    en: "One ticket, please"
+    image_prompt: "Person at a ticket counter holding up one finger, transit booth visible in background, cartoon illustration style"
+
+  # ── ACCOMMODATION ────────────────────────────────────────────────────────
+
+  - id: "i_have_a_reservation"
+    category: "accommodation"
+    en: "I have a reservation"
+    image_prompt: "Person at a hotel front desk, smiling at the receptionist, luggage beside them, warm hotel lobby, cartoon illustration style"
+
+  - id: "the_key_please"
+    category: "accommodation"
+    en: "The key, please"
+    image_prompt: "Hotel receptionist handing a room key card to a smiling guest, clean modern hotel front desk, cartoon illustration style"
+
+  - id: "what_is_the_wifi_password"
+    category: "accommodation"
+    en: "What is the WiFi password?"
+    image_prompt: "Person at a hotel holding their phone, asking staff, WiFi symbol visible on a small sign nearby, cartoon illustration style"
+
+  - id: "where_is_my_room"
+    category: "accommodation"
+    en: "Where is my room?"
+    image_prompt: "Guest in a hotel corridor looking at room numbers, key card in hand, puzzled friendly expression, cartoon illustration style"
+
+  - id: "do_you_have_a_room"
+    category: "accommodation"
+    en: "Do you have a room available?"
+    image_prompt: "Traveller with a backpack at a small hotel front desk, looking hopeful, receptionist checking availability, cartoon illustration style"
+
+  # ── SHOPPING ─────────────────────────────────────────────────────────────
+
+  - id: "how_much_is_this"
+    category: "shopping"
+    en: "How much is this?"
+    image_prompt: "Person at a market stall pointing to an item with a curious expression, vendor ready to answer, cartoon illustration style"
+
+  - id: "too_expensive"
+    category: "shopping"
+    en: "Too expensive"
+    image_prompt: "Person looking at a price tag with raised eyebrows and a surprised expression, shaking head slightly, cartoon illustration style"
+
+  - id: "ill_take_this_one"
+    category: "shopping"
+    en: "I'll take this one"
+    image_prompt: "Customer at a shop counter pointing decisively to their choice, satisfied smile, cartoon illustration style"
+
+  - id: "do_you_have_smaller"
+    category: "shopping"
+    en: "Do you have a smaller one?"
+    image_prompt: "Person in a shop holding up an item and gesturing smaller with pinched fingers, asking the shopkeeper, cartoon illustration style"
+
+  - id: "do_you_have_bigger"
+    category: "shopping"
+    en: "Do you have a bigger one?"
+    image_prompt: "Person in a shop spreading hands wider to indicate bigger, shopkeeper looking through options, cartoon illustration style"
+
+  # ── EMERGENCIES ──────────────────────────────────────────────────────────
+
+  - id: "help"
+    category: "emergencies"
+    en: "Help!"
+    image_prompt: "Person waving both arms urgently to get attention in a public space, concerned expression, cartoon illustration style"
+
+  - id: "call_a_doctor"
+    category: "emergencies"
+    en: "Call a doctor!"
+    image_prompt: "Person making a phone gesture urgently while pointing to someone who needs help, concerned bystanders, cartoon illustration style"
+
+  - id: "i_am_sick"
+    category: "emergencies"
+    en: "I'm sick"
+    image_prompt: "Person holding their stomach looking unwell, sitting down, someone nearby offering assistance, cartoon illustration style"
+
+  - id: "where_is_the_pharmacy"
+    category: "emergencies"
+    en: "Where is the pharmacy?"
+    image_prompt: "Person on a city street looking for a pharmacy, green cross pharmacy sign visible nearby, cartoon illustration style"
+
+  - id: "i_am_lost"
+    category: "emergencies"
+    en: "I'm lost"
+    image_prompt: "Tourist looking confused at a street corner, holding a map, looking around for landmarks, cartoon illustration style"
+
+  - id: "call_the_police"
+    category: "emergencies"
+    en: "Call the police!"
+    image_prompt: "Person urgently gesturing to call for help, police station or officer visible in the background, cartoon illustration style"
+
+  # ── SOCIAL & APPRECIATION ────────────────────────────────────────────────
+
+  - id: "cheers"
+    category: "social"
+    en: "Cheers!"
+    image_prompt: "Two people clinking glasses together with big smiles, warm bar or restaurant setting, festive atmosphere, cartoon illustration style"
+
+  - id: "beautiful"
+    category: "social"
+    en: "Beautiful!"
+    image_prompt: "Person looking out at a beautiful cityscape or landmark with an expression of awe and delight, cartoon illustration style"
+
+  - id: "i_love_it_here"
+    category: "social"
+    en: "I love it here"
+    image_prompt: "Happy tourist with arms slightly spread, smiling broadly at a scenic city location, genuinely joyful, cartoon illustration style"
+
+  - id: "can_i_take_a_photo"
+    category: "social"
+    en: "Can I take a photo here?"
+    image_prompt: "Person holding up a phone to take a photo, looking at a local questioningly, polite expression, cartoon illustration style"
+
+  - id: "happy_to_be_here"
+    category: "social"
+    en: "I'm happy to be here"
+    image_prompt: "Traveller sitting at a cafe with a coffee, relaxed and content, looking around the city with a warm smile, cartoon illustration style"
+
+  - id: "this_city_is_wonderful"
+    category: "social"
+    en: "This city is wonderful!"
+    image_prompt: "Person gesturing enthusiastically at a beautiful city street or square, local listening and smiling proudly, cartoon illustration style"

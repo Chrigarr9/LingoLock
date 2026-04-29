@@ -40,9 +40,10 @@ export function AnswerInput({
         returnKeyType="done"
         onSubmitEditing={handleSubmit}
         disabled={disabled}
-        style={[styles.input, { backgroundColor: theme.custom.glassBackground }]}
-        outlineStyle={{ borderRadius: 20, borderColor: theme.custom.glassBorder }}
+        style={styles.input}
+        outlineStyle={{ borderRadius: 20 }}
         activeOutlineColor={theme.colors.primary}
+        outlineColor={theme.colors.outline}
         placeholderTextColor={theme.colors.onSurfaceVariant}
       />
       {!hideButton && (
