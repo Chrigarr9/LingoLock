@@ -10,6 +10,7 @@ from pathlib import Path
 
 import httpx
 
+from pipeline.asset_compressor import AUDIO_TARGET_EXT, normalize_audio
 from pipeline.config import DeckConfig
 from pipeline.models import AudioManifest, AudioManifestEntry, SentencePair
 
@@ -208,8 +209,11 @@ class AudioGenerator:
                     abs_path.parent.mkdir(parents=True, exist_ok=True)
                     abs_path.write_bytes(audio_bytes)
 
+                    final_path = normalize_audio(abs_path)
+                    final_rel = final_path.relative_to(self._deck_dir())
+
                     return AudioManifestEntry(
-                        file=rel_path,
+                        file=str(final_rel),
                         status="success",
                         content_hash=content_hash,
                     )
@@ -245,8 +249,19 @@ class AudioGenerator:
                 entry = AudioManifestEntry(**entry_data)
                 # Only keep successful entries where file actually exists
                 if entry.status == "success" and entry.file:
-                    if (self._deck_dir() / entry.file).exists():
-                        existing_audio[key] = entry
+                    abs_path = self._deck_dir() / entry.file
+                    if not abs_path.exists():
+                        continue
+                    # Upgrade legacy formats (WAV/MP3) to AAC in place.
+                    if abs_path.suffix.lower() != AUDIO_TARGET_EXT:
+                        upgraded = normalize_audio(abs_path)
+                        upgraded_rel = upgraded.relative_to(self._deck_dir())
+                        entry = AudioManifestEntry(
+                            file=str(upgraded_rel),
+                            status="success",
+                            content_hash=entry.content_hash,
+                        )
+                    existing_audio[key] = entry
 
         # Generate audio for each sentence
         all_audio = dict(existing_audio)

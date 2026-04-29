@@ -113,7 +113,7 @@ if (fs.existsSync(IMAGES_SRC_DIR)) {
 
 // ── Copy audio (deck-specific dir) ───────────────────────────────────────
 
-const audioKeys = new Set<string>(); // sentence id
+const audioKeys = new Map<string, string>(); // id → extension
 
 if (fs.existsSync(AUDIO_SRC_DIR)) {
   fs.mkdirSync(AUDIO_DEST_DIR, { recursive: true });
@@ -125,7 +125,7 @@ if (fs.existsSync(AUDIO_SRC_DIR)) {
     if (!fs.existsSync(dest)) {
       fs.copyFileSync(src, dest);
     }
-    audioKeys.add(id);
+    audioKeys.set(id, ext);
   }
   console.log(`  ${audioKeys.size} audio files for ${DECK_ID}`);
 } else {
@@ -218,9 +218,9 @@ if (imageKeys.size > 0) {
 
 let audioMapBlock: string;
 if (audioKeys.size > 0) {
-  const entries = [...audioKeys]
-    .sort()
-    .map(id => `  '${id}': require('../../../../assets/audio/cards/${DECK_ID}/${id}.wav'),`)
+  const entries = [...audioKeys.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, ext]) => `  '${id}': require('../../../../assets/audio/cards/${DECK_ID}/${id}${ext}'),`)
     .join('\n');
   audioMapBlock =
     `/** Audio files for ${DECK_ID} */\n` +

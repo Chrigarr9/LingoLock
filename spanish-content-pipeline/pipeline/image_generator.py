@@ -9,6 +9,7 @@ from pathlib import Path
 
 import httpx
 
+from pipeline.asset_compressor import IMAGE_TARGET_EXT, normalize_image
 from pipeline.config import DeckConfig
 from pipeline.models import ImageManifest, ImageManifestEntry, ImagePrompt, ImagePromptResult
 
@@ -140,7 +141,10 @@ class ImageGenerator:
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             abs_path.write_bytes(image_bytes)
 
-            return ImageManifestEntry(file=rel_path, status="success")
+            final_path = normalize_image(abs_path)
+            final_rel = final_path.relative_to(self._deck_dir())
+
+            return ImageManifestEntry(file=str(final_rel), status="success")
         except Exception as e:
             return ImageManifestEntry(file=None, status="failed", error=str(e))
 
@@ -156,8 +160,14 @@ class ImageGenerator:
                 entry = ImageManifestEntry(**entry_data)
                 if entry.status == "success" and entry.file:
                     abs_path = self._deck_dir() / entry.file
-                    if abs_path.exists():
-                        existing_images[key] = entry
+                    if not abs_path.exists():
+                        continue
+                    # Upgrade legacy formats (PNG/JPEG) to WebP in place.
+                    if abs_path.suffix.lower() != IMAGE_TARGET_EXT:
+                        upgraded = normalize_image(abs_path)
+                        upgraded_rel = upgraded.relative_to(self._deck_dir())
+                        entry = ImageManifestEntry(file=str(upgraded_rel), status="success")
+                    existing_images[key] = entry
 
         # Generate sentence images (dedup identical prompts)
         all_images = dict(existing_images)

@@ -262,7 +262,7 @@ const AUDIO_DEST_DIR = path.join(PROJECT_ROOT, 'assets', 'audio', 'cards', BUNDL
 interface AudioManifestEntry { file: string | null; status: string; }
 interface AudioManifest { audio: Record<string, AudioManifestEntry>; }
 
-const audioKeys = new Set<string>();
+const audioKeys = new Map<string, string>();
 
 if (fs.existsSync(AUDIO_MANIFEST_FILE)) {
   const audioManifest: AudioManifest = JSON.parse(fs.readFileSync(AUDIO_MANIFEST_FILE, 'utf-8'));
@@ -270,9 +270,9 @@ if (fs.existsSync(AUDIO_MANIFEST_FILE)) {
   for (const [key, entry] of Object.entries(audioManifest.audio)) {
     if (entry.status === 'success' && entry.file) {
       const src = path.join(PIPELINE_DIR, entry.file);
-      const ext = path.extname(entry.file) || '.wav';
+      const ext = path.extname(entry.file) || '.m4a';
       const dest = path.join(AUDIO_DEST_DIR, `${key}${ext}`);
-      if (fs.existsSync(src)) { fs.copyFileSync(src, dest); audioKeys.add(key); }
+      if (fs.existsSync(src)) { fs.copyFileSync(src, dest); audioKeys.set(key, ext); }
     }
   }
   console.log(`  Loaded audio manifest: ${audioKeys.size} audio files copied to ${AUDIO_DEST_DIR}`);
@@ -529,8 +529,8 @@ ${entries}
 // Generate cardAudios map
 let audioMapBlock: string;
 if (audioKeys.size > 0) {
-  const entries = [...audioKeys].sort().map(
-    key => `  '${key}': require('../../../../assets/audio/cards/${BUNDLE_ID}/${key}.wav'),`
+  const entries = [...audioKeys.entries()].sort(([a], [b]) => a.localeCompare(b)).map(
+    ([key, ext]) => `  '${key}': require('../../../../assets/audio/cards/${BUNDLE_ID}/${key}${ext}'),`
   ).join('\n');
   audioMapBlock = `/** Audio assets keyed by sentence ID — use cardAudios[card.audio] for playback */\nexport const cardAudios: Record<string, number> = {\n${entries}\n};`;
 } else {

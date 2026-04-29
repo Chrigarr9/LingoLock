@@ -6,7 +6,6 @@ import { loadEnabledBundles, DEFAULT_BUNDLE_ID } from '../../services/storage';
 import { getImportedDecks } from '../../services/importedDeckStore';
 
 import * as esDeBuenosAires from './es-de-buenos-aires';
-import * as huDeBudapest from './hu-de-budapest';
 
 // ---------------------------------------------------------------------------
 // Card ID namespacing — applied once at the source so ALL downstream code
@@ -39,13 +38,6 @@ const BUILTIN_BUNDLE_MAP: Record<string, Bundle> = {
     simpleCards: [],
     cardImages: esDeBuenosAires.cardImages,
     cardAudios: esDeBuenosAires.cardAudios,
-  },
-  'hu-de-budapest': {
-    config: { ...huDeBudapest.config, type: 'builtin' as const },
-    chapters: huDeBudapest.CHAPTERS,
-    simpleCards: [],
-    cardImages: huDeBudapest.cardImages,
-    cardAudios: huDeBudapest.cardAudios,
   },
 };
 
