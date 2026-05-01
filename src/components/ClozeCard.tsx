@@ -213,7 +213,12 @@ export function ClozeCardDisplay({
           variant="bodyMedium"
           style={[styles.feedbackText, { color: correctColor }]}
         >
-          {`\u2713 ${card.wordInContext}`}
+          {`\u2713 ${card.germanHint}`}
+          {card.germanHintGeneral ? (
+            <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
+              {`  (${card.germanHintGeneral})`}
+            </Text>
+          ) : null}
         </Text>
       )}
 
