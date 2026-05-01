@@ -309,8 +309,10 @@ export default function ChallengeScreen() {
     setAnsweredChoice(choice);
     setUserAnswer(choice);
     const correct = choice === currentCard.card.wordInContext;
+    const isDemotedToMC4 = hintUsed && answerType === 'mc4' && baseAnswerType !== 'mc4';
     if (correct) {
-      handleCorrect(currentCard, 'good');
+      // Demoted to MC4 via hint — visually correct but FSRS penalises as 'again'
+      handleCorrect(currentCard, isDemotedToMC4 ? 'again' : 'good');
     } else {
       handleIncorrect(currentCard);
     }
