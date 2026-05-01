@@ -132,11 +132,11 @@ if (cardState.stability >= 2.5) return 'text';
 
 ---
 
-## Change 4 — Scramble→MC4 Hint Demotion = `'again'`
+## Change 4 — Scramble→MC4 Hint Demotion = `'again'` (correct-looking, wrong FSRS)
 
 **Problem:** `handleMCSelect` always calls `handleCorrect(currentCard, 'good')` on a correct pick, even when the card was hint-demoted from scramble. This records the card as "known" when it wasn't.
 
-**Fix:** In `handleMCSelect`, when `hintUsed` is true and the underlying card was a scramble card (i.e., `baseAnswerType === 'scramble'`), call `handleIncorrect` even on a correct MC4 pick.
+**Fix:** When `hintUsed && baseAnswerType === 'scramble'`, call `handleCorrect(currentCard, 'again')`. This shows the answer as correct visually (green MC tile, checkmark) while applying the FSRS 'again' grade — stability drops and the card is scheduled for an early re-review. The card is **not** re-queued mid-session (no `handleWrongAnswer` call); it just comes back sooner next session.
 
 **File:** `app/challenge.tsx` — `handleMCSelect` (line ~307)
 
@@ -146,35 +146,50 @@ const handleMCSelect = (choice: string) => {
   setAnsweredChoice(choice);
   setUserAnswer(choice);
   const correct = choice === currentCard.card.wordInContext;
-  if (correct && !(hintUsed && baseAnswerType === 'scramble')) {
-    handleCorrect(currentCard, 'good');
-  } else if (correct && hintUsed && baseAnswerType === 'scramble') {
-    // Needed hint to demote from scramble — treat as 'again' regardless of correct pick
-    handleIncorrect(currentCard);
-  } else {
-    handleIncorrect(currentCard);
-  }
-};
-```
-
-Simplifies to:
-
-```ts
-const handleMCSelect = (choice: string) => {
-  if (!currentCard || currentCard.card.kind !== 'cloze') return;
-  setAnsweredChoice(choice);
-  setUserAnswer(choice);
-  const correct = choice === currentCard.card.wordInContext;
   const isScrambleDemotion = hintUsed && baseAnswerType === 'scramble';
-  if (correct && !isScrambleDemotion) {
-    handleCorrect(currentCard, 'good');
+  if (correct) {
+    // Scramble demotion: show correct but penalise FSRS as 'again'
+    handleCorrect(currentCard, isScrambleDemotion ? 'again' : 'good');
   } else {
     handleIncorrect(currentCard);
   }
 };
 ```
 
-Note on visual feedback: `MultipleChoiceGrid` colors choices by comparing `answeredChoice` to `correctAnswer` directly — so the correct tile still highlights green. However, `handleIncorrect` sets `isCorrect(false)`, so the ClozeCard-level feedback (border/icon) shows as incorrect. This is intentional: the user did pick the right option, but they needed a hint to get there, so the card-level state reads as a miss. The card is re-queued and appears again later in the session.
+Visual result: MC grid shows the correct tile green, ClozeCard shows `✓ <germanHint>` (see Change 5), card advances normally in session but FSRS schedules it as a miss.
+
+---
+
+## Change 5 — Show German Word Translation in Correct-Answer Feedback
+
+**Problem:** On a correct non-fuzzy answer, `ClozeCard.tsx` shows `✓ habitación` (the target Spanish word). This duplicates what the user just typed — it doesn't add learning value. The German meaning is more useful.
+
+**Fix:** Replace `card.wordInContext` with `card.germanHint` (plus `germanHintGeneral` when present) in the correct-answer feedback line.
+
+**File:** `src/components/ClozeCard.tsx` (line ~211–218)
+
+```tsx
+// Before
+{showAnswer && isCorrect === true && !isFuzzy && (
+  <Text style={[styles.feedbackText, { color: correctColor }]}>
+    {`✓ ${card.wordInContext}`}
+  </Text>
+)}
+
+// After
+{showAnswer && isCorrect === true && !isFuzzy && (
+  <Text style={[styles.feedbackText, { color: correctColor }]}>
+    {`✓ ${card.germanHint}`}
+    {card.germanHintGeneral ? (
+      <Text style={{ color: theme.colors.onSurfaceVariant, fontWeight: '400' }}>
+        {`  (${card.germanHintGeneral})`}
+      </Text>
+    ) : null}
+  </Text>
+)}
+```
+
+The wrong-answer feedback (`✗ userAnswer`) and fuzzy feedback (`≈ userAnswer`) are unchanged — those already show what the user typed, which is the right context for error feedback.
 
 ---
 
@@ -185,7 +200,7 @@ Note on visual feedback: `MultipleChoiceGrid` colors choices by comparing `answe
 | `src/components/LetterScramble.tsx` | Adaptive answer tile sizing; `useWindowDimensions` |
 | `src/services/fsrs.ts` | Threshold 5.0 → 2.5 |
 | `app/challenge.tsx` | 10s blink timer; `hintShouldBlink` state; fix `handleMCSelect` |
-| `src/components/ClozeCard.tsx` | `hintShouldBlink` prop; Animated opacity loop on hint |
+| `src/components/ClozeCard.tsx` | `hintShouldBlink` prop; Animated opacity loop; show `germanHint` in correct feedback |
 
 ---
 
@@ -197,3 +212,4 @@ Note on visual feedback: `MultipleChoiceGrid` colors choices by comparing `answe
 - **Card advances before 10s**: `useEffect` cleanup clears the timer; `hintShouldBlink` resets to false.
 - **Scramble→MC4 wrong answer**: Already calls `handleIncorrect` — no change needed.
 - **Text→Scramble hint demotion**: Unchanged — still rates as `'hard'` on correct text answer.
+- **`germanHintGeneral` presence**: Shown inline in smaller text for both the new correct-feedback line and the existing pre-answer hint area (no change to pre-answer hint).
