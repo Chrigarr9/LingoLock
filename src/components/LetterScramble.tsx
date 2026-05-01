@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { Button, Text } from 'react-native-paper';
-import { useAppTheme, getGlassStyle } from '../theme';
+import { useAppTheme } from '../theme';
 
 interface LetterScrambleProps {
   /** The correct answer word to scramble */
@@ -71,8 +71,20 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
     onSubmit(builtAnswer);
   };
 
-  const tileSize = shuffled.length > 8 ? 38 : 44;
-  const fontSize = shuffled.length > 8 ? 17 : 20;
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Pool tiles — large for easy tapping
+  const poolTileSize = shuffled.length > 8 ? 38 : 44;
+  const poolFontSize = shuffled.length > 8 ? 17 : 20;
+
+  // Answer tiles — shrink to fit the whole word on one row
+  const ANSWER_H_PADDING = 40; // paddingHorizontal: 20 each side in challenge.tsx content style
+  const TILE_GAP = 6;
+  const answerTileSize = Math.max(
+    24,
+    Math.floor((screenWidth - ANSWER_H_PADDING - TILE_GAP * (shuffled.length - 1)) / shuffled.length),
+  );
+  const answerFontSize = Math.max(11, Math.floor(answerTileSize * 0.45));
 
   return (
     <View style={styles.container}>
@@ -87,8 +99,8 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
               style={[
                 styles.tile,
                 {
-                  width: tileSize,
-                  height: tileSize,
+                  width: answerTileSize,
+                  height: answerTileSize,
                   backgroundColor: hasLetter
                     ? theme.colors.primaryContainer
                     : theme.custom.glassBackground,
@@ -98,7 +110,7 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
                 },
               ]}
             >
-              <Text style={[styles.tileLetter, { fontSize, color: theme.colors.onPrimaryContainer }]}>
+              <Text style={[styles.tileLetter, { fontSize: answerFontSize, color: theme.colors.onPrimaryContainer }]}>
                 {hasLetter ? shuffled[placed[i]] : ''}
               </Text>
             </Pressable>
@@ -116,8 +128,8 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
             style={[
               styles.tile,
               {
-                width: tileSize,
-                height: tileSize,
+                width: poolTileSize,
+                height: poolTileSize,
                 backgroundColor: available[i]
                   ? theme.colors.surfaceVariant
                   : 'transparent',
@@ -132,10 +144,8 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
               style={[
                 styles.tileLetter,
                 {
-                  fontSize,
-                  color: available[i]
-                    ? theme.colors.onSurfaceVariant
-                    : theme.colors.onSurfaceVariant,
+                  fontSize: poolFontSize,
+                  color: theme.colors.onSurfaceVariant,
                 },
               ]}
             >
@@ -167,7 +177,7 @@ const styles = StyleSheet.create({
   },
   answerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     justifyContent: 'center',
     gap: 6,
   },
