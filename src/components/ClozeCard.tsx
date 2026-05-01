@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image, Pressable, type ImageSourcePropType } from 'react-native';
+import { View, StyleSheet, Platform, Image, Pressable, Animated, type ImageSourcePropType } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
@@ -22,6 +22,8 @@ interface ClozeCardDisplayProps {
   onHintRequest?: () => void;
   /** Called when user taps "Already know this?" */
   onAlreadyKnow?: () => void;
+  /** When true, gently pulse the hint button to attract attention */
+  hintShouldBlink?: boolean;
   /** Height of the keyboard in pixels (0 when hidden). Image shrinks to fit remaining space. */
   keyboardHeight?: number;
   /** The answer the user actually gave (shown in feedback when incorrect) */
@@ -50,6 +52,7 @@ export function ClozeCardDisplay({
   keyboardHeight = 0,
   userAnswer,
   contentHeight = 0,
+  hintShouldBlink = false,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
@@ -158,6 +161,22 @@ export function ClozeCardDisplay({
   // Can the German hint be tapped to demote the answer type? (text/scramble only)
   const hintIsTappable = !!onHintRequest;
 
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (hintShouldBlink && hintIsTappable) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+          Animated.timing(blinkAnim, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+        ]),
+      ).start();
+    } else {
+      blinkAnim.stopAnimation();
+      blinkAnim.setValue(1);
+    }
+  }, [hintShouldBlink, hintIsTappable]);
+
   // Text content rendered below the image (or as sole card content)
   const textContent = (
     <>
@@ -225,29 +244,31 @@ export function ClozeCardDisplay({
       {/* German hint — tappable in text mode to reveal spelling hint */}
       {!showAnswer && (
         <View style={styles.hintArea}>
-          <Pressable
-            onPress={hintIsTappable ? onHintRequest : undefined}
-            style={styles.hintRow}
-            accessibilityRole={hintIsTappable ? 'button' : undefined}
-            accessibilityLabel={hintIsTappable ? 'Make it easier' : undefined}
-          >
-            <Icon
-              source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
-              size={22}
-              color={hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue}
-            />
-            <Text
-              variant="bodyLarge"
-              style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
+          <Animated.View style={{ opacity: blinkAnim }}>
+            <Pressable
+              onPress={hintIsTappable ? onHintRequest : undefined}
+              style={styles.hintRow}
+              accessibilityRole={hintIsTappable ? 'button' : undefined}
+              accessibilityLabel={hintIsTappable ? 'Make it easier' : undefined}
             >
-              {card.germanHint}
-              {card.germanHintGeneral ? (
-                <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
-                  {`  (${card.germanHintGeneral})`}
-                </Text>
-              ) : null}
-            </Text>
-          </Pressable>
+              <Icon
+                source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
+                size={22}
+                color={hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue}
+              />
+              <Text
+                variant="bodyLarge"
+                style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
+              >
+                {card.germanHint}
+                {card.germanHintGeneral ? (
+                  <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
+                    {`  (${card.germanHintGeneral})`}
+                  </Text>
+                ) : null}
+              </Text>
+            </Pressable>
+          </Animated.View>
           {sessionCard.isFirstEncounter && onAlreadyKnow && (
             <Pressable onPress={onAlreadyKnow} accessibilityRole="button">
               <Text

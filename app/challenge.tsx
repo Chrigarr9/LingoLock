@@ -66,6 +66,7 @@ export default function ChallengeScreen() {
   const correctCountRef = useRef(0);
   // Cache chapter number at session start — avoids O(chapters × cards) scan on every render
   const sessionChapter = useRef(0);
+  const hintBlinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const source = params.source ?? '';
   const isScreenTime = source === 'screentime' && loadScreenTimeEnabled();
@@ -96,6 +97,7 @@ export default function ChallengeScreen() {
   /** When user taps hint, the answer type is demoted one level (text→scramble, scramble→mc4) */
   const [demotedMode, setDemotedMode] = useState<'mc4' | 'scramble' | 'text' | null>(null);
   const [hasMoreCards, setHasMoreCards] = useState(false);
+  const [hintShouldBlink, setHintShouldBlink] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const keyboard = useKeyboard();
 
@@ -138,6 +140,15 @@ export default function ChallengeScreen() {
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
     };
   }, []);
+
+  // Reset hint blink on every card advance; fire after 10s of no interaction
+  useEffect(() => {
+    setHintShouldBlink(false);
+    hintBlinkTimer.current = setTimeout(() => setHintShouldBlink(true), 10_000);
+    return () => {
+      if (hintBlinkTimer.current) clearTimeout(hintBlinkTimer.current);
+    };
+  }, [currentIndex]);
 
   // --------------------------------------------------------------------------
   // Derived values
@@ -319,6 +330,8 @@ export default function ChallengeScreen() {
   };
 
   const handleHintRequest = () => {
+    setHintShouldBlink(false);
+    if (hintBlinkTimer.current) clearTimeout(hintBlinkTimer.current);
     if (answerType === 'text' || answerType === 'scramble') {
       setDemotedMode(demoteAnswerType(answerType));
     }
@@ -520,6 +533,7 @@ export default function ChallengeScreen() {
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                   onHintRequest={!showAnswer ? handleHintRequest : undefined}
+                  hintShouldBlink={hintShouldBlink}
                   userAnswer={userAnswer ?? undefined}
                   contentHeight={contentHeight}
                 />
@@ -554,6 +568,7 @@ export default function ChallengeScreen() {
                   playbackSpeed={audioSpeed}
                   onAudioFinish={handleAudioFinish}
                   onHintRequest={!showAnswer ? handleHintRequest : undefined}
+                  hintShouldBlink={hintShouldBlink}
                   keyboardHeight={keyboard.height}
                   userAnswer={userAnswer ?? undefined}
                   contentHeight={contentHeight}
