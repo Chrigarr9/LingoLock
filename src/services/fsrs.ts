@@ -113,12 +113,12 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
  *
  * Progression: mc4 → scramble → text
  *   - New cards (null state) or stability < 1.0 → mc4 (recognition)
- *   - stability 1.0–4.99 → scramble (letter rearrangement, guided recall)
- *   - stability >= 5.0 → text (free recall)
+ *   - stability 1.0–2.49 → scramble (letter rearrangement, guided recall)
+ *   - stability >= 2.5 → text (free recall)
  *
- * After the first Good answer stability jumps to ~2.3, landing solidly in
- * scramble territory. It takes multiple successful reviews to cross 5.0 into
- * text. Lapses drop stability — below 1.0 falls all the way back to mc4.
+ * After the first Good answer stability jumps to ~2.3, landing on the scramble/text
+ * boundary. After a few more successful reviews, stability crosses 2.5 into text mode.
+ * Lapses drop stability — below 1.0 falls all the way back to mc4.
  *
  * State is intentionally NOT checked: a lapse puts the card into Relearning
  * but one Good answer returns it to Review with low stability (~1.5). Using
@@ -127,7 +127,7 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
  */
 export function getAnswerType(cardState: CardState | null): 'mc4' | 'scramble' | 'text' {
   if (cardState === null) return 'mc4';
-  if (cardState.stability >= 5.0) return 'text';
+  if (cardState.stability >= 2.5) return 'text';
   if (cardState.stability >= 1.0) return 'scramble';
   return 'mc4';
 }
@@ -202,8 +202,8 @@ export const PROGRESS_LEVELS = 5;
  *
  *   0 = never seen (null state)                          → mc4
  *   1 = fragile / learning / relearning (stability < 2.0) → scramble
- *   2 = early recall (stability 2.0–5.0)                  → scramble
- *   3 = building recall (stability 5.0–10)                → text (full hints)
+ *   2 = early recall (stability 2.0–2.49)                 → scramble
+ *   3 = building recall (stability 2.5–10)                → text (full hints)
  *   4 = familiar (stability 10–21)
  *   5 = mastered (stability >= 21)
  *
@@ -213,7 +213,7 @@ export function getCardProgressLevel(cardState: CardState | null): number {
   if (cardState === null) return 0;
   const { stability } = cardState;
   if (stability < 2.0) return 1;
-  if (stability < 5.0) return 2;
+  if (stability < 2.5) return 2;
   if (stability < 10) return 3;
   if (stability < 21) return 4;
   return 5;
