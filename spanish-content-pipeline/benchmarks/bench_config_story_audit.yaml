@@ -1,0 +1,17 @@
+# Story audit benchmark: new candidates vs Sonnet 4.6 baseline
+# Run: uv run python -m benchmarks.bench_audit --config benchmarks/bench_config_story_audit.yaml
+#
+# Pricing (per 1M tokens, input/output) at time of writing (2026-05-01):
+#   sonnet-4-6:      $3.00 / $15.00
+#   qwen3.6-plus:    $0.33 /  $1.95
+#   deepseek-v4-pro: $0.44 /  $0.87  ← promo rate, reverts ~$1.74/$3.48 after 2026-05-31
+#   mimo-v2-pro:     $1.00 /  $3.00
+#   gpt-5.4-mini:    $0.75 /  $4.50
+
+models:
+  story_audit:
+    - { provider: openrouter, model: "anthropic/claude-sonnet-4-6",   temperature: 0.3 }
+    - { provider: openrouter, model: "qwen/qwen3.6-plus",             temperature: 0.3 }
+    - { provider: openrouter, model: "deepseek/deepseek-v4-pro",      temperature: 0.3 }
+    - { provider: openrouter, model: "xiaomi/mimo-v2-pro",            temperature: 0.3 }
+    - { provider: openrouter, model: "openai/gpt-5.4-mini",           temperature: 0.3 }

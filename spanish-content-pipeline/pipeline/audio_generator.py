@@ -163,10 +163,11 @@ class AudioGenerator:
         client = self._get_openai_client()
 
         response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="alloy",
+            model=self._audio_config.model,
+            voice=self._audio_config.voice_name,
             input=text,
             response_format="mp3",
+            speed=self._audio_config.speaking_rate,
         )
 
         audio_bytes = b""

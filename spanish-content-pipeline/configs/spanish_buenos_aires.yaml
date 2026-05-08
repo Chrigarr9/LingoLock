@@ -536,22 +536,22 @@ models:
     model: "google/gemini-2.5-flash-lite"
     temperature: 0.3
 
-  # Pass 4: Vocab gap filling — Qwen3 Max Think (reasoning for better narrative fit)
+  # Pass 4: Vocab gap filling — Qwen3.6 Plus (thinking, hybrid MoE, ~58% cheaper than qwen3-max-thinking)
   gap_filling:
     provider: "openrouter"
-    model: "qwen/qwen3-max-thinking"
+    model: "qwen/qwen3.6-plus"
     temperature: 0.7
 
-  # Pass 4b: Per-chapter narrative audit — Qwen3 Max Think (F1=0.917, 0.51¢, 39s)
+  # Pass 4b: Per-chapter narrative audit — Qwen3.6 Plus (thinking, same family as prior qwen3-max-thinking)
   chapter_audit:
     provider: "openrouter"
-    model: "qwen/qwen3-max-thinking"
+    model: "qwen/qwen3.6-plus"
     temperature: 0.3
 
-  # Pass 5a: Story review — Sonnet 4.6 (finds issues across chapters)
+  # Pass 5a: Story review — Qwen3.6 Plus (thinking, newer generation; F1=1.00 on audit benchmark)
   story_review:
     provider: "openrouter"
-    model: "anthropic/claude-sonnet-4-6"
+    model: "qwen/qwen3.6-plus"
     temperature: 0.3
 
   # Pass 5b: Story fix — Gemini 3.1 FL (cheap, applies fixes in parallel)
@@ -583,10 +583,10 @@ models:
     provider: "openrouter"
     model: "google/gemini-3.1-flash-lite-preview"
     temperature: 0.3
-  # Frequency lemmatization — classifies words as appropriate/inappropriate for deck domain
+  # Frequency lemmatization — Qwen3.6 Flash (same price as 3.1-flash-lite, adds thinking for better lemma/translation judgment)
   lemmatization:
     provider: "openrouter"
-    model: "google/gemini-3.1-flash-lite-preview"
+    model: "qwen/qwen3.6-flash"
     temperature: 0.3
 
 image_generation:
@@ -594,15 +594,16 @@ image_generation:
   provider: "fal"
   model: "fal-ai/z-image/turbo"
   cheap_model: "fal-ai/z-image/turbo"
-  style: "cartoon, vibrant colors"
+  style: "photorealistic, cinematic, warm natural light"
+  style_preset: "photorealistic"
   width: 768
   height: 512
 
 audio_generation:
   enabled: true
-  provider: "gemini"
-  model: "gemini-2.5-flash-preview-tts"
-  voice_name: "Aoede"
+  provider: "openai"
+  model: "gpt-4o-mini-tts"
+  voice_name: "onyx"
   speaking_rate: 1.0
 
 secondary_characters:

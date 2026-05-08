@@ -32,6 +32,10 @@ class LLMResponse:
     content: str
     usage: Usage
     parsed: dict | list | None = None
+    # Resolved model id from the provider response (OpenRouter "model" /
+    # Gemini "modelVersion"). Lets callers detect when a floating alias
+    # routed to a different snapshot than the configured one.
+    resolved_model: str | None = None
 
 
 def _parse_json_robust(text: str) -> dict | list:
@@ -165,7 +169,11 @@ class LLMClient:
             cost_usd=cost_usd,
             generation_id=generation_id,
         )
-        return LLMResponse(content=content, usage=usage)
+        return LLMResponse(
+            content=content,
+            usage=usage,
+            resolved_model=data.get("model"),
+        )
 
     def complete(self, prompt: str, system: str | None = None) -> LLMResponse:
         messages = []
@@ -260,7 +268,11 @@ class GeminiClient:
             completion_tokens=usage_data.get("candidatesTokenCount", 0),
             total_tokens=usage_data.get("totalTokenCount", 0),
         )
-        return LLMResponse(content=content, usage=usage)
+        return LLMResponse(
+            content=content,
+            usage=usage,
+            resolved_model=data.get("modelVersion"),
+        )
 
     def complete(self, prompt: str, system: str | None = None) -> LLMResponse:
         system_instruction = None

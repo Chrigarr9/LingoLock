@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-from pipeline.config import DeckConfig
+from pipeline.config import DeckConfig, get_style_guide
 from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterScene, ImageManifest, ImagePrompt, Scene, Shot, ShotSentence
 
@@ -36,19 +36,6 @@ Each shot has:
 the sentence vocabulary (e.g. "red suitcase", "blue sweater", "phone screen showing message", \
 "walking shoes"). NEVER use character names or generic descriptions like "conversation" or \
 "Maria and Ingrid talking" as focus.
-- "image_prompt": English description of what's visible in this shot. The KEY RULE: \
-the camera points at the VOCABULARY OBJECT, not at people talking. Characters may appear \
-in the frame but the focal point is always the thing, not the face. Describe:
-  - The focal object/action — exaggerate size, color, and expression like a children's \
-picture book. E.g. "a HUGE bright-red suitcase overflowing with clothes", "vivid cobalt-blue \
-jeans held up dramatically". Make the key object impossible to miss.
-  - The environment visible around the object (from the scene description)
-  - Characters only when they physically interact with the focal object (hands holding, \
-reaching, pointing at). Show hands/body, not talking heads.
-  - Camera angle: prefer close-up on the object or over-the-shoulder. Avoid medium shots \
-of two characters facing each other — these all look identical.
-  Do NOT include art style prefixes or "no text" suffixes — these are added later.
-  Keep under 200 characters.
 - "sentences": array of 1-2 sentences for this shot. Each has:
   - "source": EXACTLY ONE sentence in the target language — one subject-verb pair, \
 one terminating punctuation mark. Never combine two sentences into one source field.
@@ -73,7 +60,7 @@ two separate sentences with their own sentence_index.
 - {narration_instruction}
 - Each sentence must advance the story: action, reaction, thought, or direct dialogue.
 - Consecutive sentences within a shot must connect — avoid repeating the same idea.
-- Include vivid color and size vocabulary: "una maleta roja enorme". Match the cartoon style.
+- Include vivid color and size vocabulary: "una maleta roja enorme".{sentence_note}
 - Include emotions and small narrative details (smells, sounds) where natural.
 {grammar_instruction}
 
@@ -95,16 +82,14 @@ but the camera aims at what they're talking about.
 NEVER have two adjacent shots with the same composition (e.g. two "medium shot of \
 Maria and Ingrid facing each other").
 4. Use mostly close-up and medium shots. Wide/establishing shots: maximum 1 per chapter.
-5. Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.
+5. {object_rule}
 6. Vary CAMERA ANGLE across shots: close-up on object, over-shoulder, bird's-eye, \
 hands-only, object-with-blurred-background. Avoid repetitive front-facing medium shots.
 7. For dialogue scenes: show what they're TALKING ABOUT, not two people talking. \
 If someone says "your red jacket", show the red jacket. If someone asks "who's at \
 the door?", show the door.
 8. Phone screens: if the shot shows a phone screen with a photo or image, describe \
-the content as a cartoon illustration, NOT a photograph. Write "cartoon illustration of \
-tango dancers on the screen" not "a photo of tango dancers". This keeps the whole \
-image in one consistent style.
+the content {phone_rule}
 9. POV, not meta: when a character SEES or LOOKS AT something, show THAT THING \
 directly — NOT the character's eyes with a reflection. "Maria sees the city" → show \
 the city, not her eye reflecting the city. "She looks at the jacaranda trees" → show \
@@ -112,23 +97,7 @@ the trees, not close-up of eyes. Keep it simple and direct.
 10. Phone calls: show only the caller's side (their room, the phone).
 11. No split/side-by-side/multi-panel compositions. One scene, one viewpoint.
 12. Two places mentioned → pick ONE, show it as a single scene.
-13. Never use "panoramic", "skyline", "iconic", "bustling" — these go photorealistic.
-14. sentence_index must be sequential starting from 0 with no gaps.
-
-## Character consistency
-The protagonist's exact visual tag is: {protagonist_visual_tag}
-When {protagonist_name} appears in a shot's image_prompt, do NOT invent your own \
-description. Write the word "PROTAGONIST" and nothing else for her appearance — \
-post-processing will replace it with the canonical tag. Example:
-  image_prompt: "Close-up of PROTAGONIST holding a red suitcase."
-If {protagonist_name} is NOT in the shot (pure object close-up), omit PROTAGONIST.
-
-## Secondary character consistency
-When any named secondary character appears in a shot's image_prompt, write their \
-name in ALL CAPS (e.g. SOFIA, LUCAS, ROBERTO). Do NOT describe their appearance — \
-post-processing will replace the name with the canonical visual tag. Example:
-  image_prompt: "Close-up of PROTAGONIST and SOFIA sharing mate on a park bench."
-If a secondary character is NOT in the shot, do not mention them."""
+13. sentence_index must be sequential starting from 0 with no gaps."""
 
 
 _NARRATION_INSTRUCTIONS = {
@@ -165,12 +134,17 @@ def _build_system_prompt(config: DeckConfig) -> str:
             "and structure freely. Use any tenses, moods, or constructions that serve the story."
         )
 
+    img_config = config.image_generation
+    style_preset = getattr(img_config, "style_preset", "cartoon") if img_config else "cartoon"
+    style = get_style_guide(style_preset)
+
     return _SYSTEM_PROMPT_TEMPLATE.format(
-        protagonist_name=p.name,
-        protagonist_visual_tag=p.visual_tag,
         narration_instruction=narration_instruction,
         min_sentences=min_sentences,
         grammar_instruction=grammar_instruction,
+        sentence_note=style["sentence_note"],
+        object_rule=style["object_rule"],
+        phone_rule=style["phone_rule"],
     )
 
 
@@ -306,6 +280,8 @@ def finalize_image_prompt(raw: str, config: DeckConfig) -> str:
 
     Exported for use by both _post_process (Pass 0) and image_auditor (Pass 8).
     """
+    if not raw.strip():
+        return ""
     p = config.protagonist
     p_tag = p.image_tag or p.visual_tag
 
@@ -456,7 +432,7 @@ class StoryGenerator:
                     shots=[
                         Shot(
                             focus=sh["focus"],
-                            image_prompt=sh["image_prompt"],
+                            image_prompt=sh.get("image_prompt", ""),
                             sentences=[ShotSentence(**sent) for sent in sh["sentences"]],
                         )
                         for sh in s["shots"]

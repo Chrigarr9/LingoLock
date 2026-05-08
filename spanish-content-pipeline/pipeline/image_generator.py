@@ -4,6 +4,7 @@ Delegates to provider-specific clients (Together, Gemini, fal.ai, ModelScope).
 Handles manifest management, caching, deduplication, and resumability.
 """
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -111,13 +112,24 @@ class ImageGenerator:
     def _deck_dir(self) -> Path:
         return self._output_base / self._config.deck.id
 
+    def _stable_seed(self) -> int:
+        # SHA-256 of protagonist name → fixed 32-bit seed. Pins the diffusion
+        # latent so the protagonist looks consistent across every scene.
+        digest = hashlib.sha256(self._config.protagonist.name.encode()).hexdigest()
+        return int(digest[:8], 16)
+
     def _generate_image(self, prompt: str) -> tuple[bytes, str]:
         """Generate an image using the configured provider. Returns (bytes, extension)."""
         client = self._get_provider_client()
-        return client.generate(
-            model=self._img_config.model, prompt=prompt,
-            width=self._img_config.width, height=self._img_config.height,
-        )
+        kwargs: dict = {
+            "model": self._img_config.model,
+            "prompt": prompt,
+            "width": self._img_config.width,
+            "height": self._img_config.height,
+        }
+        if self._provider == "fal":
+            kwargs["seed"] = self._stable_seed()
+        return client.generate(**kwargs)
 
     def _sentence_key(self, prompt: ImagePrompt) -> str:
         ch = str(prompt.chapter).zfill(2)

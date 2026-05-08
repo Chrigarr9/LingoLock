@@ -10,13 +10,17 @@ from pipeline.llm import LLMClient, LLMResponse
 from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
 
 
-_CEFR_CONSTRAINTS = {
+# Single source of truth for CEFR grammar constraints.
+# Imported by story_auditor and chapter_auditor so all passes share the same rules.
+CEFR_CONSTRAINTS = {
     "A1": (
         "**A1** — Max 12 words per sentence. Simple present tense only (ser, estar, hay, "
         "tener, ir + regular verbs). Subject + verb + object. "
         "No subordinate clauses (avoid: que, porque, cuando, si). "
         "No indirect object pronouns (le, les). No subjunctive, no compound tenses, "
-        "no future tense, no imperatives, no preterite, no imperfecto.\n"
+        "no future tense (haré, iré, será, gustará, tendré), "
+        "no imperatives (ten, pon, ven, di, haz, sal), "
+        "no imperative+clitic (llámame, cuídate, dime), no preterite, no imperfecto.\n"
         'Good A1 examples: "Maria abre la maleta amarilla en el suelo." / '
         '"Ella tiene un poco de miedo." / "El taxi rojo es muy rápido." / '
         '"Ingrid dobla una camisa de algodón suave."'
@@ -24,7 +28,8 @@ _CEFR_CONSTRAINTS = {
     "A2": (
         "**A2** — Max 12 words. Simple past (pretérito indefinido) and imperfect (imperfecto) "
         "allowed. Basic connectors (pero, y, también, porque). Light use of common pronouns. "
-        "One dependent clause at most. Reflexive verbs (levantarse, llamarse) encouraged. "
+        "One dependent clause at most. Reflexive verbs (levantarse, llamarse), comparatives, "
+        "and modal verbs (poder, querer, deber) allowed. "
         "No subjunctive, no compound tenses, no future tense."
     ),
     "B1": (
@@ -54,14 +59,23 @@ _LEVEL_MAP = {
 }
 
 
-def _resolve_cefr_level(raw_level: str) -> str:
+def resolve_cefr_level(raw_level: str) -> str:
     """Resolve a CEFR level string to a single level for constraint lookup."""
     return _LEVEL_MAP.get(raw_level, raw_level.split("-")[-1] if "-" in raw_level else raw_level)
 
 
+def cefr_constraint_block(level: str) -> str:
+    """Return the canonical CEFR constraint text for a given level."""
+    return CEFR_CONSTRAINTS.get(resolve_cefr_level(level), CEFR_CONSTRAINTS["A2"])
+
+
+def all_cefr_constraints() -> str:
+    """Return all CEFR levels concatenated, for cross-chapter audits."""
+    return "\n\n".join(CEFR_CONSTRAINTS[lvl] for lvl in ("A1", "A2", "B1", "B2"))
+
+
 def _build_system_prompt(cefr_level: str, narration_style: str, dialect: str) -> str:
-    resolved = _resolve_cefr_level(cefr_level)
-    constraint_block = _CEFR_CONSTRAINTS.get(resolved, _CEFR_CONSTRAINTS["A2"])
+    constraint_block = cefr_constraint_block(cefr_level)
 
     narration_rule = (
         "Maintain third-person narration throughout."

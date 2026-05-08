@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from pipeline.cefr_simplifier import all_cefr_constraints, cefr_constraint_block
+
 
 # ── Models ──────────────────────────────────────────────────────────────
 
@@ -106,12 +108,9 @@ def _build_find_prompt(
         f"   - Locations must match the story context\n\n"
         f"4. CEFR LEVEL VIOLATIONS\n"
         f"   - Each chapter has a CEFR level in brackets [A1], [A2], etc.\n"
-        f"   - A1: only simple present, ser/estar, hay, basic adjectives, simple questions\n"
-        f"   - A1 must NOT have: subjunctive, compound tenses, future tense "
-        f"(haré, iré, será, gustará, tendré), imperatives (ten, pon, ven, di, haz, sal), "
-        f"imperative+clitic (llámame, cuídate, dime), preterite, imperfecto\n"
-        f"   - A2 may add: preterite, imperfecto, reflexives, comparatives, modals\n"
-        f"   - A2 still must NOT have: subjunctive, compound tenses, future tense\n\n"
+        f"   - Flag any sentence that violates the rules for its chapter's level.\n"
+        f"   - Canonical CEFR rules (same rules used by the simplifier):\n\n"
+        f"{all_cefr_constraints()}\n\n"
         f"5. SCENE LOGIC\n"
         f"   - Actions must fit the setting described in the chapter context\n"
         f"   - No contradictions between adjacent sentences\n"

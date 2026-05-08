@@ -7,6 +7,7 @@ shots as a last resort.
 
 from pydantic import BaseModel
 
+from pipeline.cefr_simplifier import cefr_constraint_block
 from pipeline.models import ChapterScene, Shot, ShotSentence
 
 
@@ -104,9 +105,8 @@ def _build_chapter_audit_prompt(
         f"   - Unnamed functional characters (vendor, driver, waiter) are OK "
         f"if they fit the setting\n\n"
         f"5. CEFR LEVEL [{cefr}]\n"
-        f"   - Sentences must fit the chapter's CEFR level\n"
-        f"   - A1: simple present, ser/estar, hay, basic questions only\n"
-        f"   - A2: adds preterite, imperfecto, reflexives, modals\n\n"
+        f"   - Sentences must fit the chapter's CEFR level. Canonical rules:\n\n"
+        f"{cefr_constraint_block(cefr)}\n\n"
         f"For each issue, choose an action:\n"
         f'- "rewrite": fix a sentence (provide sentence_index, original, fixed)\n'
         f'- "move_shot": relocate a misplaced shot (provide shot_index and move_after)\n'

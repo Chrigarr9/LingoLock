@@ -95,6 +95,7 @@ class ImageGenerationConfig(BaseModel):
     model: str = "black-forest-labs/FLUX.1-kontext-pro"
     cheap_model: str = "black-forest-labs/FLUX.1-schnell"
     style: str = "warm storybook illustration, semi-realistic modern picture book, soft lighting"
+    style_preset: str = "cartoon"  # controls style-specific prompt language; see STYLE_GUIDANCE
     # width:height ratio must match CARD_IMAGE_RATIO in ClozeCard.tsx (currently 3:2).
     # Changing the ratio here? Update the card component too.
     width: int = 768
@@ -128,6 +129,41 @@ class DeckConfig(BaseModel):
     @property
     def output_dir(self) -> Path:
         return Path("output") / self.deck.id
+
+
+STYLE_GUIDANCE: dict[str, dict[str, str]] = {
+    "cartoon": {
+        "auditor_desc": "cartoon illustrations",
+        "object_rule": "Exaggerate focal objects: oversized, saturated colors, bold shapes — picture-book energy.",
+        "phone_rule": "as a cartoon illustration. This keeps the whole image in one consistent style.",
+        "sentence_note": " Match the cartoon style.",
+        "image_prompt_guidance": (
+            'exaggerate size, color, and expression like a children\'s picture book. '
+            'E.g. "a HUGE bright-red suitcase overflowing with clothes", '
+            '"vivid cobalt-blue jeans held up dramatically". Make the key object impossible to miss.'
+        ),
+    },
+    "photorealistic": {
+        "auditor_desc": "photorealistic scenes",
+        "object_rule": "Focal objects should be sharply lit, textured, and visually dominant.",
+        "phone_rule": "as a realistic photograph. This prevents style breaks.",
+        "sentence_note": "",
+        "image_prompt_guidance": (
+            'describe with precise detail, natural lighting, and realistic scale. '
+            'E.g. "worn red leather suitcase open on the floor, clothes spilling out".'
+        ),
+    },
+}
+
+
+def get_style_guide(preset: str) -> dict[str, str]:
+    """Return style-specific prompt fragments for the given preset name."""
+    guide = STYLE_GUIDANCE.get(preset)
+    if guide is None:
+        import warnings
+        warnings.warn(f"Unknown style_preset '{preset}', falling back to 'cartoon'", stacklevel=2)
+        guide = STYLE_GUIDANCE["cartoon"]
+    return guide
 
 
 def load_config(path: Path) -> DeckConfig:

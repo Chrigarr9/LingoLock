@@ -222,7 +222,7 @@ class GapFiller:
     # ------------------------------------------------------------------ #
 
     def _load_existing_context(self, chapter_num: int) -> str:
-        """Load existing chapter and format as shot-grouped context with image prompts."""
+        """Load existing chapter and format as shot-grouped context."""
         story_path = self._output_dir / "stories" / f"chapter_{chapter_num:02d}.json"
         if not story_path.exists():
             return ""
@@ -231,7 +231,6 @@ class GapFiller:
         shot_idx = 0
         for scene in chapter_data.scenes:
             for shot in scene.shots:
-                lines.append(f"  [shot {shot_idx}] image: {shot.image_prompt}")
                 for sent in shot.sentences:
                     lines.append(f'    [sent {sent.sentence_index}] "{sent.source}"')
                 shot_idx += 1
@@ -312,6 +311,7 @@ class GapFiller:
         words_text = ", ".join(words)
         character_section = self._get_characters_for_chapter(chapter_num)
         grammar_section = self._get_grammar_constraints(cefr_level)
+        grammar_note = " Follow the grammar constraints above strictly." if grammar_section else ""
 
         # Count existing shots for valid insert_after_shot range
         total_existing = self._count_existing_shots(chapter_num)
@@ -328,34 +328,29 @@ class GapFiller:
             f"Generate SHOTS (groups of 1-3 sentences) that cover these words. "
             f"Each shot will have its own illustration.\n\n"
             f"Rules:\n"
-            f"1. Each shot has 1-2 sentences and one image_prompt (in English) describing the visual scene.\n"
+            f"1. Each shot has 1-2 sentences.\n"
             f"2. Use at most {self._max_new_words} of the listed words per sentence.\n"
             f"3. Target at least 90% coverage — cover at least "
             f"{max(1, int(len(words) * 0.9))} of the {len(words)} words.\n"
-            f"4. Each sentence must fit the chapter context and CEFR level.{grammar_section and ' Follow the grammar constraints above strictly.' or ''}\n"
+            f"4. Each sentence must fit the chapter context and CEFR level.{grammar_note}\n"
             f"5. Match the tone and style of the existing sentences above.{dialect_note}\n"
-            f"6. The image_prompt should visually illustrate the vocabulary in the sentences. "
-            f"If a shot has 2 sentences, BOTH must be depictable in one picture.\n"
-            f"7. For insert_after_shot: specify which existing shot index (0-based, range 0–{max(0, total_existing - 1)}) "
+            f"6. For insert_after_shot: specify which existing shot index (0-based, range 0–{max(0, total_existing - 1)}) "
             f"this new shot should be placed after.\n"
-            f"8. ONLY use characters listed above. Do NOT invent new characters (no unnamed father, vendor, stranger, etc.). "
-            f"If an unnamed character (bus driver, vendor, waiter) already appears in the existing shots above, "
-            f"reuse their exact visual description from the image_prompt.\n"
-            f"9. Every shot must happen in the chapter's physical setting and advance the chapter's story. "
+            f"7. ONLY use characters listed above. Do NOT invent new characters (no unnamed father, vendor, stranger, etc.).\n"
+            f"8. Every shot must happen in the chapter's physical setting and advance the chapter's story. "
             f"No abstract thoughts, philosophical tangents, or scenes in a different location.\n"
-            f"10. NARRATIVE CONTINUITY: New sentences must feel like natural extensions of the existing "
+            f"9. NARRATIVE CONTINUITY: New sentences must feel like natural extensions of the existing "
             f"conversation and action. DO NOT invent disconnected mini-events (unexpected sounds, random "
             f"visitors, things happening outside, phone calls that didn't exist before). Instead, weave the "
             f"target words into the ONGOING dialogue and actions between the existing characters. "
             f"The reader should not notice these are inserted — they should feel like part of the original story.\n"
-            f"11. If a function word (oh, bueno, sólo, etc.) is hard to introduce naturally, embed it "
+            f"10. If a function word (oh, bueno, sólo, etc.) is hard to introduce naturally, embed it "
             f"in dialogue that continues an existing conversation topic rather than creating a new scenario.\n\n"
             f"Return JSON:\n"
             f'{{\n'
             f'  "shots": [\n'
             f'    {{\n'
             f'      "sentences": ["{self._target_lang} sentence 1", "{self._target_lang} sentence 2"],\n'
-            f'      "image_prompt": "English description of the scene for illustration",\n'
             f'      "covers": ["lemma1", "lemma2"],\n'
             f'      "insert_after_shot": 3\n'
             f'    }}\n'
@@ -380,7 +375,7 @@ class GapFiller:
                 clamped_idx = min(raw_idx, total_existing - 1)
             result.append(GapShot(
                 sentences=sentences[:3],  # enforce max 3
-                image_prompt=s.get("image_prompt", ""),
+                image_prompt="",
                 covers=s.get("covers", []),
                 insert_after_shot=clamped_idx,
             ))

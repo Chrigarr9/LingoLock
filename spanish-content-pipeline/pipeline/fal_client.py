@@ -29,15 +29,23 @@ class FalImageClient:
         self.image_count = 0
 
     def generate(self, model: str, prompt: str,
-                 width: int = 768, height: int = 512) -> tuple[bytes, str]:
-        """Generate an image. Returns (image_bytes, file_extension)."""
+                 width: int = 768, height: int = 512,
+                 seed: int | None = None) -> tuple[bytes, str]:
+        """Generate an image. Returns (image_bytes, file_extension).
+
+        seed: when provided, pins the diffusion seed so the same prompt+seed
+        deterministically yields the same image. Used for character-identity
+        consistency across scenes.
+        """
         url = f"{BASE_URL}/{model}"
-        payload = {
+        payload: dict = {
             "prompt": prompt,
             "image_size": {"width": width, "height": height},
             "num_inference_steps": 4,
             "num_images": 1,
         }
+        if seed is not None:
+            payload["seed"] = seed
         headers = {
             "Authorization": f"Key {self._api_key}",
             "Content-Type": "application/json",

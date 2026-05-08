@@ -9,6 +9,7 @@ Step 2 — Prompt Generation (one call per chapter):
 
 from pydantic import BaseModel
 
+from pipeline.config import get_style_guide
 from pipeline.models import ChapterScene, Scene, Shot, ShotSentence
 
 
@@ -166,11 +167,12 @@ def apply_scene_review(
 def _build_prompt_generation_prompt(
     chapter: ChapterScene,
     characters: list[dict],
+    style_guide: dict,
 ) -> tuple[str, str]:
     """Build system + user prompt for image prompt generation."""
     system = (
         "You are an image prompt writer for a language learning storybook. "
-        "Write concise, visual descriptions for cartoon illustrations. "
+        f"Write concise, visual descriptions for {style_guide['auditor_desc']}. "
         "Return valid JSON."
     )
 
@@ -202,15 +204,14 @@ def _build_prompt_generation_prompt(
     lines.append("  'your red jacket', show the red jacket filling the frame. If someone asks")
     lines.append("  'who's at the door?', show the door. NEVER just 'two characters facing")
     lines.append("  each other talking' — these all look identical.")
-    lines.append("- Exaggerate focal objects: oversized, vivid colors, bold shapes")
+    lines.append(f"- {style_guide['object_rule']}")
     lines.append("- Show characters through their HANDS and ACTIONS with objects, not faces.")
     lines.append("  E.g. 'hands folding a blue sweater' or 'fingers tapping a phone screen'")
     lines.append("- Vary camera angles: close-up on object, over-shoulder, bird's-eye view,")
     lines.append("  hands-only, object with blurred background. NEVER two adjacent shots with")
     lines.append("  the same composition.")
     lines.append("- Each prompt MUST contain a unique visual element not in adjacent prompts")
-    lines.append("- PHONE SCREENS: if showing a photo/image on a phone, describe the content")
-    lines.append("  as a cartoon illustration, NOT a photograph. This prevents style breaks.")
+    lines.append(f"- PHONE SCREENS: if showing a photo/image on a phone, describe the content {style_guide['phone_rule']}")
     lines.append("- POV NOT META: when a character sees/looks at something, show THAT THING")
     lines.append("  directly. NOT 'eyes reflecting X' — just show X. Keep it simple.")
     lines.append("- Use PROTAGONIST for the protagonist, CHARACTER_NAME (ALL CAPS) for others")
@@ -232,12 +233,14 @@ def generate_prompts(
     chapter: ChapterScene,
     characters: list[dict],
     llm=None,
+    style_preset: str = "cartoon",
 ) -> tuple[list[ShotPrompt], object]:
     """Generate image prompts for all shots in a chapter. Returns (prompts, LLMResponse)."""
     if llm is None:
         return [], None
 
-    system, prompt = _build_prompt_generation_prompt(chapter, characters)
+    style_guide = get_style_guide(style_preset)
+    system, prompt = _build_prompt_generation_prompt(chapter, characters, style_guide)
     response = llm.complete_json(prompt, system=system)
     parsed = response.parsed
     if isinstance(parsed, list):

@@ -85,11 +85,11 @@ def _run_single_model(model_entry: dict, sentences_by_chapter: dict, characters:
             usage=usage_from_llm_response(llm_response) if llm_response else {},
             cost_estimate_usd=cost_from_llm_response(llm_response) if llm_response else None,
             raw_output=json.dumps({
-                "fixes": [f.model_dump() for f in fixes],
+                "fixes": [f.model_dump() for f in issues],
                 "unnamed": [u.model_dump() for u in unnamed],
             }),
             parsed_output={
-                "fixes": [f.model_dump() for f in fixes],
+                "fixes": [f.model_dump() for f in issues],
                 "unnamed": [u.model_dump() for u in unnamed],
             },
             deterministic_metrics=metrics,

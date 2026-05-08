@@ -217,7 +217,7 @@ def create_model_client(model_config, transport=None):
     )
 
 
-def run_text_stage(config, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None, skip_image_audit=False):
+def run_text_stage(config, chapter_range, output_base, frequency_file=None, config_path=None, top_n=None, skip_image_audit=False, skip_gap_fill=False):
     """Full text pipeline: generate → simplify → grammar gaps → insert → vocab gaps → audit → translate → extract."""
     cost = CostTracker()
 
@@ -356,10 +356,11 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             print("\n  No grammar gaps to fill.")
 
     # Pass 4: Vocabulary Gap Filling (requires frequency data + lemmas)
-    # Pass 4: Vocabulary Gap Filling
     cost.begin("Pass 4: Vocab Gap Fill")
     gap_words_by_chapter: dict[int, list[str]] = {}
-    if frequency_file:
+    if skip_gap_fill:
+        print("\n=== Pass 4: Vocabulary Gap Filling [SKIPPED] ===")
+    elif frequency_file:
         from pipeline.coverage_checker import scan_story_coverage
         from pipeline.gap_filler import GapFiller
 
@@ -413,37 +414,54 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             print(f"  Missing words: {len(pre_report.missing_words)}")
 
             if pre_report.missing_words:
-                # Clear gap sentence cache (assignment depends on chapter range)
                 gap_cache = output_base / config.deck.id / "gap_sentences"
                 assignment_cache = output_base / config.deck.id / "gap_word_assignment.json"
-                if gap_cache.exists():
-                    import shutil
-                    shutil.rmtree(gap_cache)
-                if assignment_cache.exists():
-                    assignment_cache.unlink()
 
-                llm_gap = create_model_client(config.models.gap_filling)
-                filler = GapFiller(
-                    llm=llm_gap,
-                    output_dir=output_base / config.deck.id,
-                    config_chapters=config.story.chapters,
-                    target_language=config.languages.target,
-                    native_language=config.languages.native,
-                    dialect=config.languages.dialect or "",
-                    lang_code=lang_code,
-                    chapter_range=chapter_range,
-                    protagonist_name=config.protagonist.name,
-                    secondary_characters=config.secondary_characters,
-                    grammar_targets=config.story.grammar_targets,
-                )
-                gap_results, gap_responses = filler.fill_gaps(
-                    stories=stories,
-                    frequency_data=frequency_data_local,
-                    top_n=effective_top_n,
-                    inappropriate_lemmas=inappropriate_lemmas,
+                # Use pre-generated sentences if all chapters in range already have them
+                pre_generated = all(
+                    (gap_cache / f"chapter_{i+1:02d}.json").exists()
+                    for i in chapter_range
                 )
 
-                cost.add(gap_responses)
+                if pre_generated:
+                    from pipeline.models import GapShot
+                    gap_results = {}
+                    for i in chapter_range:
+                        ch_num = i + 1
+                        raw = json.loads((gap_cache / f"chapter_{ch_num:02d}.json").read_text())
+                        gap_results[ch_num] = [GapShot(**s) for s in raw]
+                    gap_responses = []
+                    total_pre = sum(len(s) for s in gap_results.values())
+                    print(f"  Using {total_pre} pre-generated gap sentences (standalone fill-gaps)")
+                else:
+                    # Clear stale cache and regenerate for this chapter range
+                    if gap_cache.exists():
+                        import shutil
+                        shutil.rmtree(gap_cache)
+                    if assignment_cache.exists():
+                        assignment_cache.unlink()
+
+                    llm_gap = create_model_client(config.models.gap_filling)
+                    filler = GapFiller(
+                        llm=llm_gap,
+                        output_dir=output_base / config.deck.id,
+                        config_chapters=config.story.chapters,
+                        target_language=config.languages.target,
+                        native_language=config.languages.native,
+                        dialect=config.languages.dialect or "",
+                        lang_code=lang_code,
+                        chapter_range=chapter_range,
+                        protagonist_name=config.protagonist.name,
+                        secondary_characters=config.secondary_characters,
+                        grammar_targets=config.story.grammar_targets,
+                    )
+                    gap_results, gap_responses = filler.fill_gaps(
+                        stories=stories,
+                        frequency_data=frequency_data_local,
+                        top_n=effective_top_n,
+                        inappropriate_lemmas=inappropriate_lemmas,
+                    )
+                    cost.add(gap_responses)
 
                 if gap_results:
                     total_gap = sum(len(s) for s in gap_results.values())
@@ -821,7 +839,10 @@ def run_text_stage(config, chapter_range, output_base, frequency_file=None, conf
             ch_chars = [c for c in img_characters
                         if c.get("role") == "protagonist"
                         or ch_num in c.get("chapters", [])]
-            prompts, prompt_resp = generate_prompts(ch_data, ch_chars, llm=llm_img_prompt)
+            prompts, prompt_resp = generate_prompts(
+                ch_data, ch_chars, llm=llm_img_prompt,
+                style_preset=config.image_generation.style_preset,
+            )
             cost.add(prompt_resp)
 
             if prompts:
@@ -1003,7 +1024,7 @@ def run_lemmatize_stage(config, output_base, frequency_file):
     print(f"  Saved to {lem.cache_path}")
 
 
-def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
+def run_fill_gaps_stage(config, output_base, frequency_file, chapter_range=None, top_n=None):
     """Generate gap-filling sentences (standalone). Sentences are inserted during text stage."""
     from pipeline.gap_filler import GapFiller
 
@@ -1051,6 +1072,7 @@ def run_fill_gaps_stage(config, output_base, frequency_file, top_n=None):
         protagonist_name=config.protagonist.name,
         secondary_characters=config.secondary_characters,
         grammar_targets=config.story.grammar_targets,
+        chapter_range=chapter_range,
     )
     gap_results, _ = filler.fill_gaps(
         stories=stories,
@@ -1193,7 +1215,10 @@ def run_image_prompts_stage(config, chapter_range, output_base):
         ch_chars = [c for c in img_characters
                     if c.get("role") == "protagonist"
                     or ch_num in c.get("chapters", [])]
-        prompts, prompt_resp = generate_prompts(ch_data, ch_chars, llm=llm_img_prompt)
+        prompts, prompt_resp = generate_prompts(
+            ch_data, ch_chars, llm=llm_img_prompt,
+            style_preset=config.image_generation.style_preset,
+        )
         cost.add(prompt_resp)
 
         if prompts:
@@ -1237,6 +1262,7 @@ def main():
                         help="Target top-N frequency words for coverage/gap-filling (overrides config)")
     parser.add_argument("--skip-audio", action="store_true", help="Skip audio generation (media/all stages)")
     parser.add_argument("--skip-image-audit", action="store_true", help="Skip Pass 5c image prompt audit")
+    parser.add_argument("--skip-gap-fill", action="store_true", help="Skip Pass 4 vocabulary gap filling")
     parser.add_argument("--deck-id", default=None, help="Override deck ID (changes output directory)")
     args = parser.parse_args()
 
@@ -1267,10 +1293,11 @@ def main():
 
     if args.stage in ("text", "all"):
         run_text_stage(config, chapter_range, output_base, frequency_file, args.config,
-                       top_n=args.top_n, skip_image_audit=args.skip_image_audit)
+                       top_n=args.top_n, skip_image_audit=args.skip_image_audit,
+                       skip_gap_fill=args.skip_gap_fill)
 
     if args.stage in ("fill-gaps", "all"):
-        run_fill_gaps_stage(config, output_base, frequency_file, top_n=args.top_n)
+        run_fill_gaps_stage(config, output_base, frequency_file, chapter_range=chapter_range, top_n=args.top_n)
 
     if args.stage in ("translate",):
         run_translate_stage(config, chapter_range, output_base, frequency_file)
