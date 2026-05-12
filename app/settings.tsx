@@ -22,15 +22,18 @@ import {
   loadScreenTimeEnabled,
   saveScreenTimeEnabled,
   loadUnlockCount,
+  loadWhitelistJson,
+  saveWhitelistJson,
 } from '../src/services/storage';
 import {
   isScreenTimeAvailable,
   getScreenTimeAuthStatus,
   requestScreenTimeAuth,
   configureShield,
-  blockApps,
+  enableBlockAll,
+  setWhitelist,
+  clearAllBlocks,
   disableBlocking,
-  getSelectionId,
 } from '../src/services/screenTimeService';
 import {
   setNotificationInterval,
@@ -131,6 +134,8 @@ export default function SettingsScreen() {
     () => screenTimeAvailable && getScreenTimeAuthStatus() === 2,
   );
   const [showAppPicker, setShowAppPicker] = useState(false);
+  // Whitelist of allowed apps (block-all-except mode). JSON blob of FamilyActivitySelection.
+  const [whitelistJson, setWhitelistJsonState] = useState<string | null>(() => loadWhitelistJson());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -213,7 +218,9 @@ export default function SettingsScreen() {
         }
       }
       configureShield();
-      blockApps();
+      enableBlockAll();
+      // Re-apply any persisted whitelist so previously-allowed apps stay accessible
+      setWhitelist(whitelistJson);
       setScreenTimeEnabled(true);
       saveScreenTimeEnabled(true);
     } else {
@@ -223,12 +230,31 @@ export default function SettingsScreen() {
     }
   }
 
-  function handleAppSelectionChange() {
-    // Selection is auto-persisted by DeviceActivitySelectionViewPersisted
-    // Re-apply blocks with the updated selection if blocking is enabled
+  function handleWhitelistChange(newJson: string | null) {
+    setWhitelistJsonState(newJson);
+    saveWhitelistJson(newJson);
     if (screenTimeEnabled) {
-      blockApps();
+      setWhitelist(newJson);
     }
+  }
+
+  function handleClearAllBlocks() {
+    Alert.alert(
+      'Clear all blocked apps?',
+      'This removes the shield from every app and clears your allowed-apps list. Screen Time blocking stays enabled — you can rebuild the allow list whenever you want.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () => {
+            clearAllBlocks();
+            saveWhitelistJson(null);
+            setWhitelistJsonState(null);
+          },
+        },
+      ],
+    );
   }
 
   const glassStyle = getGlassStyle(theme);
@@ -397,13 +423,13 @@ export default function SettingsScreen() {
                 >
                   <View style={styles.settingLabelGroup}>
                     <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                      Blocked Apps
+                      Allowed Apps
                     </Text>
                     <Text
                       variant="bodySmall"
                       style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                     >
-                      Choose which apps require vocabulary practice
+                      Apps you can use without practicing — everything else is blocked
                     </Text>
                   </View>
                   <IconButton
@@ -411,6 +437,24 @@ export default function SettingsScreen() {
                     size={20}
                     iconColor={theme.colors.onSurfaceVariant}
                   />
+                </Pressable>
+
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <Pressable onPress={handleClearAllBlocks} style={styles.settingRow}>
+                  <View style={styles.settingLabelGroup}>
+                    <Text
+                      variant="bodyLarge"
+                      style={[styles.settingLabel, { color: theme.colors.error }]}
+                    >
+                      Clear all blocked apps
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      Removes the shield from every app; blocking stays enabled
+                    </Text>
+                  </View>
                 </Pressable>
 
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
@@ -431,15 +475,17 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {/* App Picker Sheet */}
+        {/* Allowed Apps (whitelist) Picker Sheet */}
         {showAppPicker && (() => {
-          const { DeviceActivitySelectionSheetViewPersisted } = require('react-native-device-activity');
+          const { DeviceActivitySelectionSheetView } = require('react-native-device-activity');
           return (
-            <DeviceActivitySelectionSheetViewPersisted
-              familyActivitySelectionId={getSelectionId()}
-              headerText="Select apps to block"
-              footerText="You'll need to complete vocabulary cards before using these apps."
-              onSelectionChange={handleAppSelectionChange}
+            <DeviceActivitySelectionSheetView
+              familyActivitySelection={whitelistJson}
+              headerText="Allowed apps"
+              footerText="Apps you select stay accessible. Everything else requires vocabulary practice to unlock."
+              onSelectionChange={(event: { nativeEvent: { familyActivitySelection: string | null } }) => {
+                handleWhitelistChange(event.nativeEvent.familyActivitySelection ?? null);
+              }}
               onDismissRequest={() => setShowAppPicker(false)}
             />
           );

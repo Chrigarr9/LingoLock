@@ -1,0 +1,289 @@
+diff --git a/node_modules/react-native-device-activity/README.md b/node_modules/react-native-device-activity/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/app.plugin.js b/node_modules/react-native-device-activity/app.plugin.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.ios.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetView.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.ios.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionSheetViewPersisted.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.ios.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionView.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.d.ts b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.d.ts.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.ios.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.js b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.js.map b/node_modules/react-native-device-activity/build/DeviceActivitySelectionViewPersisted.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.js b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.js.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.d.ts b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.d.ts.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.d.ts b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.d.ts.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.js b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.js.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.ios.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.js b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.js.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivityModule.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.d.ts b/node_modules/react-native-device-activity/build/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.d.ts.map b/node_modules/react-native-device-activity/build/index.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.js b/node_modules/react-native-device-activity/build/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.js.map b/node_modules/react-native-device-activity/build/index.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.test.d.ts b/node_modules/react-native-device-activity/build/index.test.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.test.d.ts.map b/node_modules/react-native-device-activity/build/index.test.d.ts.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.test.js b/node_modules/react-native-device-activity/build/index.test.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/build/index.test.js.map b/node_modules/react-native-device-activity/build/index.test.js.map
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/createExpoTargetConfig.js b/node_modules/react-native-device-activity/config-plugin/createExpoTargetConfig.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/getAppGroupFromExpoConfig.js b/node_modules/react-native-device-activity/config-plugin/getAppGroupFromExpoConfig.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/withCopyTargetFolder.js b/node_modules/react-native-device-activity/config-plugin/withCopyTargetFolder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/withEntitlements.js b/node_modules/react-native-device-activity/config-plugin/withEntitlements.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/withInfoPlistAppGroup.js b/node_modules/react-native-device-activity/config-plugin/withInfoPlistAppGroup.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/config-plugin/withXCodeSettings.js b/node_modules/react-native-device-activity/config-plugin/withXCodeSettings.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/expo-module.config.json b/node_modules/react-native-device-activity/expo-module.config.json
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivity.podspec b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivity.podspec
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/ScreenTimeActivityPicker.swift b/node_modules/react-native-device-activity/ios/ScreenTimeActivityPicker.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/ios/Shared.swift b/node_modules/react-native-device-activity/ios/Shared.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.ios.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.ios.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetViewPersisted.ios.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetViewPersisted.ios.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetViewPersisted.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetViewPersisted.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionView.ios.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionView.ios.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionView.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionView.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionViewPersisted.ios.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionViewPersisted.ios.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionViewPersisted.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionViewPersisted.tsx
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ios.ts b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ios.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ts b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/src/index.ts b/node_modules/react-native-device-activity/src/index.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/DeviceActivityMonitorExtension.swift b/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/DeviceActivityMonitorExtension.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/Info.plist b/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/Info.plist
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/expo-target.config.js b/node_modules/react-native-device-activity/targets/ActivityMonitorExtension/expo-target.config.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/Info.plist b/node_modules/react-native-device-activity/targets/ShieldAction/Info.plist
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
+old mode 100644
+new mode 100755
+index da5121e..c018cb8
+--- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
++++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
+@@ -115,7 +115,17 @@ func handleShieldAction(
+       resetBlocks(triggeredBy: "shieldAction")
+     }
+ 
+-    let url = configForSelectedAction["url"] as? String
++    // LOCAL PATCH (LingoLock): substitute {applicationName} in URL so host app
++    // receives e.g. lingolock://challenge?source=screentime&app=Instagram. The
++    // JS side URL-encodes the curly braces (%7B/%7D) so iOS reliably routes
++    // the URL even if this patch isn't applied; we decode them back before
++    // running placeholder substitution.
++    let url = (configForSelectedAction["url"] as? String).map { rawUrl -> String in
++      let decoded = rawUrl
++        .replacingOccurrences(of: "%7B", with: "{")
++        .replacingOccurrences(of: "%7D", with: "}")
++      return replacePlaceholders(decoded, with: placeholders)
++    }
+ 
+     if type == "openUrl" {
+       openUrl(urlString: url ?? "device-activity://")
+diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/expo-target.config.js b/node_modules/react-native-device-activity/targets/ShieldAction/expo-target.config.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ShieldConfiguration/Info.plist b/node_modules/react-native-device-activity/targets/ShieldConfiguration/Info.plist
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ShieldConfiguration/ShieldConfigurationExtension.swift b/node_modules/react-native-device-activity/targets/ShieldConfiguration/ShieldConfigurationExtension.swift
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/targets/ShieldConfiguration/expo-target.config.js b/node_modules/react-native-device-activity/targets/ShieldConfiguration/expo-target.config.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/react-native-device-activity/tsconfig.json b/node_modules/react-native-device-activity/tsconfig.json
+old mode 100644
+new mode 100755

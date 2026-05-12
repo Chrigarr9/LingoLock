@@ -270,6 +270,19 @@ const BUNDLE_MIGRATION_DONE_KEY = 'bundleMigrationDone';
 
 export const DEFAULT_BUNDLE_ID = 'es-de-buenos-aires';
 
+const WHITELIST_JSON_KEY = 'screentime.whitelist.familyActivitySelection';
+
+/** Returns the saved whitelist FamilyActivitySelection JSON, or null if unset. */
+export function loadWhitelistJson(): string | null {
+  return statsStorage.getString(WHITELIST_JSON_KEY) ?? null;
+}
+
+/** Persists the whitelist FamilyActivitySelection JSON. Pass null to clear. */
+export function saveWhitelistJson(json: string | null): void {
+  if (json) statsStorage.set(WHITELIST_JSON_KEY, json);
+  else statsStorage.delete(WHITELIST_JSON_KEY);
+}
+
 export function loadActiveBundle(): string {
   return statsStorage.getString(ACTIVE_BUNDLE_KEY) ?? DEFAULT_BUNDLE_ID;
 }

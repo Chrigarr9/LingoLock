@@ -5,13 +5,15 @@
  */
 
 import * as Linking from 'expo-linking';
+import { logDebug } from '../services/debugLog';
 import { WidgetAnswerParams, WidgetSpellParams, WidgetRevealParams, WidgetRateParams } from '../types/vocabulary';
 
 export type DeepLinkParams =
   | { type: 'widget-answer'; params: WidgetAnswerParams }
   | { type: 'widget-spell'; params: WidgetSpellParams }
   | { type: 'widget-reveal'; params: WidgetRevealParams }
-  | { type: 'widget-rate'; params: WidgetRateParams };
+  | { type: 'widget-rate'; params: WidgetRateParams }
+  | { type: 'challenge'; params: { source: string; app?: string } };
 
 /**
  * Parses a deep link URL and extracts parameters
@@ -19,13 +21,20 @@ export type DeepLinkParams =
  * @returns DeepLinkParams object with discriminated type, or null if invalid
  */
 export function parseDeepLink(url: string): DeepLinkParams | null {
+  logDebug('DeepLink.parse', 'IN', url);
   try {
     // Skip non-lingolock URLs (on web, the page URL itself triggers link events)
     if (!url.startsWith('lingolock://') && !url.includes('lingolock://')) {
+      logDebug('DeepLink.parse', 'SKIP non-lingolock URL');
       return null;
     }
 
     const parsed = Linking.parse(url);
+    logDebug('DeepLink.parse', 'parsed', {
+      hostname: parsed.hostname,
+      path: parsed.path,
+      queryParams: parsed.queryParams,
+    });
 
     // Route based on hostname
     if (parsed.hostname === 'widget-answer') {
@@ -36,11 +45,26 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
       return parseWidgetRevealLink(parsed);
     } else if (parsed.hostname === 'widget-rate') {
       return parseWidgetRateLink(parsed);
+    } else if (parsed.hostname === 'challenge') {
+      const source = (parsed.queryParams?.source as string) ?? '';
+      const app = parsed.queryParams?.app as string | undefined;
+      // Drop placeholder string if the library didn't substitute (handles both
+      // raw {applicationName} and URL-decoded forms iOS may pass through)
+      const isUnfilled =
+        app === '{applicationName}' ||
+        app === '%7BapplicationName%7D' ||
+        app?.includes('{applicationName}');
+      const cleanApp = app && !isUnfilled ? app : undefined;
+      const result: DeepLinkParams = { type: 'challenge', params: { source, app: cleanApp } };
+      logDebug('DeepLink.parse', 'OUT challenge', result.params);
+      return result;
     } else {
+      logDebug('DeepLink.parse', 'unknown hostname', parsed.hostname);
       console.warn(`[DeepLink] Invalid hostname: ${parsed.hostname}`);
       return null;
     }
   } catch (error) {
+    logDebug('DeepLink.parse', 'ERROR', String(error));
     console.error('[DeepLink] Failed to parse URL:', url, error);
     return null;
   }

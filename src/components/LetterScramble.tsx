@@ -77,13 +77,20 @@ export function LetterScramble({ word, onSubmit, disabled = false }: LetterScram
   const poolTileSize = shuffled.length > 8 ? 38 : 44;
   const poolFontSize = shuffled.length > 8 ? 17 : 20;
 
-  // Answer tiles — shrink to fit the whole word on one row
+  // Answer tiles — fixed comfortable size for short/normal words; only shrink
+  // when the row would otherwise overflow the available width.
   const ANSWER_H_PADDING = 40; // paddingHorizontal: 20 each side in challenge.tsx content style
   const TILE_GAP = 6;
-  const answerTileSize = Math.max(
-    24,
-    Math.floor((screenWidth - ANSWER_H_PADDING - TILE_GAP * (shuffled.length - 1)) / shuffled.length),
-  );
+  const COMFORTABLE_TILE = 44;
+  const fitsAtComfortable =
+    shuffled.length * COMFORTABLE_TILE + (shuffled.length - 1) * TILE_GAP <=
+    screenWidth - ANSWER_H_PADDING;
+  const answerTileSize = fitsAtComfortable
+    ? COMFORTABLE_TILE
+    : Math.max(
+        24,
+        Math.floor((screenWidth - ANSWER_H_PADDING - TILE_GAP * (shuffled.length - 1)) / shuffled.length),
+      );
   const answerFontSize = Math.max(11, Math.floor(answerTileSize * 0.45));
 
   return (

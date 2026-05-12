@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Linking } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { getUrlSchemeForApp } from '../src/utils/appUrlSchemes';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, labelOverlineStyle } from '../src/theme';
 import { ClozeCardDisplay } from '../src/components/ClozeCard';
@@ -44,6 +45,7 @@ const AUTO_ADVANCE_MS = 1500;
 export default function ChallengeScreen() {
   const params = useLocalSearchParams<{
     source: string;
+    app?: string;
   }>();
   const router = useRouter();
   const theme = useAppTheme();
@@ -98,7 +100,6 @@ export default function ChallengeScreen() {
   const [demotedMode, setDemotedMode] = useState<'mc4' | 'scramble' | 'text' | null>(null);
   const [hasMoreCards, setHasMoreCards] = useState(false);
   const [hintShouldBlink, setHintShouldBlink] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
   const keyboard = useKeyboard();
 
   // --------------------------------------------------------------------------
@@ -425,23 +426,38 @@ export default function ChallengeScreen() {
           accessibilityLabel="Close challenge"
         />
         <View style={styles.headerRight}>
-          {showUnlockButton && (
-            <Pressable
-              onPress={() => {
-                incrementUnlockCount();
-                startUnlockWindow();
-                router.dismissAll();
-              }}
-              style={[styles.headerContinue, { backgroundColor: theme.colors.surfaceVariant }]}
-              accessibilityLabel="Unlock apps"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.headerContinueText, { color: theme.colors.onSurfaceVariant }]}>
-                Unlock
-              </Text>
-              <Icon source="lock-open-outline" size={12} color={theme.colors.onSurfaceVariant} />
-            </Pressable>
-          )}
+          {showUnlockButton && (() => {
+            const blockedApp = params.app ?? null;
+            const launchScheme = getUrlSchemeForApp(blockedApp);
+            const pillLabel = blockedApp ? `Open ${blockedApp}` : 'Unlock';
+            return (
+              <Pressable
+                onPress={() => {
+                  incrementUnlockCount();
+                  startUnlockWindow();
+                  router.dismissAll();
+                  if (launchScheme) {
+                    // Delay so dismissAll completes — otherwise the navigation race can
+                    // swallow the URL open. iOS will still bring the user's previous
+                    // app forward if openURL fails.
+                    setTimeout(() => {
+                      Linking.openURL(launchScheme).catch((err) => {
+                        console.warn('[Challenge] Failed to open app:', launchScheme, err);
+                      });
+                    }, 150);
+                  }
+                }}
+                style={[styles.headerContinue, { backgroundColor: theme.colors.surfaceVariant }]}
+                accessibilityLabel={blockedApp ? `Open ${blockedApp}` : 'Unlock apps'}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.headerContinueText, { color: theme.colors.onSurfaceVariant }]}>
+                  {pillLabel}
+                </Text>
+                <Icon source="lock-open-outline" size={12} color={theme.colors.onSurfaceVariant} />
+              </Pressable>
+            );
+          })()}
           <IconButton
             icon={isMuted ? 'volume-off' : 'volume-high'}
             size={22}
@@ -478,8 +494,7 @@ export default function ChallengeScreen() {
         style={[styles.keyboardAvoid, Platform.OS === 'ios' && keyboard.height > 0 && { paddingBottom: keyboard.height }]}
       >
         <View
-          style={[styles.contentScroll, styles.content, keyboard.height > 0 && styles.contentKeyboardUp]}
-          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+          style={[styles.content, keyboard.height > 0 && styles.contentKeyboardUp]}
         >
 
         {!isComplete && currentCard && (
@@ -497,7 +512,6 @@ export default function ChallengeScreen() {
                   onAudioFinish={handleAudioFinish}
                   onAlreadyKnow={currentCard.isFirstEncounter ? handleAlreadyKnow : undefined}
                   userAnswer={userAnswer ?? undefined}
-                  contentHeight={contentHeight}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -535,7 +549,6 @@ export default function ChallengeScreen() {
                   onHintRequest={!showAnswer ? handleHintRequest : undefined}
                   hintShouldBlink={hintShouldBlink}
                   userAnswer={userAnswer ?? undefined}
-                  contentHeight={contentHeight}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -556,8 +569,9 @@ export default function ChallengeScreen() {
             )}
 
             {!isMC && !isScramble && !isSelfRated && (
-              /* Text input mode */
-              <View style={[styles.textArea, keyboard.height > 0 && styles.textAreaKeyboardUp]}>
+              /* Text input mode — card fills space above input; input pinned
+                 just above keyboard via the parent's `paddingBottom: keyboard.height`. */
+              <View style={styles.textArea}>
                 <ClozeCardDisplay
                   key={currentCard.card.id}
                   sessionCard={currentCard}
@@ -569,9 +583,7 @@ export default function ChallengeScreen() {
                   onAudioFinish={handleAudioFinish}
                   onHintRequest={!showAnswer ? handleHintRequest : undefined}
                   hintShouldBlink={hintShouldBlink}
-                  keyboardHeight={keyboard.height}
                   userAnswer={userAnswer ?? undefined}
-                  contentHeight={contentHeight}
                 />
 
                 {/* Answer reveal — shown after answering */}
@@ -579,9 +591,6 @@ export default function ChallengeScreen() {
                   sessionCard={currentCard}
                   visible={showReveal}
                 />
-
-                {/* Spacer pushes input toward keyboard while card stays pinned to top */}
-                {keyboard.height > 0 && !showAnswer && <View style={styles.keyboardSpacer} />}
 
                 {!showAnswer && (
                   <View style={styles.inputArea}>
@@ -756,11 +765,8 @@ const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
-  contentScroll: {
-    flex: 1,
-  },
   content: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingBottom: 32,
@@ -769,18 +775,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   mcArea: {
+    flex: 1,
     paddingTop: 16,
-    gap: 0,
   },
   textArea: {
+    flex: 1,
     paddingTop: 16,
-    gap: 0,
-  },
-  textAreaKeyboardUp: {
-    flex: 1,
-  },
-  keyboardSpacer: {
-    flex: 1,
   },
   mcGrid: {
     width: '100%',

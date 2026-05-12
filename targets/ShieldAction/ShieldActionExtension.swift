@@ -115,7 +115,17 @@ func handleShieldAction(
       resetBlocks(triggeredBy: "shieldAction")
     }
 
-    let url = configForSelectedAction["url"] as? String
+    // LOCAL PATCH (LingoLock): substitute {applicationName} in URL so host app
+    // receives e.g. lingolock://challenge?source=screentime&app=Instagram. The
+    // JS side URL-encodes the curly braces (%7B/%7D) so iOS reliably routes
+    // the URL even if this patch isn't applied; we decode them back before
+    // running placeholder substitution.
+    let url = (configForSelectedAction["url"] as? String).map { rawUrl -> String in
+      let decoded = rawUrl
+        .replacingOccurrences(of: "%7B", with: "{")
+        .replacingOccurrences(of: "%7D", with: "}")
+      return replacePlaceholders(decoded, with: placeholders)
+    }
 
     if type == "openUrl" {
       openUrl(urlString: url ?? "device-activity://")

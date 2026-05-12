@@ -13,13 +13,14 @@
 
 import { Platform } from 'react-native';
 
-const SELECTION_ID = 'blocked-apps';
+const SELECTION_ID = 'blocked-apps';        // legacy blocklist (still used by getSelectionId for migrations)
+const WHITELIST_ID = 'allowed-apps';        // new whitelist for block-all-except mode
 const MONITOR_NAME = 'unlock-timer';
 const UNLOCK_MINUTES = 10;
 
-// Brand colors matching LingoLock theme
-const BRAND_ORANGE = { red: 255, green: 160, blue: 86 }; // #FFA056
-const DARK_BG = { red: 28, green: 46, blue: 74 };         // #1C2E4A
+// Brand colors matching LingoLock theme (brand blue #5B8EC4)
+const BRAND_BLUE = { red: 91, green: 142, blue: 196 };  // #5B8EC4
+const DEEP_NAVY = { red: 15, green: 25, blue: 41 };     // #0F1929 (dark mode bg)
 const LIGHT_TEXT = { red: 255, green: 255, blue: 255 };
 
 /**
@@ -67,21 +68,26 @@ export function configureShield(): void {
 
   updateShield(
     {
-      title: 'Time to practice!',
+      title: 'Practice to unlock',
       titleColor: LIGHT_TEXT,
-      subtitle: 'Complete vocabulary cards in LingoLock to unlock your apps',
-      subtitleColor: { ...LIGHT_TEXT, alpha: 0.8 },
-      backgroundColor: DARK_BG,
+      subtitle: 'Complete a few vocabulary cards to keep using {applicationName}',
+      subtitleColor: { ...LIGHT_TEXT, alpha: 0.85 },
+      backgroundColor: DEEP_NAVY,
       primaryButtonLabel: 'Open LingoLock',
-      primaryButtonLabelColor: DARK_BG,
-      primaryButtonBackgroundColor: BRAND_ORANGE,
-      iconSystemName: 'book.fill',
-      iconTint: BRAND_ORANGE,
+      primaryButtonLabelColor: LIGHT_TEXT,
+      primaryButtonBackgroundColor: BRAND_BLUE,
+      iconSystemName: 'graduationcap.fill',
+      iconTint: LIGHT_TEXT,
     },
     {
       primary: {
         behavior: 'close',
-        actions: [{ type: 'openApp' }],
+        type: 'openUrl',
+        // URL-encode the placeholder so iOS will route the URL even if the Swift
+        // patch isn't applied yet (raw `{` is RFC-unsafe and can fail on some
+        // iOS versions). The patched ShieldAction decodes %7B/%7D back to {/}
+        // before substituting the application name.
+        url: 'lingolock://challenge?source=screentime&app=%7BapplicationName%7D',
       },
     },
   );
@@ -90,10 +96,56 @@ export function configureShield(): void {
 /**
  * Block all selected apps by applying shields.
  * Uses the persisted selection stored under SELECTION_ID.
+ * @deprecated Use enableBlockAll() — block-all + whitelist is the new model.
  */
 export function blockApps(): void {
   const { blockSelection } = require('react-native-device-activity');
   blockSelection({ activitySelectionId: SELECTION_ID });
+}
+
+/**
+ * Enable "block all apps" mode. Every third-party app on the device is shielded
+ * unless it's in the whitelist (managed via setWhitelist). The host app itself
+ * (LingoLock) is automatically exempted by iOS — Apple guarantees a FamilyControls
+ * host can't be shielded by its own configuration. System apps (Phone, Settings,
+ * Find My) are also always accessible for safety reasons.
+ */
+export function enableBlockAll(): void {
+  const { enableBlockAllMode } = require('react-native-device-activity');
+  enableBlockAllMode('user-enable');
+}
+
+/**
+ * Replace the entire whitelist with the given FamilyActivitySelection JSON,
+ * then re-evaluate shields. Pass null to clear the whitelist (everything blocked).
+ */
+export function setWhitelist(familyActivitySelectionJson: string | null): void {
+  const {
+    clearWhitelistAndUpdateBlock,
+    addSelectionToWhitelistAndUpdateBlock,
+  } = require('react-native-device-activity');
+  clearWhitelistAndUpdateBlock('user-update-whitelist');
+  if (familyActivitySelectionJson) {
+    addSelectionToWhitelistAndUpdateBlock(
+      { familyActivitySelection: familyActivitySelectionJson },
+      'user-update-whitelist',
+    );
+  }
+}
+
+/**
+ * Hard reset — removes all shields and clears any saved whitelist.
+ * Use as the user-visible "Clear all blocked apps" escape hatch.
+ */
+export function clearAllBlocks(): void {
+  const {
+    resetBlocks,
+    clearWhitelistAndUpdateBlock,
+    disableBlockAllMode,
+  } = require('react-native-device-activity');
+  clearWhitelistAndUpdateBlock('user-clear');
+  disableBlockAllMode('user-clear');
+  resetBlocks('user-clear');
 }
 
 /**
@@ -120,15 +172,14 @@ export function startUnlockWindow(): void {
   // Stop any existing unlock timer
   stopMonitoring([MONITOR_NAME]);
 
-  // Configure re-blocking action for when the timer expires
+  // Configure re-blocking action for when the timer expires.
+  // Uses block-all mode — the whitelist persists across unlock cycles in
+  // ManagedSettingsStore, so re-enabling block-all restores the same exceptions.
   configureActions({
     activityName: MONITOR_NAME,
     callbackName: 'intervalDidEnd',
     actions: [
-      {
-        type: 'blockSelection',
-        familyActivitySelectionId: SELECTION_ID,
-      },
+      { type: 'enableBlockAllMode' },
     ],
   });
 

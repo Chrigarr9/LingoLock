@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Platform, Image, Pressable, Animated, type ImageSourcePropType } from 'react-native';
-import { Icon, IconButton, Text } from 'react-native-paper';
+import { View, StyleSheet, Image, Pressable, Animated, type ImageSourcePropType } from 'react-native';
+import { Icon, Text } from 'react-native-paper';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useAppTheme, getGlassStyle } from '../theme';
 import { useActiveBundle } from '../content/activeBundleProvider';
@@ -24,12 +24,8 @@ interface ClozeCardDisplayProps {
   onAlreadyKnow?: () => void;
   /** When true, gently pulse the hint button to attract attention */
   hintShouldBlink?: boolean;
-  /** Height of the keyboard in pixels (0 when hidden). Image shrinks to fit remaining space. */
-  keyboardHeight?: number;
   /** The answer the user actually gave (shown in feedback when incorrect) */
   userAnswer?: string;
-  /** Measured height of the content area — used to size image so card never overflows */
-  contentHeight?: number;
 }
 
 /**
@@ -49,33 +45,17 @@ export function ClozeCardDisplay({
   onAudioFinish,
   onHintRequest,
   onAlreadyKnow,
-  keyboardHeight = 0,
   userAnswer,
-  contentHeight = 0,
   hintShouldBlink = false,
 }: ClozeCardDisplayProps) {
   const theme = useAppTheme();
   const { cardImages, cardAudios } = useActiveBundle();
   // ClozeCardDisplay is only rendered for mc4/text cards, never selfRated
   const card = sessionCard.card as import('../types/vocabulary').ClozeCard;
-  const { answerType } = sessionCard;
   const soundRef = useRef<AudioPlayer | null>(null);
   // Ref to always call the latest onAudioFinish callback without re-triggering the effect
   const onAudioFinishRef = useRef(onAudioFinish);
   onAudioFinishRef.current = onAudioFinish;
-
-  // Calculate available height for the image from the measured content area.
-  // Subtract the non-image parts of the card (text, hint, padding) and siblings
-  // (MC grid / input area, answer reveal, next button, area padding).
-  // MC: card text ~94 + grid ~190 + next ~60 + gaps ~48 = ~392
-  // Text (no keyboard): card text ~94 + input ~56 + gaps ~44 = ~194
-  // Text (keyboard up): card text with padding ~140 + input area ~76 + margins ~44 = ~260
-  //   The input field must remain visible above the keyboard, so reserve more space.
-  const textOverhead = keyboardHeight > 0 ? 260 : 194;
-  const nonImageOverhead = answerType === 'text' ? textOverhead : 392;
-  const availableForImage = contentHeight - nonImageOverhead;
-  const imageMaxHeight = Math.max(0, Math.min(220, availableForImage));
-  const shouldShowImage = imageMaxHeight >= 40;
 
   const correctColor = theme.custom.success;
   const incorrectColor = theme.colors.error;
@@ -156,7 +136,11 @@ export function ClozeCardDisplay({
   useEffect(() => {
     setImageError(false);
   }, [card.id]);
-  const showImage = !!imageSource && !imageError && shouldShowImage;
+  // Image renders only if data exists and load succeeded. Sizing is handled by
+  // flexbox: the wrapper has `flex: 1, minHeight: 0`, so it grows to fill
+  // remaining vertical space within the card and collapses to 0 when the
+  // text+input+keyboard already consume the screen.
+  const showImage = !!imageSource && !imageError;
 
   // Can the German hint be tapped to demote the answer type? (text/scramble only)
   const hintIsTappable = !!onHintRequest;
@@ -244,31 +228,31 @@ export function ClozeCardDisplay({
       {/* German hint — tappable in text mode to reveal spelling hint */}
       {!showAnswer && (
         <View style={styles.hintArea}>
-          <Animated.View style={{ opacity: blinkAnim }}>
-            <Pressable
-              onPress={hintIsTappable ? onHintRequest : undefined}
-              style={styles.hintRow}
-              accessibilityRole={hintIsTappable ? 'button' : undefined}
-              accessibilityLabel={hintIsTappable ? 'Make it easier' : undefined}
-            >
+          <Pressable
+            onPress={hintIsTappable ? onHintRequest : undefined}
+            style={styles.hintRow}
+            accessibilityRole={hintIsTappable ? 'button' : undefined}
+            accessibilityLabel={hintIsTappable ? 'Make it easier' : undefined}
+          >
+            <Animated.View style={{ opacity: blinkAnim }}>
               <Icon
                 source={hintIsTappable ? 'lightbulb-on-outline' : 'lightbulb-outline'}
                 size={22}
                 color={hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue}
               />
-              <Text
-                variant="bodyLarge"
-                style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
-              >
-                {card.germanHint}
-                {card.germanHintGeneral ? (
-                  <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
-                    {`  (${card.germanHintGeneral})`}
-                  </Text>
-                ) : null}
-              </Text>
-            </Pressable>
-          </Animated.View>
+            </Animated.View>
+            <Text
+              variant="bodyLarge"
+              style={[styles.germanHint, { color: hintIsTappable ? theme.custom.hintYellow : theme.custom.brandBlue }]}
+            >
+              {card.germanHint}
+              {card.germanHintGeneral ? (
+                <Text style={[styles.germanHintGeneral, { color: theme.colors.onSurfaceVariant }]}>
+                  {`  (${card.germanHintGeneral})`}
+                </Text>
+              ) : null}
+            </Text>
+          </Pressable>
           {sessionCard.isFirstEncounter && onAlreadyKnow && (
             <Pressable onPress={onAlreadyKnow} accessibilityRole="button">
               <Text
@@ -289,12 +273,15 @@ export function ClozeCardDisplay({
       style={[
         styles.card,
         getGlassStyle(theme),
-        showImage && { paddingVertical: 0, paddingHorizontal: 0, gap: 0 },
+        showImage && styles.cardWithImage,
       ]}
     >
-      {/* Hero image — flush at top, full card width, ratio-enforcing wrapper */}
+      {/* Hero image — flush at top, full card width, flexes to fill remaining
+          vertical space inside the card. `minHeight: 0` lets the wrapper
+          collapse to 0 when there's no room (e.g. keyboard up on small phone)
+          rather than pushing the input off-screen. */}
       {showImage && (
-        <View style={[styles.cardImageWrapper, { height: imageMaxHeight }]}>
+        <View style={styles.cardImageWrapper}>
           <Image
             source={imageSource!}
             style={styles.cardImage}
@@ -314,14 +301,11 @@ export function ClozeCardDisplay({
   );
 }
 
-/**
- * Card image aspect ratio — must match the pipeline output (config.py width/height).
- * Pipeline generates at 768×512 = 3:2. Changing one? Change both.
- */
-const CARD_IMAGE_RATIO = 3 / 2;
-
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
@@ -331,9 +315,16 @@ const styles = StyleSheet.create({
     gap: 4,
     overflow: 'hidden',
   },
+  cardWithImage: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    gap: 0,
+    justifyContent: 'flex-start',
+  },
   cardImageWrapper: {
+    flex: 1,
+    minHeight: 0,
     width: '100%',
-    height: undefined,
     overflow: 'hidden',
     borderTopLeftRadius: 19,
     borderTopRightRadius: 19,

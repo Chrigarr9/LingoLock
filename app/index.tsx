@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
 import { getStreak, getChapterProgress, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
+import { openDebugLog } from '../src/services/debugLog';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -78,13 +79,22 @@ export default function HomeScreen() {
               LingoLock
             </Text>
           </View>
-          <IconButton
-            icon="cog-outline"
-            size={22}
-            iconColor={theme.colors.onSurfaceVariant}
-            onPress={() => router.push('/settings')}
-            accessibilityLabel="Settings"
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <IconButton
+              icon="bug-outline"
+              size={20}
+              iconColor={theme.colors.onSurfaceVariant}
+              onPress={openDebugLog}
+              accessibilityLabel="Debug log"
+            />
+            <IconButton
+              icon="cog-outline"
+              size={22}
+              iconColor={theme.colors.onSurfaceVariant}
+              onPress={() => router.push('/settings')}
+              accessibilityLabel="Settings"
+            />
+          </View>
         </View>
 
         {/* Language Badge */}

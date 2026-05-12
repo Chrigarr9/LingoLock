@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import * as Linking from 'expo-linking';
 import { parseDeepLink, DeepLinkParams } from '../utils/deepLinkHandler';
+import { logDebug } from '../services/debugLog';
 
 /**
  * Hook to listen for deep link events and route to appropriate handlers
@@ -17,24 +18,33 @@ export function useDeepLink(onDeepLink: (params: DeepLinkParams) => void) {
     const handleInitialURL = async () => {
       try {
         const url = await Linking.getInitialURL();
+        logDebug('DeepLink.initial', url ?? '(null)');
         if (url) {
           console.log('[DeepLink] Initial URL (cold start):', url);
           const params = parseDeepLink(url);
           if (params) {
+            logDebug('DeepLink.initial', 'dispatching', params.type);
             onDeepLink(params);
+          } else {
+            logDebug('DeepLink.initial', 'parse returned null');
           }
         }
       } catch (error) {
+        logDebug('DeepLink.initial', 'ERROR', String(error));
         console.error('[DeepLink] Failed to get initial URL:', error);
       }
     };
 
     // Handle subsequent URLs (app already running - background state)
     const subscription = Linking.addEventListener('url', (event) => {
+      logDebug('DeepLink.event', event.url);
       console.log('[DeepLink] Event URL (background):', event.url);
       const params = parseDeepLink(event.url);
       if (params) {
+        logDebug('DeepLink.event', 'dispatching', params.type);
         onDeepLink(params);
+      } else {
+        logDebug('DeepLink.event', 'parse returned null');
       }
     });
 

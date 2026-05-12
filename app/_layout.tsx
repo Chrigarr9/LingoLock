@@ -1,4 +1,4 @@
-import React, { Component, useCallback, useEffect, useState } from 'react';
+import React, { Component, useCallback, useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { AppState, Platform, View, useColorScheme, Text, StyleSheet, type AppStateStatus } from 'react-native';
 import { IconButton, PaperProvider } from 'react-native-paper';
@@ -13,9 +13,11 @@ import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWi
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 import { loadScreenTimeEnabled } from '../src/services/storage';
-import { isScreenTimeAvailable, isBlocking } from '../src/services/screenTimeService';
+import { isScreenTimeAvailable, isBlocking, configureShield } from '../src/services/screenTimeService';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
+import { DebugLogOverlay } from '../src/components/DebugLogOverlay';
+import { logDebug, subscribeOpenDebugLog } from '../src/services/debugLog';
 import type { BackupMeta } from '../src/services/backupService';
 
 // ---------------------------------------------------------------------------
@@ -81,6 +83,10 @@ export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+  // Set once any path navigates to /challenge (deep-link, cold-start fallback,
+  // or warm AppState fallback). Prevents the 1500ms setTimeout from clobbering
+  // an already-successful deep-link navigation.
+  const navigatedToChallenge = useRef(false);
 
   useEffect(() => {
     // Web: Register service worker
@@ -102,6 +108,49 @@ export default function RootLayout() {
       });
       // Push current card data to the widget so it has content on launch
       updateWidgetData();
+
+      // Refresh shield config (text/colors/action URL) from latest JS values.
+      // Extensions read from UserDefaults — older app installs may have stale config.
+      const stEnabled = loadScreenTimeEnabled();
+      const stAvailable = isScreenTimeAvailable();
+      logDebug('App.mount', 'screenTime', { enabled: stEnabled, available: stAvailable });
+      if (stEnabled && stAvailable) {
+        try {
+          configureShield();
+          logDebug('App.mount', 'configureShield OK');
+        } catch (err) {
+          logDebug('App.mount', 'configureShield FAILED', String(err));
+          console.warn('[App] configureShield on launch failed:', err);
+        }
+
+        // Cold-start fallback: if the app was launched while apps are blocked,
+        // route to /challenge even if the shield's deep-link URL didn't parse
+        // (e.g. unfilled {applicationName} placeholder on older builds without
+        // the Swift patch). The deep-link handler will still fire too — both
+        // navigate to the same place so router.replace is idempotent.
+        //
+        // 1500ms (was 300ms) gives the native module's UserDefaults reads time
+        // to sync from the shield extension's writes. iOS CFPreferences caches
+        // values per-process; right after the extension fires, isShieldActive()
+        // on a fresh app launch can momentarily return false.
+        const blockingNow = isBlocking();
+        logDebug('App.mount', 'isBlocking @ t=0', blockingNow);
+        setTimeout(() => {
+          if (navigatedToChallenge.current) {
+            logDebug('App.mount', 'cold-start fallback skipped — already navigated');
+            return;
+          }
+          const blockingLater = isBlocking();
+          logDebug('App.mount', 'isBlocking @ t=1500ms', blockingLater);
+          if (blockingLater) {
+            logDebug('App.mount', 'router.replace /challenge (cold-start fallback)');
+            navigatedToChallenge.current = true;
+            router.replace({ pathname: '/challenge', params: { source: 'screentime' } });
+          } else {
+            logDebug('App.mount', 'cold-start fallback skipped — not blocking');
+          }
+        }, 1500);
+      }
 
       // Listen for widget button taps (target strings from expo-widgets Button)
       const { addUserInteractionListener } = require('expo-widgets');
@@ -157,12 +206,20 @@ export default function RootLayout() {
       screenTimeSub = AppState.addEventListener('change', (state: AppStateStatus) => {
         if (state === 'background') {
           lastBackgroundTime = Date.now();
+          logDebug('App.AppState', 'background', { ts: lastBackgroundTime });
         }
         if (state === 'active' && loadScreenTimeEnabled() && isScreenTimeAvailable()) {
-          // If the app just came from background (< 2 seconds ago) and shields are
-          // active, the user likely tapped the shield button. Navigate to challenge.
-          const wasRecentlyBackgrounded = Date.now() - lastBackgroundTime < 2000;
-          if (wasRecentlyBackgrounded && isBlocking()) {
+          const dtBg = lastBackgroundTime === 0 ? -1 : Date.now() - lastBackgroundTime;
+          const wasRecentlyBackgrounded = lastBackgroundTime > 0 && dtBg < 2000;
+          const blockingNow = isBlocking();
+          logDebug('App.AppState', 'active', {
+            dtBg,
+            wasRecentlyBackgrounded,
+            blocking: blockingNow,
+          });
+          if (wasRecentlyBackgrounded && blockingNow && !navigatedToChallenge.current) {
+            logDebug('App.AppState', 'router.replace /challenge (warm fallback)');
+            navigatedToChallenge.current = true;
             router.replace({
               pathname: '/challenge',
               params: { source: 'screentime' },
@@ -227,6 +284,16 @@ export default function RootLayout() {
       } catch (error) {
         console.error('[App] Failed to process widget rate:', error);
       }
+    } else if (deepLink.type === 'challenge') {
+      logDebug('App.deepLink', 'challenge → router.replace', deepLink.params);
+      navigatedToChallenge.current = true;
+      router.replace({
+        pathname: '/challenge',
+        params: {
+          source: deepLink.params.source,
+          ...(deepLink.params.app ? { app: deepLink.params.app } : {}),
+        },
+      });
     }
   }, [router]);
 
@@ -235,6 +302,12 @@ export default function RootLayout() {
   // ---------------------------------------------------------------------------
   const [backupMeta, setBackupMeta] = useState<BackupMeta | null>(null);
   const [showRestore, setShowRestore] = useState(false);
+  const [showDebugLog, setShowDebugLog] = useState(false);
+
+  // Allow any screen to open the debug overlay via openDebugLog()
+  useEffect(() => {
+    return subscribeOpenDebugLog(() => setShowDebugLog(true));
+  }, []);
 
   // Check for backup on mount (fresh install detection)
   useEffect(() => {
@@ -372,6 +445,7 @@ export default function RootLayout() {
             onStartFresh={handleStartFresh}
           />
         )}
+        <DebugLogOverlay visible={showDebugLog} onClose={() => setShowDebugLog(false)} />
         {Platform.OS === 'web' ? (
           <View style={{ flex: 1, alignItems: 'center', backgroundColor: theme.colors.background }}>
             <View style={{ flex: 1, width: '100%', maxWidth: 480 }}>

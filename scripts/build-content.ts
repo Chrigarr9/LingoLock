@@ -436,10 +436,26 @@ for (const { chapterNum, chapterData } of loadedChapters) {
     // Generate distractors (by lemma for broader pool)
     const distractors = generateDistractors(lemma, first.word.pos, cefrLevel, vocabPool);
 
-    // Image/audio from primary sentence
-    const imgKey = `ch${String(chapterNum).padStart(2, '0')}_s${String(first.sentence.sentence_index).padStart(2, '0')}`;
-    const image = imageKeys.has(imgKey) ? imgKey : undefined;
-    const audio = audioKeys.has(imgKey) ? imgKey : undefined;
+    // Image is generated per-shot (1-3 sentences share one image keyed by the
+    // shot's first sentence). Map this sentence to its shot's image by finding
+    // the largest image key in the same chapter with index ≤ this sentence's.
+    const chPrefix = `ch${String(chapterNum).padStart(2, '0')}_s`;
+    const exactKey = `${chPrefix}${String(first.sentence.sentence_index).padStart(2, '0')}`;
+    let image: string | undefined = undefined;
+    if (imageKeys.has(exactKey)) {
+      image = exactKey;
+    } else {
+      let bestIdx = -1;
+      for (const k of imageKeys.keys()) {
+        if (!k.startsWith(chPrefix)) continue;
+        const idx = parseInt(k.slice(chPrefix.length), 10);
+        if (idx <= first.sentence.sentence_index && idx > bestIdx) {
+          bestIdx = idx;
+          image = k;
+        }
+      }
+    }
+    const audio = audioKeys.has(exactKey) ? exactKey : undefined;
 
     cards.push({
       id: cardId,
