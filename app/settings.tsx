@@ -32,7 +32,6 @@ import {
   configureShield,
   enableBlockAll,
   setWhitelist,
-  clearAllBlocks,
   disableBlocking,
 } from '../src/services/screenTimeService';
 import {
@@ -238,27 +237,6 @@ export default function SettingsScreen() {
     }
   }
 
-  function handleClearAllBlocks() {
-    Alert.alert(
-      'Reset Screen Time blocking?',
-      'This removes the shield from every app, clears your allowed-apps list, and turns off Screen Time blocking. Toggle it back on whenever you want to start fresh.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            clearAllBlocks();
-            saveWhitelistJson(null);
-            setWhitelistJsonState(null);
-            saveScreenTimeEnabled(false);
-            setScreenTimeEnabled(false);
-          },
-        },
-      ],
-    );
-  }
-
   const glassStyle = getGlassStyle(theme);
   const pickerColor = theme.colors.onSurface;
 
@@ -439,24 +417,6 @@ export default function SettingsScreen() {
                     size={20}
                     iconColor={theme.colors.onSurfaceVariant}
                   />
-                </Pressable>
-
-                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-                <Pressable onPress={handleClearAllBlocks} style={styles.settingRow}>
-                  <View style={styles.settingLabelGroup}>
-                    <Text
-                      variant="bodyLarge"
-                      style={[styles.settingLabel, { color: theme.colors.error }]}
-                    >
-                      Reset blocking
-                    </Text>
-                    <Text
-                      variant="bodySmall"
-                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
-                    >
-                      Remove all shields, clear the allowed-apps list, and turn off blocking
-                    </Text>
-                  </View>
                 </Pressable>
 
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />

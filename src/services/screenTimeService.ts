@@ -134,21 +134,6 @@ export function setWhitelist(familyActivitySelectionJson: string | null): void {
 }
 
 /**
- * Hard reset — removes all shields and clears any saved whitelist.
- * Use as the user-visible "Clear all blocked apps" escape hatch.
- */
-export function clearAllBlocks(): void {
-  const {
-    resetBlocks,
-    clearWhitelistAndUpdateBlock,
-    disableBlockAllMode,
-  } = require('react-native-device-activity');
-  clearWhitelistAndUpdateBlock('user-clear');
-  disableBlockAllMode('user-clear');
-  resetBlocks('user-clear');
-}
-
-/**
  * Unblock all apps by removing shields and stopping any active monitor.
  */
 export function unblockApps(): void {
@@ -243,17 +228,32 @@ export function hasAppSelection(): boolean {
 }
 
 /**
- * Fully disable Screen Time blocking.
- * Removes all shields, stops monitors, and clears the managed settings store.
+ * Fully disable Screen Time blocking. Used by the master toggle OFF.
+ *
+ * Order matters:
+ *   1. stopMonitoring  — kill the unlock-timer callback so it can't re-arm
+ *      block-all in the background after we disable it.
+ *   2. disableBlockAllMode — clear the IS_BLOCKING_ALL UserDefaults flag so
+ *      no future updateBlock() call re-applies shields. Without this,
+ *      resetBlocks alone is not enough: any background event that calls
+ *      updateBlock would see block-all still set and re-shield everything.
+ *   3. resetBlocks — drop CURRENT_BLOCKLIST and apply the now-empty config.
+ *   4. clearAllManagedSettingsStoreSettings — final cleanup, nukes the
+ *      store directly to remove any stragglers.
+ *
+ * The whitelist in MMKV (loadWhitelistJson) is intentionally preserved so
+ * the user's allowed-apps list persists across toggle off/on cycles.
  */
 export function disableBlocking(): void {
   const {
     resetBlocks,
     stopMonitoring,
     clearAllManagedSettingsStoreSettings,
+    disableBlockAllMode,
   } = require('react-native-device-activity');
 
   stopMonitoring();
-  resetBlocks();
+  disableBlockAllMode('user-toggle-off');
+  resetBlocks('user-toggle-off');
   clearAllManagedSettingsStoreSettings();
 }
