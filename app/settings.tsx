@@ -240,17 +240,19 @@ export default function SettingsScreen() {
 
   function handleClearAllBlocks() {
     Alert.alert(
-      'Clear all blocked apps?',
-      'This removes the shield from every app and clears your allowed-apps list. Screen Time blocking stays enabled — you can rebuild the allow list whenever you want.',
+      'Reset Screen Time blocking?',
+      'This removes the shield from every app, clears your allowed-apps list, and turns off Screen Time blocking. Toggle it back on whenever you want to start fresh.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Reset',
           style: 'destructive',
           onPress: () => {
             clearAllBlocks();
             saveWhitelistJson(null);
             setWhitelistJsonState(null);
+            saveScreenTimeEnabled(false);
+            setScreenTimeEnabled(false);
           },
         },
       ],
@@ -446,13 +448,13 @@ export default function SettingsScreen() {
                       variant="bodyLarge"
                       style={[styles.settingLabel, { color: theme.colors.error }]}
                     >
-                      Clear all blocked apps
+                      Reset blocking
                     </Text>
                     <Text
                       variant="bodySmall"
                       style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                     >
-                      Removes the shield from every app; blocking stays enabled
+                      Remove all shields, clear the allowed-apps list, and turn off blocking
                     </Text>
                   </View>
                 </Pressable>

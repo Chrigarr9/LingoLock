@@ -280,7 +280,7 @@ export function loadWhitelistJson(): string | null {
 /** Persists the whitelist FamilyActivitySelection JSON. Pass null to clear. */
 export function saveWhitelistJson(json: string | null): void {
   if (json) statsStorage.set(WHITELIST_JSON_KEY, json);
-  else statsStorage.delete(WHITELIST_JSON_KEY);
+  else statsStorage.remove(WHITELIST_JSON_KEY);
 }
 
 export function loadActiveBundle(): string {
