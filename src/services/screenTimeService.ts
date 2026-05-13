@@ -1,22 +1,34 @@
 /**
  * Screen Time Service — orchestrates app blocking via Apple's Screen Time API.
  *
- * Uses react-native-device-activity to:
- * - Configure shield appearance and button actions
- * - Block/unblock selected apps via ManagedSettingsStore
- * - Schedule 10-minute unlock timers via DeviceActivityMonitor
+ * Block model: USER-PICKS-BLOCKED-APPS. The user explicitly selects which apps
+ * should be shielded via the Family Activity Picker; we apply shields to that
+ * exact set. We do NOT use Apple's `.all(except:)` policy — it silently misses
+ * apps not enumerated under a known category (e.g. third-party apps that load
+ * lazily), which the user observed firsthand with YouTube/Reddit/Strava/Garmin.
  *
- * All extension behavior is data-driven from JS — no custom Swift needed.
- * The library writes configs to shared UserDefaults; its bundled Swift
- * extensions read and execute them.
+ * Unlock cycle: tap shield → routed to /challenge → complete cards →
+ * resetBlocks() lifts shields for 10 min → intervalDidEnd re-applies the
+ * blocklist via blockSelection(BLOCKLIST_ID). The blocklist's selection ID is
+ * mirrored to the library's selection store via setFamilyActivitySelectionId
+ * so the monitor callback can reference it by ID.
+ *
+ * Shield handoff: the library's openUrl uses a freshly-constructed
+ * NSExtensionContext() that silently no-ops on iOS — so the shield's deep link
+ * never actually reaches the host app. We patch ShieldActionExtension.swift to
+ * write a `lingolock.pendingShieldAction` marker into App Group UserDefaults
+ * before openUrl is called. The host reads + clears that marker on launch and
+ * on AppState→active and routes to /challenge regardless of whether iOS
+ * delivered the URL. See consumePendingShieldAction below.
  */
 
 import { Platform } from 'react-native';
 
-const SELECTION_ID = 'blocked-apps';        // legacy blocklist (still used by getSelectionId for migrations)
-const WHITELIST_ID = 'allowed-apps';        // new whitelist for block-all-except mode
+const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
 const MONITOR_NAME = 'unlock-timer';
 const UNLOCK_MINUTES = 10;
+const SHIELD_ACTION_MARKER_KEY = 'lingolock.pendingShieldAction';
+const SHIELD_ACTION_TTL_MS = 60_000;
 
 // Brand colors matching LingoLock theme (brand blue #5B8EC4)
 const BRAND_BLUE = { red: 91, green: 142, blue: 196 };  // #5B8EC4
@@ -57,11 +69,12 @@ export async function requestScreenTimeAuth(): Promise<void> {
 }
 
 /**
- * Configure the shield appearance and button action.
- * Called once during setup and whenever the shield needs updating.
+ * Configure the shield appearance and primary button action.
  *
- * The shield button uses "openApp" to launch LingoLock directly.
- * Fallback: if openApp doesn't work reliably, switch to sendNotification.
+ * The subtitle uses `{applicationOrDomainDisplayName}` — that's the placeholder
+ * key the library's ShieldConfigurationExtension exposes (NOT `applicationName`,
+ * which only exists in the ShieldAction extension's placeholder dict). Build #4
+ * used the wrong key and rendered the literal string "{applicationName}".
  */
 export function configureShield(): void {
   const { updateShield } = require('react-native-device-activity');
@@ -70,7 +83,7 @@ export function configureShield(): void {
     {
       title: 'Practice to unlock',
       titleColor: LIGHT_TEXT,
-      subtitle: 'Complete a few vocabulary cards to keep using {applicationName}',
+      subtitle: 'Complete a few vocabulary cards to keep using {applicationOrDomainDisplayName}',
       subtitleColor: { ...LIGHT_TEXT, alpha: 0.85 },
       backgroundColor: DEEP_NAVY,
       primaryButtonLabel: 'Open LingoLock',
@@ -86,7 +99,10 @@ export function configureShield(): void {
         // URL-encode the placeholder so iOS will route the URL even if the Swift
         // patch isn't applied yet (raw `{` is RFC-unsafe and can fail on some
         // iOS versions). The patched ShieldAction decodes %7B/%7D back to {/}
-        // before substituting the application name.
+        // before substituting the application name. NOTE: the openUrl call in
+        // the library is broken (uses a fresh NSExtensionContext), so this URL
+        // probably won't be delivered — the pending-shield-action marker (also
+        // written by the patch) is the reliable signal we read on foreground.
         url: 'lingolock://challenge?source=screentime&app=%7BapplicationName%7D',
       },
     },
@@ -94,99 +110,81 @@ export function configureShield(): void {
 }
 
 /**
- * Block all selected apps by applying shields.
- * Uses the persisted selection stored under SELECTION_ID.
- * @deprecated Use enableBlockAll() — block-all + whitelist is the new model.
- */
-export function blockApps(): void {
-  const { blockSelection } = require('react-native-device-activity');
-  blockSelection({ activitySelectionId: SELECTION_ID });
-}
-
-/**
- * Enable "block all apps" mode. Every app on the device is shielded unless
- * it's in the whitelist (managed via setWhitelist).
+ * Apply shields to the given FamilyActivitySelection JSON (the picker's output).
  *
- * IMPORTANT: iOS does NOT automatically exempt the host app from its own
- * shield. If LingoLock isn't in the whitelist, the user will see a shield
- * when they tap LingoLock's icon and may be unable to reach the unlock
- * screen. Always ensure the whitelist contains LingoLock before calling
- * this. Settings.tsx forces the user through the picker on first enable to
- * satisfy this invariant.
+ * Two-step:
+ *   1. Mirror the selection into the library's FamilyActivitySelection store
+ *      under BLOCKLIST_ID so the unlock-window's intervalDidEnd callback can
+ *      re-block it later via `{ type: 'blockSelection', familyActivitySelectionId }`.
+ *      The library's `executeGenericAction` only accepts a selection ID for
+ *      blockSelection — not an inline selection.
+ *   2. Apply shields immediately via blockSelection(selection) — this writes
+ *      to ManagedSettingsStore.shield.applications, which reliably shields
+ *      exactly the picked tokens. No `.all(except:)` weirdness.
  *
- * System apps (Phone, Settings, Find My) are exempted by iOS for safety.
+ * Pass null/empty to lift all shields.
  */
-export function enableBlockAll(): void {
-  const { enableBlockAllMode } = require('react-native-device-activity');
-  enableBlockAllMode('user-enable');
-}
-
-/**
- * Replace the entire whitelist with the given FamilyActivitySelection JSON,
- * then re-evaluate shields. Pass null to clear the whitelist (everything blocked).
- */
-export function setWhitelist(familyActivitySelectionJson: string | null): void {
+export function applyBlocklist(blocklistJson: string | null): void {
   const {
-    clearWhitelistAndUpdateBlock,
-    addSelectionToWhitelistAndUpdateBlock,
+    blockSelection,
+    resetBlocks,
+    setFamilyActivitySelectionId,
   } = require('react-native-device-activity');
-  clearWhitelistAndUpdateBlock('user-update-whitelist');
-  if (familyActivitySelectionJson) {
-    addSelectionToWhitelistAndUpdateBlock(
-      { familyActivitySelection: familyActivitySelectionJson },
-      'user-update-whitelist',
-    );
-  }
-}
 
-/**
- * Unblock all apps by removing shields and stopping any active monitor.
- */
-export function unblockApps(): void {
-  const { resetBlocks, stopMonitoring } = require('react-native-device-activity');
-  resetBlocks();
-  stopMonitoring([MONITOR_NAME]);
+  if (!blocklistJson) {
+    resetBlocks('apply-blocklist-empty');
+    return;
+  }
+
+  // The library accepts the FamilyActivitySelection as either a JSON string or
+  // a parsed object via familyActivitySelection field. We pass the JSON
+  // directly — the bridge handles both forms via parseActivitySelectionInput.
+  setFamilyActivitySelectionId({
+    id: BLOCKLIST_ID,
+    familyActivitySelection: blocklistJson,
+  });
+  blockSelection(
+    { familyActivitySelection: blocklistJson },
+    'apply-blocklist',
+  );
 }
 
 /**
  * Lift shields temporarily and start a 10-minute unlock timer.
- * When the timer expires, the DeviceActivityMonitor re-applies shields.
+ * When the timer expires, the DeviceActivityMonitor re-applies the blocklist
+ * via the BLOCKLIST_ID stored selection.
  */
 export function startUnlockWindow(): void {
   const {
-    disableBlockAllMode,
+    resetBlocks,
     startMonitoring,
     configureActions,
     stopMonitoring,
   } = require('react-native-device-activity');
 
-  // Stop any existing unlock timer
   stopMonitoring([MONITOR_NAME]);
 
-  // Configure re-blocking action for when the timer expires.
-  // Uses block-all mode — the whitelist persists across unlock cycles in
-  // ManagedSettingsStore, so re-enabling block-all restores the same exceptions.
+  // Re-block action for when the timer expires. References the stored
+  // selection by ID (set in applyBlocklist).
   configureActions({
     activityName: MONITOR_NAME,
     callbackName: 'intervalDidEnd',
     actions: [
-      { type: 'enableBlockAllMode' },
+      { type: 'blockSelection', familyActivitySelectionId: BLOCKLIST_ID },
     ],
   });
 
-  // Actually lift shields. resetBlocks() alone is NOT enough — under
-  // block-all mode it clears the per-app blocklist key and then updateBlock()
-  // re-applies `.all(except: whitelist)` because IS_BLOCKING_ALL is still set.
-  // disableBlockAllMode clears that flag, so updateBlock leaves the shield
-  // empty until intervalDidEnd re-enables it.
-  disableBlockAllMode('unlock-window');
+  // Lift shields. resetBlocks clears currentBlocklist and re-evaluates the
+  // shield — with block-all mode gone, this leaves shields empty until
+  // intervalDidEnd fires. The user's persisted selection (BLOCKLIST_ID) is
+  // separate from currentBlocklist, so it survives.
+  resetBlocks('unlock-window');
 
   // DeviceActivityMonitor takes wall-clock time-of-day components, not
   // absolute dates. If our 10-minute window would cross midnight, clamp
   // intervalEnd to 23:59:59 today rather than wrap into tomorrow — iOS's
   // straddle-midnight semantics for `repeats: false` are ambiguous across
-  // versions. Users who unlock right before midnight get a shorter window;
-  // a future improvement could chain a second monitor for after midnight.
+  // versions. Users who unlock right before midnight get a shorter window.
   const now = new Date();
   const intendedEnd = new Date(now.getTime() + UNLOCK_MINUTES * 60 * 1000);
   const crossesMidnight = intendedEnd.getDate() !== now.getDate();
@@ -209,7 +207,7 @@ export function startUnlockWindow(): void {
       },
       repeats: false,
     },
-    [], // no events — we only use intervalDidEnd
+    [],
   );
 }
 
@@ -222,37 +220,19 @@ export function isBlocking(): boolean {
 }
 
 /**
- * Get the selection ID used for persisted app selection.
- * Used by DeviceActivitySelectionViewPersisted component.
- */
-export function getSelectionId(): string {
-  return SELECTION_ID;
-}
-
-/**
- * Check if the user has selected any apps to block.
- */
-export function hasAppSelection(): boolean {
-  const { getFamilyActivitySelectionId } = require('react-native-device-activity');
-  return getFamilyActivitySelectionId(SELECTION_ID) !== undefined;
-}
-
-/**
- * Fully disable Screen Time blocking. Used by the master toggle OFF.
+ * Fully disable Screen Time blocking. Master toggle OFF.
  *
  * Order matters:
- *   1. stopMonitoring  — kill the unlock-timer callback so it can't re-arm
- *      block-all in the background after we disable it.
- *   2. disableBlockAllMode — clear the IS_BLOCKING_ALL UserDefaults flag so
- *      no future updateBlock() call re-applies shields. Without this,
- *      resetBlocks alone is not enough: any background event that calls
- *      updateBlock would see block-all still set and re-shield everything.
- *   3. resetBlocks — drop CURRENT_BLOCKLIST and apply the now-empty config.
- *   4. clearAllManagedSettingsStoreSettings — final cleanup, nukes the
- *      store directly to remove any stragglers.
+ *   1. stopMonitoring — kill the unlock-timer callback so it can't re-arm
+ *      shields in the background after we lift them.
+ *   2. disableBlockAllMode — defensively clear the IS_BLOCKING_ALL flag in
+ *      shared UserDefaults. Legacy from the block-all era; for upgrade users
+ *      this is what undoes their previous setup.
+ *   3. resetBlocks — drop currentBlocklist + re-evaluate shield (empty).
+ *   4. clearAllManagedSettingsStoreSettings — nuke the store directly.
  *
- * The whitelist in MMKV (loadWhitelistJson) is intentionally preserved so
- * the user's allowed-apps list persists across toggle off/on cycles.
+ * The user's blocklist (loadBlocklistJson) is preserved in MMKV so the picker
+ * remembers their choices when they re-enable.
  */
 export function disableBlocking(): void {
   const {
@@ -266,4 +246,66 @@ export function disableBlocking(): void {
   disableBlockAllMode('user-toggle-off');
   resetBlocks('user-toggle-off');
   clearAllManagedSettingsStoreSettings();
+}
+
+/**
+ * One-time migration from the build-#3/#4 block-all model to the explicit
+ * blocklist model. Idempotent — safe to call on every launch.
+ *
+ * Detection: legacy installs have `isBlockingAll=true` in shared UserDefaults
+ * (set by the library's enableBlockAllMode). New installs never set this flag.
+ *
+ * Returns true if migration ran — caller should clear MMKV state and surface
+ * a message so the user knows to re-enable from Settings.
+ */
+export function migrateFromBlockAll(): boolean {
+  if (!isScreenTimeAvailable()) return false;
+  try {
+    const { userDefaultsGet } = require('react-native-device-activity');
+    const wasBlockingAll = userDefaultsGet('isBlockingAll') === true;
+    if (!wasBlockingAll) return false;
+
+    disableBlocking();
+    return true;
+  } catch (error) {
+    console.warn('[ScreenTime] Block-all migration check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Read + clear the pending shield-action marker written by the patched
+ * ShieldActionExtension. Returns null if no marker, expired (>60s old), or
+ * unreadable. The host reads this on cold launch and AppState→active to route
+ * the user to /challenge — the library's openUrl is broken on iOS so this
+ * marker is the only reliable signal that the shield was tapped.
+ */
+export interface PendingShieldAction {
+  url: string;
+  app: string;
+  ts: number;
+}
+
+export function consumePendingShieldAction(): PendingShieldAction | null {
+  if (!isScreenTimeAvailable()) return null;
+  try {
+    const { userDefaultsGet, userDefaultsRemove } = require('react-native-device-activity');
+    const raw = userDefaultsGet(SHIELD_ACTION_MARKER_KEY);
+    if (!raw || typeof raw !== 'object') return null;
+
+    // Clear regardless of freshness so a stale marker can't keep firing.
+    userDefaultsRemove(SHIELD_ACTION_MARKER_KEY);
+
+    const ts = typeof raw.ts === 'number' ? raw.ts : 0;
+    if (!ts || Date.now() - ts > SHIELD_ACTION_TTL_MS) return null;
+
+    return {
+      url: typeof raw.url === 'string' ? raw.url : '',
+      app: typeof raw.app === 'string' ? raw.app : '',
+      ts,
+    };
+  } catch (error) {
+    console.warn('[ScreenTime] Failed to consume shield action marker:', error);
+    return null;
+  }
 }

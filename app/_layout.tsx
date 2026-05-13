@@ -12,8 +12,18 @@ import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWi
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
-import { loadScreenTimeEnabled } from '../src/services/storage';
-import { isScreenTimeAvailable, isBlocking, configureShield } from '../src/services/screenTimeService';
+import {
+  loadScreenTimeEnabled,
+  saveScreenTimeEnabled,
+  clearLegacyWhitelistJson,
+} from '../src/services/storage';
+import {
+  isScreenTimeAvailable,
+  isBlocking,
+  configureShield,
+  consumePendingShieldAction,
+  migrateFromBlockAll,
+} from '../src/services/screenTimeService';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
 import { DebugLogOverlay } from '../src/components/DebugLogOverlay';
@@ -109,10 +119,30 @@ export default function RootLayout() {
       // Push current card data to the widget so it has content on launch
       updateWidgetData();
 
-      // Refresh shield config (text/colors/action URL) from latest JS values.
-      // Extensions read from UserDefaults — older app installs may have stale config.
-      const stEnabled = loadScreenTimeEnabled();
+      // Migrate from the legacy block-all model (build #3/#4). If the device
+      // still has IS_BLOCKING_ALL=true in shared UserDefaults, tear down the
+      // legacy setup and turn the toggle off — the user will re-enable from
+      // Settings via the new explicit-blocklist flow. Without this, the very
+      // bug being fixed (block-all misses YouTube/Reddit/etc.) persists for
+      // upgrade users until they manually toggle off.
       const stAvailable = isScreenTimeAvailable();
+      if (stAvailable) {
+        try {
+          const migrated = migrateFromBlockAll();
+          if (migrated) {
+            saveScreenTimeEnabled(false);
+            clearLegacyWhitelistJson();
+            logDebug('App.mount', 'migrated from block-all → toggle reset');
+          }
+        } catch (err) {
+          logDebug('App.mount', 'migrateFromBlockAll FAILED', String(err));
+        }
+      }
+
+      // Refresh shield config from latest JS values. Extensions read from
+      // UserDefaults — older app installs have stale config (e.g. the
+      // {applicationName} subtitle placeholder bug from build #4).
+      const stEnabled = loadScreenTimeEnabled();
       logDebug('App.mount', 'screenTime', { enabled: stEnabled, available: stAvailable });
       if (stEnabled && stAvailable) {
         try {
@@ -123,33 +153,39 @@ export default function RootLayout() {
           console.warn('[App] configureShield on launch failed:', err);
         }
 
-        // Cold-start fallback: if the app was launched while apps are blocked,
-        // route to /challenge even if the shield's deep-link URL didn't parse
-        // (e.g. unfilled {applicationName} placeholder on older builds without
-        // the Swift patch). The deep-link handler will still fire too — both
-        // navigate to the same place so router.replace is idempotent.
-        //
-        // 1500ms (was 300ms) gives the native module's UserDefaults reads time
-        // to sync from the shield extension's writes. iOS CFPreferences caches
-        // values per-process; right after the extension fires, isShieldActive()
-        // on a fresh app launch can momentarily return false.
-        const blockingNow = isBlocking();
-        logDebug('App.mount', 'isBlocking @ t=0', blockingNow);
-        setTimeout(() => {
-          if (navigatedToChallenge.current) {
-            logDebug('App.mount', 'cold-start fallback skipped — already navigated');
-            return;
-          }
-          const blockingLater = isBlocking();
-          logDebug('App.mount', 'isBlocking @ t=1500ms', blockingLater);
-          if (blockingLater) {
-            logDebug('App.mount', 'router.replace /challenge (cold-start fallback)');
-            navigatedToChallenge.current = true;
-            router.replace({ pathname: '/challenge', params: { source: 'screentime' } });
-          } else {
-            logDebug('App.mount', 'cold-start fallback skipped — not blocking');
-          }
-        }, 1500);
+        // Cold-start routing — read the pending-shield-action marker written
+        // by the patched ShieldActionExtension. This is the reliable signal
+        // (the library's openUrl is broken on iOS, see screenTimeService.ts).
+        // If the user tapped the shield within the last 60s, route to
+        // /challenge with the app name. consumePendingShieldAction clears the
+        // marker so it can't re-fire.
+        const pending = consumePendingShieldAction();
+        if (pending) {
+          logDebug('App.mount', 'shield-action marker found → /challenge', pending);
+          navigatedToChallenge.current = true;
+          router.replace({
+            pathname: '/challenge',
+            params: { source: 'screentime', ...(pending.app ? { app: pending.app } : {}) },
+          });
+        } else {
+          // Cold-start fallback: if no marker but isBlocking() returns true,
+          // the shield was likely tapped on an older build (pre-patch) or
+          // marker expired. Still route — the user opened LingoLock while
+          // shields are up, so /challenge is the only sensible destination.
+          // 1500ms gives CFPreferences time to sync from extension writes.
+          const blockingNow = isBlocking();
+          logDebug('App.mount', 'isBlocking @ t=0', blockingNow);
+          setTimeout(() => {
+            if (navigatedToChallenge.current) return;
+            const blockingLater = isBlocking();
+            logDebug('App.mount', 'isBlocking @ t=1500ms', blockingLater);
+            if (blockingLater) {
+              logDebug('App.mount', 'router.replace /challenge (cold-start fallback)');
+              navigatedToChallenge.current = true;
+              router.replace({ pathname: '/challenge', params: { source: 'screentime' } });
+            }
+          }, 1500);
+        }
       }
 
       // Listen for widget button taps (target strings from expo-widgets Button)
@@ -200,31 +236,38 @@ export default function RootLayout() {
       });
       cleanupWidgetListener = () => widgetSub.remove();
 
-      // Screen Time: detect when app opens while shields are active
-      // This handles the shield button's "openApp" action
+      // Screen Time: when the app foregrounds, check for a pending shield-action
+      // marker. The marker is the reliable signal that the user tapped the
+      // shield (the library's openUrl is broken — see screenTimeService.ts).
+      // Build #4 used a 2-second `wasRecentlyBackgrounded` heuristic which
+      // missed the common case where the user takes longer than 2s to navigate
+      // from the blocked app back to LingoLock; the marker is timing-agnostic.
       let lastBackgroundTime = 0;
       screenTimeSub = AppState.addEventListener('change', (state: AppStateStatus) => {
         if (state === 'background') {
           lastBackgroundTime = Date.now();
           logDebug('App.AppState', 'background', { ts: lastBackgroundTime });
+          return;
         }
-        if (state === 'active' && loadScreenTimeEnabled() && isScreenTimeAvailable()) {
-          const dtBg = lastBackgroundTime === 0 ? -1 : Date.now() - lastBackgroundTime;
-          const wasRecentlyBackgrounded = lastBackgroundTime > 0 && dtBg < 2000;
-          const blockingNow = isBlocking();
-          logDebug('App.AppState', 'active', {
-            dtBg,
-            wasRecentlyBackgrounded,
-            blocking: blockingNow,
+        if (state !== 'active') return;
+        if (!loadScreenTimeEnabled() || !isScreenTimeAvailable()) return;
+
+        const dtBg = lastBackgroundTime === 0 ? -1 : Date.now() - lastBackgroundTime;
+        const blockingNow = isBlocking();
+        const pending = consumePendingShieldAction();
+        logDebug('App.AppState', 'active', {
+          dtBg,
+          blocking: blockingNow,
+          pendingMarker: pending ? { app: pending.app, ageMs: Date.now() - pending.ts } : null,
+        });
+
+        if (pending) {
+          navigatedToChallenge.current = true;
+          logDebug('App.AppState', 'shield-action marker → /challenge', pending);
+          router.replace({
+            pathname: '/challenge',
+            params: { source: 'screentime', ...(pending.app ? { app: pending.app } : {}) },
           });
-          if (wasRecentlyBackgrounded && blockingNow && !navigatedToChallenge.current) {
-            logDebug('App.AppState', 'router.replace /challenge (warm fallback)');
-            navigatedToChallenge.current = true;
-            router.replace({
-              pathname: '/challenge',
-              params: { source: 'screentime' },
-            });
-          }
         }
       });
     }

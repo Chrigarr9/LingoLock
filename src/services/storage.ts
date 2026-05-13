@@ -270,17 +270,29 @@ const BUNDLE_MIGRATION_DONE_KEY = 'bundleMigrationDone';
 
 export const DEFAULT_BUNDLE_ID = 'es-de-buenos-aires';
 
-const WHITELIST_JSON_KEY = 'screentime.whitelist.familyActivitySelection';
+// Blocklist key — selection of apps the user has chosen TO BLOCK.
+// Inverted from the previous whitelist model: Apple's `.all(except:)` policy
+// silently misses apps not enumerated under known categories (YouTube, Reddit,
+// Strava, etc. reported as unshielded by the user). Explicit picker selection
+// shields exactly what the user picks. Migration: the old whitelist key is
+// abandoned by screenTimeService.migrateFromBlockAll() on app launch.
+const BLOCKLIST_JSON_KEY = 'screentime.blocklist.familyActivitySelection';
+const LEGACY_WHITELIST_JSON_KEY = 'screentime.whitelist.familyActivitySelection';
 
-/** Returns the saved whitelist FamilyActivitySelection JSON, or null if unset. */
-export function loadWhitelistJson(): string | null {
-  return statsStorage.getString(WHITELIST_JSON_KEY) ?? null;
+/** Returns the saved blocklist FamilyActivitySelection JSON, or null if unset. */
+export function loadBlocklistJson(): string | null {
+  return statsStorage.getString(BLOCKLIST_JSON_KEY) ?? null;
 }
 
-/** Persists the whitelist FamilyActivitySelection JSON. Pass null to clear. */
-export function saveWhitelistJson(json: string | null): void {
-  if (json) statsStorage.set(WHITELIST_JSON_KEY, json);
-  else statsStorage.remove(WHITELIST_JSON_KEY);
+/** Persists the blocklist FamilyActivitySelection JSON. Pass null to clear. */
+export function saveBlocklistJson(json: string | null): void {
+  if (json) statsStorage.set(BLOCKLIST_JSON_KEY, json);
+  else statsStorage.remove(BLOCKLIST_JSON_KEY);
+}
+
+/** Remove the orphaned whitelist key from the block-all era. Idempotent. */
+export function clearLegacyWhitelistJson(): void {
+  statsStorage.remove(LEGACY_WHITELIST_JSON_KEY);
 }
 
 export function loadActiveBundle(): string {

@@ -127,6 +127,30 @@ func handleShieldAction(
       return replacePlaceholders(decoded, with: placeholders)
     }
 
+    // LOCAL PATCH (LingoLock): write a pending-shield-action marker to App
+    // Group UserDefaults before calling openUrl. The library's openUrl
+    // (Shared.swift) instantiates a fresh NSExtensionContext() then calls
+    // .open(url) on it — Apple's API silently no-ops on a self-constructed
+    // context, so the host app never receives the URL. The host reads +
+    // clears this marker on cold launch and AppState→active and routes to
+    // /challenge as the reliable signal. Restricted to lingolock:// URLs so
+    // this patch doesn't interfere with other consumers of openUrl.
+    if let actualUrl = url, actualUrl.hasPrefix("lingolock://") {
+      let appName: String = placeholders["applicationName"].flatMap { $0 } ?? ""
+      userDefaults?.set(
+        [
+          "url": actualUrl,
+          "app": appName,
+          "ts": Date().timeIntervalSince1970 * 1000
+        ],
+        forKey: "lingolock.pendingShieldAction"
+      )
+      // Defensive: force the App Group suite to flush before the extension
+      // returns. iOS 16+ generally syncs cross-process automatically, but
+      // app-intents-automation.md flagged prior burns on stale reads. Cheap.
+      userDefaults?.synchronize()
+    }
+
     if type == "openUrl" {
       openUrl(urlString: url ?? "device-activity://")
     }

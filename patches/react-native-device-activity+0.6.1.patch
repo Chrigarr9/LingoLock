@@ -250,10 +250,10 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 old mode 100644
 new mode 100755
-index da5121e..c018cb8
+index da5121e..6e40e7f
 --- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 +++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
-@@ -115,7 +115,17 @@ func handleShieldAction(
+@@ -115,7 +115,41 @@ func handleShieldAction(
        resetBlocks(triggeredBy: "shieldAction")
      }
  
@@ -268,6 +268,30 @@ index da5121e..c018cb8
 +        .replacingOccurrences(of: "%7B", with: "{")
 +        .replacingOccurrences(of: "%7D", with: "}")
 +      return replacePlaceholders(decoded, with: placeholders)
++    }
++
++    // LOCAL PATCH (LingoLock): write a pending-shield-action marker to App
++    // Group UserDefaults before calling openUrl. The library's openUrl
++    // (Shared.swift) instantiates a fresh NSExtensionContext() then calls
++    // .open(url) on it — Apple's API silently no-ops on a self-constructed
++    // context, so the host app never receives the URL. The host reads +
++    // clears this marker on cold launch and AppState→active and routes to
++    // /challenge as the reliable signal. Restricted to lingolock:// URLs so
++    // this patch doesn't interfere with other consumers of openUrl.
++    if let actualUrl = url, actualUrl.hasPrefix("lingolock://") {
++      let appName: String = placeholders["applicationName"].flatMap { $0 } ?? ""
++      userDefaults?.set(
++        [
++          "url": actualUrl,
++          "app": appName,
++          "ts": Date().timeIntervalSince1970 * 1000
++        ],
++        forKey: "lingolock.pendingShieldAction"
++      )
++      // Defensive: force the App Group suite to flush before the extension
++      // returns. iOS 16+ generally syncs cross-process automatically, but
++      // app-intents-automation.md flagged prior burns on stale reads. Cheap.
++      userDefaults?.synchronize()
 +    }
  
      if type == "openUrl" {
