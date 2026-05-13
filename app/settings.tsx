@@ -135,6 +135,10 @@ export default function SettingsScreen() {
   const [showAppPicker, setShowAppPicker] = useState(false);
   // Whitelist of allowed apps (block-all-except mode). JSON blob of FamilyActivitySelection.
   const [whitelistJson, setWhitelistJsonState] = useState<string | null>(() => loadWhitelistJson());
+  // True when the toggle was flipped ON but the whitelist was empty — we
+  // opened the picker first and want to engage block-all on its dismissal,
+  // not before. Without this, LingoLock itself gets shielded.
+  const [pendingEnable, setPendingEnable] = useState(false);
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -217,9 +221,18 @@ export default function SettingsScreen() {
         }
       }
       configureShield();
-      enableBlockAll();
-      // Re-apply any persisted whitelist so previously-allowed apps stay accessible
+      // First-enable safety: if the whitelist is empty, LingoLock itself would
+      // be shielded with no allowed app icon to tap into the unlock flow. Force
+      // the user through the picker so they can select LingoLock (and other
+      // allowed apps) BEFORE block-all engages. Block-all is then engaged when
+      // the picker is dismissed with a non-empty selection.
+      if (!whitelistJson) {
+        setPendingEnable(true);
+        setShowAppPicker(true);
+        return;
+      }
       setWhitelist(whitelistJson);
+      enableBlockAll();
       setScreenTimeEnabled(true);
       saveScreenTimeEnabled(true);
     } else {
@@ -237,6 +250,32 @@ export default function SettingsScreen() {
     }
   }
 
+  function handlePickerDismiss() {
+    setShowAppPicker(false);
+    if (!pendingEnable) return;
+    // The native side debounces selection-change events 100ms, so a tap on
+    // Done can fire onDismissRequest BEFORE onSelectionChange flushes. Wait
+    // 300ms (3× the debounce, with bridge headroom) then read the freshest
+    // value from MMKV — synchronous, doesn't lag React state. If the JS
+    // bridge backpressures and the event arrives later, the user sees the
+    // "No apps selected" alert and has to retry; annoying but recoverable.
+    setTimeout(() => {
+      const latest = loadWhitelistJson();
+      setPendingEnable(false);
+      if (!latest) {
+        Alert.alert(
+          'No apps selected',
+          'Select at least LingoLock so you can reach the unlock screen. Blocking was not enabled.',
+        );
+        return;
+      }
+      setWhitelist(latest);
+      enableBlockAll();
+      setScreenTimeEnabled(true);
+      saveScreenTimeEnabled(true);
+    }, 300);
+  }
+
   const glassStyle = getGlassStyle(theme);
   const pickerColor = theme.colors.onSurface;
 
@@ -245,6 +284,27 @@ export default function SettingsScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['bottom']}
     >
+      {/* Allowed Apps picker — mounted at the root (outside ScrollView) so the
+          native sheet anchor is stable and doesn't reflow when content scrolls.
+          The Swift Prop expects a non-optional String, so we pass "" when the
+          whitelist is empty rather than null. The 1×1 absolute style follows
+          the library README's example for the sheet variant. */}
+      {showAppPicker && (() => {
+        const { DeviceActivitySelectionSheetView } = require('react-native-device-activity');
+        return (
+          <DeviceActivitySelectionSheetView
+            style={{ width: 1, height: 1, position: 'absolute' }}
+            familyActivitySelection={whitelistJson ?? ''}
+            headerText="Allowed apps"
+            footerText="Select LingoLock and any other apps that should stay accessible. Everything else requires vocabulary practice to unlock."
+            onSelectionChange={(event: { nativeEvent: { familyActivitySelection: string | null } }) => {
+              handleWhitelistChange(event.nativeEvent.familyActivitySelection ?? null);
+            }}
+            onDismissRequest={handlePickerDismiss}
+          />
+        );
+      })()}
+
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
 
         {/* ── Audio Settings ── */}
@@ -436,22 +496,6 @@ export default function SettingsScreen() {
             )}
           </View>
         )}
-
-        {/* Allowed Apps (whitelist) Picker Sheet */}
-        {showAppPicker && (() => {
-          const { DeviceActivitySelectionSheetView } = require('react-native-device-activity');
-          return (
-            <DeviceActivitySelectionSheetView
-              familyActivitySelection={whitelistJson}
-              headerText="Allowed apps"
-              footerText="Apps you select stay accessible. Everything else requires vocabulary practice to unlock."
-              onSelectionChange={(event: { nativeEvent: { familyActivitySelection: string | null } }) => {
-                handleWhitelistChange(event.nativeEvent.familyActivitySelection ?? null);
-              }}
-              onDismissRequest={() => setShowAppPicker(false)}
-            />
-          );
-        })()}
 
         {/* ── Notification Settings (native only) ── */}
         {Platform.OS !== 'web' && (

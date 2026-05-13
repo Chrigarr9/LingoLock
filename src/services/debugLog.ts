@@ -3,9 +3,18 @@
  * can read it on-device via DebugLogOverlay, without needing Xcode console
  * access. Designed for preview-build debugging of Screen Time / deep-link
  * flows where TestFlight users can't easily attach a Mac.
+ *
+ * Persisted to MMKV so logs survive cold launches. Critical for Screen Time
+ * debugging: when the shield routes the user into the app via deep link, the
+ * launch IS the event we want logs for — an in-memory ring buffer dies before
+ * the user can read it. The user explicitly reported "debug log is deleted
+ * every time" — that was the in-memory implementation.
  */
 
+import { createMMKV } from 'react-native-mmkv';
+
 const MAX_ENTRIES = 300;
+const LOG_STORAGE_KEY = 'entries';
 
 export interface LogEntry {
   ts: number;
@@ -13,7 +22,28 @@ export interface LogEntry {
   message: string;
 }
 
-const entries: LogEntry[] = [];
+const logStorage = createMMKV({ id: 'lingolock.debugLog' });
+
+function loadPersistedEntries(): LogEntry[] {
+  const raw = logStorage.getString(LOG_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persist(): void {
+  try {
+    logStorage.set(LOG_STORAGE_KEY, JSON.stringify(entries));
+  } catch {
+    // MMKV write failed — non-fatal, just lose this update
+  }
+}
+
+const entries: LogEntry[] = loadPersistedEntries();
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -35,11 +65,13 @@ function format(args: unknown[]): string {
 
 /**
  * Append a log entry tagged with a category. Mirrors to console.log so the
- * entry also shows up in native device logs if Xcode is attached.
+ * entry also shows up in native device logs if Xcode is attached. Persists
+ * to MMKV so the entry survives cold launches.
  */
 export function logDebug(tag: string, ...args: unknown[]): void {
   entries.push({ ts: Date.now(), tag, message: format(args) });
   if (entries.length > MAX_ENTRIES) entries.shift();
+  persist();
   notify();
   // eslint-disable-next-line no-console
   console.log(`[${tag}]`, ...args);
@@ -58,6 +90,7 @@ export function subscribeLog(fn: () => void): () => void {
 
 export function clearLog(): void {
   entries.length = 0;
+  persist();
   notify();
 }
 

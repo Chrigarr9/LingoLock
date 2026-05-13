@@ -104,11 +104,17 @@ export function blockApps(): void {
 }
 
 /**
- * Enable "block all apps" mode. Every third-party app on the device is shielded
- * unless it's in the whitelist (managed via setWhitelist). The host app itself
- * (LingoLock) is automatically exempted by iOS — Apple guarantees a FamilyControls
- * host can't be shielded by its own configuration. System apps (Phone, Settings,
- * Find My) are also always accessible for safety reasons.
+ * Enable "block all apps" mode. Every app on the device is shielded unless
+ * it's in the whitelist (managed via setWhitelist).
+ *
+ * IMPORTANT: iOS does NOT automatically exempt the host app from its own
+ * shield. If LingoLock isn't in the whitelist, the user will see a shield
+ * when they tap LingoLock's icon and may be unable to reach the unlock
+ * screen. Always ensure the whitelist contains LingoLock before calling
+ * this. Settings.tsx forces the user through the picker on first enable to
+ * satisfy this invariant.
+ *
+ * System apps (Phone, Settings, Find My) are exempted by iOS for safety.
  */
 export function enableBlockAll(): void {
   const { enableBlockAllMode } = require('react-native-device-activity');
@@ -148,7 +154,7 @@ export function unblockApps(): void {
  */
 export function startUnlockWindow(): void {
   const {
-    resetBlocks,
+    disableBlockAllMode,
     startMonitoring,
     configureActions,
     stopMonitoring,
@@ -168,8 +174,12 @@ export function startUnlockWindow(): void {
     ],
   });
 
-  // Lift shields
-  resetBlocks();
+  // Actually lift shields. resetBlocks() alone is NOT enough — under
+  // block-all mode it clears the per-app blocklist key and then updateBlock()
+  // re-applies `.all(except: whitelist)` because IS_BLOCKING_ALL is still set.
+  // disableBlockAllMode clears that flag, so updateBlock leaves the shield
+  // empty until intervalDidEnd re-enables it.
+  disableBlockAllMode('unlock-window');
 
   // DeviceActivityMonitor takes wall-clock time-of-day components, not
   // absolute dates. If our 10-minute window would cross midnight, clamp
