@@ -430,7 +430,11 @@ export default function RootLayout() {
 
   useDeepLink(handleDeepLink);
 
+  // Default to NO header at the Stack level so the index screen never flashes
+  // a default "index" title during cold start while per-screen options are
+  // still resolving. Screens that need a header opt in via headerShown: true.
   const themedHeaderOptions = {
+    headerShown: false,
     headerStyle: { backgroundColor: theme.colors.background },
     headerTintColor: theme.colors.onSurface,
     headerShadowVisible: false,
@@ -440,12 +444,11 @@ export default function RootLayout() {
   const content = (
     <ActiveBundleProvider>
     <Stack screenOptions={themedHeaderOptions}>
-      <Stack.Screen name="index" options={{ headerShown: false, headerBackTitle: '' }} />
+      <Stack.Screen name="index" />
       <Stack.Screen
         name="challenge"
         options={{
           presentation: 'fullScreenModal',
-          headerShown: false,
           animation: 'fade',
           gestureEnabled: false,
         }}
@@ -454,6 +457,7 @@ export default function RootLayout() {
         name="tutorial"
         options={{
           presentation: 'modal',
+          headerShown: true,
           title: 'Setup Tutorial',
         }}
       />
@@ -461,12 +465,14 @@ export default function RootLayout() {
         name="deck-picker"
         options={{
           presentation: 'modal',
+          headerShown: true,
           title: 'Decks',
         }}
       />
       <Stack.Screen
         name="settings"
         options={{
+          headerShown: true,
           title: 'Settings',
           headerLeft: () => (
             <IconButton
@@ -482,6 +488,7 @@ export default function RootLayout() {
       <Stack.Screen
         name="vocabulary"
         options={{
+          headerShown: true,
           title: 'Vocabulary',
           headerLeft: () => (
             <IconButton
@@ -497,6 +504,7 @@ export default function RootLayout() {
       <Stack.Screen
         name="stats"
         options={{
+          headerShown: true,
           title: 'Progress',
           headerLeft: () => (
             <IconButton
@@ -511,7 +519,7 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="vocabulary/[id]"
-        options={{ title: 'Word Detail' }}
+        options={{ headerShown: true, title: 'Word Detail' }}
       />
     </Stack>
     </ActiveBundleProvider>

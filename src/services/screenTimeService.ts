@@ -120,7 +120,13 @@ export function configureShield(): void {
     },
     {
       primary: {
-        behavior: 'close',
+        // 'defer' keeps the shield up after the button is tapped — user sees
+        // the notification arrive and decides whether to tap it. 'close'
+        // dismisses both the shield AND the blocked app, dropping the user
+        // on the home screen, which they explicitly didn't want. With defer
+        // the user can: tap notification → /challenge, OR swipe up to
+        // dismiss the shield manually and stay on the iOS home / app switcher.
+        behavior: 'defer',
         type: 'sendNotification',
         payload: {
           title: 'Practice to unlock {applicationOrDomainDisplayName}',

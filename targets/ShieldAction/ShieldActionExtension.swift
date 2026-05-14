@@ -177,7 +177,12 @@ func handleShieldAction(
 
     if type == "sendNotification" {
       if let payload = configForSelectedAction["payload"] as? [String: Any] {
-        sendNotification(contents: payload, placeholders: [:])
+        // LOCAL PATCH (LingoLock): pass the real placeholders dict so
+        // {applicationOrDomainDisplayName} in title/body/subtitle gets
+        // substituted with the actual app name. Library stock passes [:]
+        // which leaves the literal "{applicationOrDomainDisplayName}"
+        // visible in the notification body.
+        sendNotification(contents: payload, placeholders: placeholders)
       }
     }
 

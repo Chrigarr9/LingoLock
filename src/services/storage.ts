@@ -443,6 +443,18 @@ export function incrementUnlockCount(): void {
 }
 
 /**
+ * Reset today's unlock count and due-cleared state. Used by the
+ * "Reset today's unlocks" Settings option so the user can test the
+ * escalation flow without waiting for tomorrow.
+ */
+export function resetUnlockState(): void {
+  statsStorage.remove(SCREEN_TIME_UNLOCK_COUNT_KEY);
+  statsStorage.remove(SCREEN_TIME_UNLOCK_DATE_KEY);
+  statsStorage.remove(SCREEN_TIME_DUE_CLEARED_KEY);
+  statsStorage.remove(SCREEN_TIME_DUE_CLEARED_DATE_KEY);
+}
+
+/**
  * Load whether all due cards have been cleared today.
  * Returns false if on a new calendar day or never set.
  */

@@ -250,7 +250,7 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 old mode 100644
 new mode 100755
-index da5121e..7aef5d4
+index da5121e..c5e1b21
 --- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 +++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 @@ -115,7 +115,55 @@ func handleShieldAction(
@@ -310,7 +310,21 @@ index da5121e..7aef5d4
  
      if type == "openUrl" {
        openUrl(urlString: url ?? "device-activity://")
-@@ -189,6 +237,24 @@ func handleAction(
+@@ -129,7 +177,12 @@ func handleShieldAction(
+ 
+     if type == "sendNotification" {
+       if let payload = configForSelectedAction["payload"] as? [String: Any] {
+-        sendNotification(contents: payload, placeholders: [:])
++        // LOCAL PATCH (LingoLock): pass the real placeholders dict so
++        // {applicationOrDomainDisplayName} in title/body/subtitle gets
++        // substituted with the actual app name. Library stock passes [:]
++        // which leaves the literal "{applicationOrDomainDisplayName}"
++        // visible in the notification body.
++        sendNotification(contents: payload, placeholders: placeholders)
+       }
+     }
+ 
+@@ -189,6 +242,24 @@ func handleAction(
        sortByGranularity: true
      ).first
      if let configForSelectedAction = shieldActionConfig[actionButton] as? [String: Any] {
@@ -335,7 +349,7 @@ index da5121e..7aef5d4
        let placeholders: [String: String?] = [
          "action": actionButton,
          "applicationName": applicationToken != nil
-@@ -197,6 +263,7 @@ func handleAction(
+@@ -197,6 +268,7 @@ func handleAction(
            ? WebDomain(
              token: webdomainToken!
            ).domain : nil,

@@ -106,9 +106,20 @@ export default function ChallengeScreen() {
   // Session initialization
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Screen Time sessions bypass the daily new word limit — the gate should
-    // always have cards. Voluntary practice respects the limit.
-    const budget = isScreenTime ? Infinity : loadNewWordsPerDay();
+    // Screen-time sessions: cap session size to the unlock requirement.
+    // Previously this used Infinity new-word budget, which yielded e.g. 70
+    // cards (16 due + 54 new) when the user only needed 5 to unlock — the
+    // overwhelming total made the screen feel like a chore. Now: if there
+    // are enough due cards to meet the requirement, use only those; if not,
+    // top up with just enough new cards. Voluntary practice keeps the
+    // normal daily new-word budget.
+    let budget: number;
+    if (isScreenTime) {
+      const dueCount = buildSession(chapters, 0, params.source).length;
+      budget = Math.max(0, screenTimeRequirement - dueCount);
+    } else {
+      budget = loadNewWordsPerDay();
+    }
     const session = buildSession(chapters, budget, params.source);
 
     if (session.length === 0) {
@@ -347,7 +358,12 @@ export default function ChallengeScreen() {
       incrementUnlockCount();
       startUnlockWindow();
     }
+    // dismissAll pops modals; router.replace('/') guarantees home even when
+    // /challenge is the root (deep-linked from shield via router.replace,
+    // so there's nothing for dismissAll to pop). Without the explicit
+    // replace, the user was stuck on /challenge with no back navigation.
     router.dismissAll();
+    router.replace('/');
   };
 
   const startExtraSession = () => {
@@ -435,7 +451,12 @@ export default function ChallengeScreen() {
                 onPress={() => {
                   incrementUnlockCount();
                   startUnlockWindow();
+                  // dismissAll + replace('/') guarantees the home screen is
+                  // the underlying state when iOS jumps to the launched app;
+                  // when the user later comes back via App Switcher, they
+                  // land on home (not stuck on /challenge).
                   router.dismissAll();
+                  router.replace('/');
                   if (launchScheme) {
                     // Delay so dismissAll completes — otherwise the navigation race can
                     // swallow the URL open. iOS will still bring the user's previous
@@ -711,6 +732,7 @@ export default function ChallengeScreen() {
                   startUnlockWindow();
                 }
                 router.dismissAll();
+                router.replace('/');
                 // If we came from a known blocked app, hop straight back to it
                 // after dismissing. Same flow as the inline unlock pill — the
                 // 150ms delay lets dismissAll complete first so iOS doesn't

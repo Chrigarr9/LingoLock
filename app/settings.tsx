@@ -24,6 +24,7 @@ import {
   loadUnlockCount,
   loadBlocklistJson,
   saveBlocklistJson,
+  resetUnlockState,
 } from '../src/services/storage';
 import {
   isScreenTimeAvailable,
@@ -140,6 +141,8 @@ export default function SettingsScreen() {
   // auto-open the picker so they can choose apps to block. Block engages
   // when the picker is dismissed with a non-empty selection.
   const [pendingEnable, setPendingEnable] = useState(false);
+  // Bump to force re-evaluation of loadUnlockCount() display after Reset
+  const [, setUnlockResetTick] = useState(0);
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -488,6 +491,32 @@ export default function SettingsScreen() {
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                     Today: {loadUnlockCount()} unlocks
                   </Text>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert(
+                        'Reset today’s unlocks?',
+                        'Resets the unlock counter so the next practice gate uses the starting card count again. Useful for testing.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Reset',
+                            style: 'destructive',
+                            onPress: () => {
+                              resetUnlockState();
+                              // Force re-render so the "Today: N unlocks" label updates
+                              setUnlockResetTick(t => t + 1);
+                            },
+                          },
+                        ],
+                      );
+                    }}
+                    accessibilityLabel="Reset today's unlocks"
+                    accessibilityRole="button"
+                  >
+                    <Text variant="bodySmall" style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                      Reset
+                    </Text>
+                  </Pressable>
                 </View>
               </>
             )}
