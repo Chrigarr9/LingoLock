@@ -482,7 +482,11 @@ export default function ChallengeScreen() {
               variant="labelSmall"
               style={[labelOverlineStyle.label, { color: theme.custom.brandBlue, letterSpacing: 0.5 }]}
             >
-              {correctCount} correct
+              {isScreenTime
+                ? (correctCount >= screenTimeRequirement
+                    ? '✓ READY TO UNLOCK'
+                    : `${Math.min(correctCount, screenTimeRequirement)} / ${screenTimeRequirement} TO UNLOCK`)
+                : `${correctCount} correct`}
             </Text>
           </View>
           <ProgressDots total={totalCardCount.current} current={currentIndex} />
