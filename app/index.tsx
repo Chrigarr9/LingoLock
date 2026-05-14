@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform, Pressable, Image, TouchableOpacity, AppState } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
@@ -65,6 +65,7 @@ export default function HomeScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top', 'bottom']}
     >
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.scroll, styles.content]}>
         {/* Header */}
         <View style={styles.header}>

@@ -701,11 +701,27 @@ export default function ChallengeScreen() {
 
             <Pressable
               onPress={() => {
-                if (isScreenTime && correctCountRef.current >= screenTimeRequirement) {
+                const willUnlock = isScreenTime && correctCountRef.current >= screenTimeRequirement;
+                if (willUnlock) {
                   incrementUnlockCount();
                   startUnlockWindow();
                 }
                 router.dismissAll();
+                // If we came from a known blocked app, hop straight back to it
+                // after dismissing. Same flow as the inline unlock pill — the
+                // 150ms delay lets dismissAll complete first so iOS doesn't
+                // swallow the URL. Unknown apps (or category-shielded names
+                // we don't have schemes for) fall through to home.
+                if (willUnlock) {
+                  const launchScheme = getUrlSchemeForApp(params.app ?? null);
+                  if (launchScheme) {
+                    setTimeout(() => {
+                      Linking.openURL(launchScheme).catch((err) => {
+                        console.warn('[Challenge] Failed to open app:', launchScheme, err);
+                      });
+                    }, 150);
+                  }
+                }
               }}
               style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
               accessibilityLabel="Done"
@@ -713,7 +729,7 @@ export default function ChallengeScreen() {
             >
               <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>
                 {isScreenTime && correctCountRef.current >= screenTimeRequirement
-                  ? 'Unlock Apps'
+                  ? (params.app && getUrlSchemeForApp(params.app) ? `Open ${params.app}` : 'Unlock Apps')
                   : 'Done'}
               </Text>
             </Pressable>

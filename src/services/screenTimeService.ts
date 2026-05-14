@@ -24,6 +24,13 @@
 
 import { Platform } from 'react-native';
 import { logDebug } from './debugLog';
+import {
+  loadBlocklistJson,
+  loadScreenTimeEnabled,
+  loadUnlockWindowEnd,
+  saveUnlockWindowEnd,
+  clearUnlockWindowEnd,
+} from './storage';
 
 const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
 const MONITOR_NAME = 'unlock-timer';
@@ -72,10 +79,28 @@ export async function requestScreenTimeAuth(): Promise<void> {
 /**
  * Configure the shield appearance and primary button action.
  *
- * The subtitle uses `{applicationOrDomainDisplayName}` — that's the placeholder
- * key the library's ShieldConfigurationExtension exposes (NOT `applicationName`,
- * which only exists in the ShieldAction extension's placeholder dict). Build #4
- * used the wrong key and rendered the literal string "{applicationName}".
+ * The primary action is `sendNotification`, not `openUrl`. Apple's openUrl
+ * from a shield-action extension uses a freshly-constructed NSExtensionContext
+ * inside the library, which silently no-ops on iOS (the user reported this:
+ * tap "Open LingoLock", land on home instead of /challenge). Notifications
+ * are the reliable cross-process bridge: tapping one always opens the host
+ * app, and iOS sets up the navigation context cleanly.
+ *
+ * Flow on shield tap:
+ *   1. Shield extension fires the notification immediately (trigger: nil)
+ *   2. Shield extension ALSO writes the pending-shield-action marker via
+ *      the local Swift patch (App Group UserDefaults)
+ *   3. Shield closes (behavior: 'close')
+ *   4. User taps the notification → iOS opens LingoLock
+ *   5. AppState.active fires → marker is consumed → router.replace /challenge
+ *
+ * The notification is just a nudge — the marker carries the app name. If
+ * the user dismisses the notification and opens LingoLock manually, the
+ * marker still routes correctly (60s TTL).
+ *
+ * Subtitle uses `{applicationOrDomainDisplayName}` — the key the library's
+ * ShieldConfigurationExtension exposes (NOT `applicationName`, which is
+ * only in the Action extension's placeholder dict).
  */
 export function configureShield(): void {
   const { updateShield } = require('react-native-device-activity');
@@ -87,7 +112,7 @@ export function configureShield(): void {
       subtitle: 'Complete a few vocabulary cards to keep using {applicationOrDomainDisplayName}',
       subtitleColor: { ...LIGHT_TEXT, alpha: 0.85 },
       backgroundColor: DEEP_NAVY,
-      primaryButtonLabel: 'Open LingoLock',
+      primaryButtonLabel: 'Practice now',
       primaryButtonLabelColor: LIGHT_TEXT,
       primaryButtonBackgroundColor: BRAND_BLUE,
       iconSystemName: 'graduationcap.fill',
@@ -96,19 +121,21 @@ export function configureShield(): void {
     {
       primary: {
         behavior: 'close',
-        type: 'openUrl',
-        // URL-encode the placeholder so iOS will route the URL even if the Swift
-        // patch isn't applied yet (raw `{` is RFC-unsafe and can fail on some
-        // iOS versions). The patched ShieldAction decodes %7B/%7D back to {/}
-        // before substituting. Uses applicationOrDomainDisplayName (added in
-        // the patch) so category shields get a meaningful name — bare
-        // {applicationName} is nil for ActivityCategoryToken shields and
-        // would substitute the literal key string into the URL. NOTE: the
-        // openUrl call itself is broken on iOS (library uses a fresh
-        // NSExtensionContext), so this URL probably won't be delivered — the
-        // pending-shield-action marker is the reliable signal we read on
-        // foreground.
-        url: 'lingolock://challenge?source=screentime&app=%7BapplicationOrDomainDisplayName%7D',
+        type: 'sendNotification',
+        payload: {
+          title: 'Practice to unlock {applicationOrDomainDisplayName}',
+          body: 'Tap to complete a few cards — unlocks the app for 10 minutes.',
+          sound: 'default',
+          // timeSensitive lets the notification interrupt during Focus modes
+          // — the user explicitly opted into blocking, so interruption is
+          // expected and desired.
+          interruptionLevel: 'timeSensitive',
+          categoryIdentifier: 'lingolock-shield-practice',
+          // userInfo placeholders are NOT substituted by the library, so
+          // don't put dynamic data here. The Swift patch writes the app
+          // name into the App Group marker; AppState.active reads it.
+          userInfo: { kind: 'shield-practice' },
+        },
       },
     },
   );
@@ -159,11 +186,69 @@ export function applyBlocklist(blocklistJson: string | null): void {
   // Log the actual outcome so future bugs of "toggle on but isBlocking=false"
   // are obvious. parseActivitySelectionInput failing silently was build #5's
   // root cause; this surface check would have caught it on first device test.
+  // Also log per-token counts so we can see if e.g. the user picked only
+  // categories (which previously shielded as opaque category tokens — see
+  // includeEntireCategory in the picker).
   const shielded = isShieldActive();
+  let counts: unknown = null;
+  try {
+    const { activitySelectionMetadata } = require('react-native-device-activity');
+    counts = activitySelectionMetadata({ activitySelectionToken: blocklistJson }) ?? null;
+  } catch {
+    // metadata helper failed — non-fatal, still log the shield state
+  }
   logDebug('ScreenTime.applyBlocklist', 'applied', {
     blocklistLen: blocklistJson.length,
     isShieldActive: shielded,
+    counts,
   });
+}
+
+/**
+ * Foreground-time safety net: re-apply shields if the unlock window has
+ * expired (or never existed) and the toggle is ON but nothing is currently
+ * shielded. Apple's DeviceActivityMonitor.intervalDidEnd is best-effort —
+ * under memory pressure or scheduling edge cases it can be delayed or
+ * skipped, leaving the user permanently unlocked. This is the JS-side
+ * guarantee that "10 minutes after unlock, things lock again on next launch
+ * or foreground" even if the native callback never fires.
+ *
+ * Returns true if shields were re-applied.
+ */
+export function maybeRestoreShields(): boolean {
+  if (!isScreenTimeAvailable()) return false;
+  if (!loadScreenTimeEnabled()) return false;
+  if (isBlocking()) return false;
+
+  const unlockEnd = loadUnlockWindowEnd();
+  const now = Date.now();
+  if (unlockEnd > 0 && unlockEnd > now) {
+    logDebug('ScreenTime.maybeRestore', 'in unlock window', {
+      msLeft: unlockEnd - now,
+    });
+    return false;
+  }
+
+  const blocklistJson = loadBlocklistJson();
+  if (!blocklistJson) return false;
+
+  logDebug('ScreenTime.maybeRestore', 'reblocking (window expired or none)', {
+    unlockEnd,
+    pastWindowMs: unlockEnd > 0 ? now - unlockEnd : null,
+  });
+  applyBlocklist(blocklistJson);
+
+  // Only clear the unlock-window timestamp if the re-apply actually took.
+  // If applyBlocklist silently failed (e.g. stored selection ID lookup
+  // returned nil after some migration edge case), keep the stale timestamp
+  // so the next foreground retries. Without this guard, a failed re-apply
+  // = permanent unlock until the user toggles off/on.
+  if (isBlocking()) {
+    clearUnlockWindowEnd();
+    return true;
+  }
+  logDebug('ScreenTime.maybeRestore', 'reblock attempted but isBlocking still false — will retry next foreground');
+  return false;
 }
 
 /**
@@ -198,34 +283,53 @@ export function startUnlockWindow(): void {
   resetBlocks('unlock-window');
 
   // DeviceActivityMonitor takes wall-clock time-of-day components, not
-  // absolute dates. If our 10-minute window would cross midnight, clamp
-  // intervalEnd to 23:59:59 today rather than wrap into tomorrow — iOS's
-  // straddle-midnight semantics for `repeats: false` are ambiguous across
-  // versions. Users who unlock right before midnight get a shorter window.
-  const now = new Date();
-  const intendedEnd = new Date(now.getTime() + UNLOCK_MINUTES * 60 * 1000);
-  const crossesMidnight = intendedEnd.getDate() !== now.getDate();
+  // absolute dates. Push intervalStart 5 seconds into the future (per the
+  // library README's testSchedule pattern). iOS needs a small window to
+  // register the schedule; if intervalStart is exactly `now` or in the past,
+  // iOS may treat the schedule as already-passed and skip firing
+  // intervalDidEnd. The 5s delay is harmless since shields are already
+  // lifted via resetBlocks above.
+  //
+  // Midnight straddle: clamp intervalEnd to 23:59:59 today rather than wrap
+  // into tomorrow. iOS's straddle-midnight semantics for `repeats: false`
+  // are ambiguous across versions. Users who unlock right before midnight
+  // get a shorter window.
+  const nowMs = Date.now();
+  const startMs = nowMs + 5_000;
+  const intendedEndMs = startMs + UNLOCK_MINUTES * 60 * 1000;
+  const start = new Date(startMs);
+  const intended = new Date(intendedEndMs);
+  const crossesMidnight = intended.getDate() !== start.getDate();
   const end = crossesMidnight
-    ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
-    : intendedEnd;
+    ? new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59)
+    : intended;
 
-  startMonitoring(
-    MONITOR_NAME,
-    {
-      intervalStart: {
-        hour: now.getHours(),
-        minute: now.getMinutes(),
-        second: now.getSeconds(),
-      },
-      intervalEnd: {
-        hour: end.getHours(),
-        minute: end.getMinutes(),
-        second: end.getSeconds(),
-      },
-      repeats: false,
+  // Record the window end timestamp so the JS-side foreground safety net and
+  // the background task can re-apply shields if intervalDidEnd is dropped by
+  // iOS (memory pressure, scheduling quirks). Without this, a missed
+  // callback = permanent unlock.
+  saveUnlockWindowEnd(end.getTime());
+
+  const schedule = {
+    intervalStart: {
+      hour: start.getHours(),
+      minute: start.getMinutes(),
+      second: start.getSeconds(),
     },
-    [],
-  );
+    intervalEnd: {
+      hour: end.getHours(),
+      minute: end.getMinutes(),
+      second: end.getSeconds(),
+    },
+    repeats: false,
+  };
+  startMonitoring(MONITOR_NAME, schedule, []);
+  logDebug('ScreenTime.startUnlockWindow', 'monitor scheduled', {
+    intervalStart: schedule.intervalStart,
+    intervalEnd: schedule.intervalEnd,
+    windowEndTs: end.getTime(),
+    minutesUntilEnd: Math.round((end.getTime() - nowMs) / 60000),
+  });
 }
 
 /**
@@ -263,6 +367,7 @@ export function disableBlocking(): void {
   disableBlockAllMode('user-toggle-off');
   resetBlocks('user-toggle-off');
   clearAllManagedSettingsStoreSettings();
+  clearUnlockWindowEnd();
 }
 
 /**

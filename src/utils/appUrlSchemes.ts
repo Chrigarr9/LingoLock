@@ -44,6 +44,14 @@ const URL_SCHEMES: Record<string, string> = {
   ebay: 'ebay://',
   // News
   'apple news': 'applenews://',
+  // Fitness / sports
+  strava: 'strava://',
+  // Garmin Connect intentionally not mapped — none of the commonly-cited
+  // schemes (`garmin://`, `garminconnect://`, `gcm-ciq://`) reliably opens
+  // the app, and a wrong mapping degrades UX more than no mapping (the pill
+  // shows "Open Garmin", user taps, lands on home instead of Garmin). With
+  // no entry the pill says "Unlock" generically and the user re-opens
+  // Garmin themselves from the App Switcher — clearer behavior.
 };
 
 /**

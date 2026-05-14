@@ -392,6 +392,20 @@ const SCREEN_TIME_UNLOCK_COUNT_KEY = 'screen_time_unlock_count';
 const SCREEN_TIME_UNLOCK_DATE_KEY = 'screen_time_unlock_date';
 const SCREEN_TIME_DUE_CLEARED_KEY = 'screen_time_due_cleared';
 const SCREEN_TIME_DUE_CLEARED_DATE_KEY = 'screen_time_due_cleared_date';
+const SCREEN_TIME_UNLOCK_WINDOW_END_KEY = 'screen_time_unlock_window_end';
+
+/** Millisecond timestamp when the current unlock window expires; 0 if no window. */
+export function loadUnlockWindowEnd(): number {
+  return statsStorage.getNumber(SCREEN_TIME_UNLOCK_WINDOW_END_KEY) ?? 0;
+}
+
+export function saveUnlockWindowEnd(ts: number): void {
+  statsStorage.set(SCREEN_TIME_UNLOCK_WINDOW_END_KEY, ts);
+}
+
+export function clearUnlockWindowEnd(): void {
+  statsStorage.remove(SCREEN_TIME_UNLOCK_WINDOW_END_KEY);
+}
 
 /**
  * Load whether Screen Time app blocking is enabled.

@@ -250,10 +250,10 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 old mode 100644
 new mode 100755
-index da5121e..7a2ed15
+index da5121e..7aef5d4
 --- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 +++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
-@@ -115,7 +115,44 @@ func handleShieldAction(
+@@ -115,7 +115,55 @@ func handleShieldAction(
        resetBlocks(triggeredBy: "shieldAction")
      }
  
@@ -271,21 +271,32 @@ index da5121e..7a2ed15
 +    }
 +
 +    // LOCAL PATCH (LingoLock): write a pending-shield-action marker to App
-+    // Group UserDefaults before calling openUrl. The library's openUrl
-+    // (Shared.swift) instantiates a fresh NSExtensionContext() then calls
-+    // .open(url) on it — Apple's API silently no-ops on a self-constructed
-+    // context, so the host app never receives the URL. The host reads +
-+    // clears this marker on cold launch and AppState→active and routes to
-+    // /challenge as the reliable signal. Restricted to lingolock:// URLs so
-+    // this patch doesn't interfere with other consumers of openUrl.
-+    if let actualUrl = url, actualUrl.hasPrefix("lingolock://") {
++    // Group UserDefaults whenever a LingoLock-recognized shield action fires.
++    // The marker is the cross-process carrier that tells the host app
++    // "shield was tapped — route to /challenge with this app name". Two
++    // detection paths:
++    //   1. categoryIdentifier == "lingolock-shield-practice" — the current
++    //      sendNotification flow (the user taps "Practice now" on a shield,
++    //      we fire a notification, this branch writes the marker so when
++    //      they tap the notification and AppState→active fires, the marker
++    //      is read and they route to /challenge with the app name).
++    //   2. url hasPrefix lingolock:// — legacy openUrl path; kept for
++    //      redundancy if the shield config ever switches back.
++    // Without this marker the notification tap opens LingoLock to home
++    // instead of /challenge — exactly the bug we're fixing.
++    let payload = configForSelectedAction["payload"] as? [String: Any]
++    let categoryId = payload?["categoryIdentifier"] as? String
++    let isLingoLockShield = (categoryId == "lingolock-shield-practice")
++      || (url?.hasPrefix("lingolock://") ?? false)
++
++    if isLingoLockShield {
 +      // Use the unified display name (added above) so category-shielded apps
 +      // get a meaningful label instead of "" (the bare applicationName field
 +      // is nil when the shield fires for an ActivityCategoryToken).
 +      let appName: String = placeholders["applicationOrDomainDisplayName"].flatMap { $0 } ?? ""
 +      userDefaults?.set(
 +        [
-+          "url": actualUrl,
++          "url": url ?? "",
 +          "app": appName,
 +          "ts": Date().timeIntervalSince1970 * 1000
 +        ],
@@ -299,30 +310,32 @@ index da5121e..7a2ed15
  
      if type == "openUrl" {
        openUrl(urlString: url ?? "device-activity://")
-@@ -189,6 +226,22 @@ func handleAction(
+@@ -189,6 +237,24 @@ func handleAction(
        sortByGranularity: true
      ).first
      if let configForSelectedAction = shieldActionConfig[actionButton] as? [String: Any] {
 +      // LOCAL PATCH (LingoLock): add applicationOrDomainDisplayName with a
-+      // fallback chain app → web domain → category. The library's stock dict
-+      // only populates applicationName when the shield fires for a specific
-+      // app; if the user picked a whole category in the picker, the shield
-+      // fires with categoryToken and applicationName is nil — which makes
-+      // replacePlaceholders substitute the literal key string "applicationName".
++      // fallback chain app → web domain. The library's stock dict only
++      // populates applicationName when the shield fires for a specific app;
++      // if the user picked a whole category in the picker, the shield fires
++      // with categoryToken and applicationName is nil — which makes
++      // replacePlaceholders substitute the literal key string into the URL.
 +      // ShieldConfigurationExtension already uses this same key for its
-+      // subtitle placeholder; mirroring it here keeps the URL substitution
-+      // working for category shields too.
++      // subtitle placeholder; mirroring it here keeps URL substitution
++      // working for app and web shields. Category shields fall through to
++      // nil — the JS deep-link handler's isUnfilled check drops the literal
++      // placeholder string. The picker is now configured with
++      // includeEntireCategory=true so category selections expand into
++      // individual app tokens, making the category branch effectively dead.
 +      let displayName: String? = applicationToken != nil
 +        ? Application(token: applicationToken!).localizedDisplayName
 +        : (webdomainToken != nil
 +          ? WebDomain(token: webdomainToken!).domain
-+          : (categoryToken != nil
-+            ? ActivityCategory(token: categoryToken!).localizedDisplayName
-+            : nil))
++          : nil)
        let placeholders: [String: String?] = [
          "action": actionButton,
          "applicationName": applicationToken != nil
-@@ -197,6 +250,7 @@ func handleAction(
+@@ -197,6 +263,7 @@ func handleAction(
            ? WebDomain(
              token: webdomainToken!
            ).domain : nil,

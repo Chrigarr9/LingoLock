@@ -144,7 +144,19 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  */
 async function processNotificationAnswer(response: Notifications.NotificationResponse): Promise<void> {
   const { actionIdentifier, userText } = response;
-  const data = response.notification.request.content.data as unknown as NotificationData;
+  const data = response.notification.request.content.data as unknown as NotificationData & { kind?: string };
+
+  // Shield-practice notifications (fired by the ShieldAction extension when
+  // the user taps "Practice now" on a blocked-app shield) are handled by
+  // the App Group UserDefaults marker that the Swift patch writes BEFORE
+  // the notification fires. _layout.tsx's AppState.active listener consumes
+  // the marker and routes to /challenge with source='screentime' and the
+  // app name. Skip them here — otherwise the default action would re-route
+  // with source='Notification', overwriting the marker's app context.
+  if (data?.kind === 'shield-practice') {
+    console.log('[Notifications] Shield-practice notification — deferring to marker route');
+    return;
+  }
 
   console.log('[Notifications] Processing answer:', {
     actionIdentifier,

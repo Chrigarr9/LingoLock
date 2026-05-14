@@ -1,4 +1,4 @@
-import React, { Component, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Component, useCallback, useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { AppState, Platform, View, useColorScheme, Text, StyleSheet, type AppStateStatus } from 'react-native';
 import { IconButton, PaperProvider } from 'react-native-paper';
@@ -11,6 +11,7 @@ import { rescheduleAfterExternalAnswer } from '../src/services/notificationSched
 import { processWidgetAnswer, processSpellAction, processWidgetReveal, processWidgetRate, updateWidgetData } from '../src/services/widgetService';
 // Import early so TaskManager.defineTask runs at module level (required by iOS)
 import { registerBackgroundNotificationTask } from '../src/services/backgroundNotificationTask';
+import { registerBackgroundReshieldTask } from '../src/services/backgroundReshieldTask';
 import { ActiveBundleProvider } from '../src/content/activeBundleProvider';
 import {
   loadScreenTimeEnabled,
@@ -23,9 +24,8 @@ import {
   configureShield,
   consumePendingShieldAction,
   migrateFromBlockAll,
-  applyBlocklist,
+  maybeRestoreShields,
 } from '../src/services/screenTimeService';
-import { loadBlocklistJson } from '../src/services/storage';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
 import { DebugLogOverlay } from '../src/components/DebugLogOverlay';
@@ -95,10 +95,6 @@ export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
-  // Set once any path navigates to /challenge (deep-link, cold-start fallback,
-  // or warm AppState fallback). Prevents the 1500ms setTimeout from clobbering
-  // an already-successful deep-link navigation.
-  const navigatedToChallenge = useRef(false);
 
   useEffect(() => {
     // Web: Register service worker
@@ -112,11 +108,19 @@ export default function RootLayout() {
     let cleanupNotifications: (() => void) | undefined;
     let cleanupWidgetListener: (() => void) | undefined;
     let screenTimeSub: ReturnType<typeof AppState.addEventListener> | undefined;
+    let monitorEventSub: { remove: () => void } | undefined;
     if (Platform.OS !== 'web') {
       cleanupNotifications = setupNotifications();
       // Register background fetch so notifications keep firing even when app isn't opened
       registerBackgroundNotificationTask().catch((err) => {
         console.warn('[App] Background fetch registration failed:', err);
+      });
+      // Periodic re-shield check — runs at iOS's discretion (~15min+) and
+      // restores blocking when DeviceActivityMonitor.intervalDidEnd dropped.
+      // Always registered (matching the notification task pattern); the task
+      // itself short-circuits when screen time is disabled.
+      registerBackgroundReshieldTask().catch((err) => {
+        console.warn('[App] Reshield task registration failed:', err);
       });
       // Push current card data to the widget so it has content on launch
       updateWidgetData();
@@ -156,56 +160,64 @@ export default function RootLayout() {
           console.warn('[App] configureShield on launch failed:', err);
         }
 
-        // Self-heal: build #5 shipped applyBlocklist with the wrong library
-        // input key, so users got the toggle ON with no shields applied. On
-        // launch, if the toggle says ON and a blocklist is stored but shields
-        // are absent, re-apply. Safe — if the user later toggles off, this
-        // path doesn't run.
-        if (!isBlocking()) {
-          const blocklistJson = loadBlocklistJson();
-          if (blocklistJson) {
-            logDebug('App.mount', 'self-heal: re-applying blocklist');
-            try {
-              applyBlocklist(blocklistJson);
-            } catch (err) {
-              logDebug('App.mount', 'self-heal applyBlocklist FAILED', String(err));
-            }
-          }
+        // Safety net: if the unlock window has expired (or never existed) and
+        // shields are absent, re-apply the saved blocklist. Covers both the
+        // build #5 inert-shield bug and the case where iOS dropped the
+        // DeviceActivityMonitor.intervalDidEnd callback. No-op if the user is
+        // mid-unlock or shields are already up.
+        try {
+          maybeRestoreShields();
+        } catch (err) {
+          logDebug('App.mount', 'maybeRestoreShields FAILED', String(err));
         }
 
         // Cold-start routing — read the pending-shield-action marker written
-        // by the patched ShieldActionExtension. This is the reliable signal
-        // (the library's openUrl is broken on iOS, see screenTimeService.ts).
-        // If the user tapped the shield within the last 60s, route to
-        // /challenge with the app name. consumePendingShieldAction clears the
-        // marker so it can't re-fire.
+        // by the patched ShieldActionExtension. This is the ONLY signal we
+        // route on: opening LingoLock manually (e.g. to check settings or
+        // practice voluntarily) should NOT auto-bounce to /challenge even
+        // while shields are active. The marker is set only when the user
+        // tapped the shield's "Open LingoLock" button.
         const pending = consumePendingShieldAction();
+        const blockingNow = isBlocking();
+        logDebug('App.mount', 'state', {
+          blocking: blockingNow,
+          marker: pending ? { app: pending.app, ageMs: Date.now() - pending.ts } : null,
+        });
         if (pending) {
-          logDebug('App.mount', 'shield-action marker found → /challenge', pending);
-          navigatedToChallenge.current = true;
+          logDebug('App.mount', 'shield-action marker → /challenge', pending);
           router.replace({
             pathname: '/challenge',
             params: { source: 'screentime', ...(pending.app ? { app: pending.app } : {}) },
           });
-        } else {
-          // Cold-start fallback: if no marker but isBlocking() returns true,
-          // the shield was likely tapped on an older build (pre-patch) or
-          // marker expired. Still route — the user opened LingoLock while
-          // shields are up, so /challenge is the only sensible destination.
-          // 1500ms gives CFPreferences time to sync from extension writes.
-          const blockingNow = isBlocking();
-          logDebug('App.mount', 'isBlocking @ t=0', blockingNow);
-          setTimeout(() => {
-            if (navigatedToChallenge.current) return;
-            const blockingLater = isBlocking();
-            logDebug('App.mount', 'isBlocking @ t=1500ms', blockingLater);
-            if (blockingLater) {
-              logDebug('App.mount', 'router.replace /challenge (cold-start fallback)');
-              navigatedToChallenge.current = true;
-              router.replace({ pathname: '/challenge', params: { source: 'screentime' } });
-            }
-          }, 1500);
         }
+      }
+
+      // Subscribe to native DeviceActivityMonitor events (intervalDidStart,
+      // intervalDidEnd, etc.). This gives us:
+      //   1. Visibility into whether Apple is actually firing intervalDidEnd
+      //      at the 10-min mark — if the debug log shows the event, the
+      //      native re-block path is working; if not, only the JS safety
+      //      net + bg task carry the load.
+      //   2. A defensive re-apply: when intervalDidEnd fires, we call
+      //      maybeRestoreShields ourselves regardless of whether the native
+      //      action succeeded. Idempotent (no-op if shields already up).
+      try {
+        const { onDeviceActivityMonitorEvent } = require('react-native-device-activity');
+        monitorEventSub = onDeviceActivityMonitorEvent((event: { callbackName?: string; activityName?: string }) => {
+          logDebug('App.DeviceActivity', 'native event', event);
+          if (event.callbackName === 'intervalDidEnd') {
+            (async () => {
+              const { maybeRestoreShields } = await import('../src/services/screenTimeService');
+              try {
+                maybeRestoreShields();
+              } catch (err) {
+                logDebug('App.DeviceActivity', 'reshield FAILED', String(err));
+              }
+            })();
+          }
+        });
+      } catch (err) {
+        logDebug('App.mount', 'onDeviceActivityMonitorEvent subscribe FAILED', String(err));
       }
 
       // Listen for widget button taps (target strings from expo-widgets Button)
@@ -272,6 +284,16 @@ export default function RootLayout() {
         if (state !== 'active') return;
         if (!loadScreenTimeEnabled() || !isScreenTimeAvailable()) return;
 
+        // Safety net first — if the unlock window expired during background,
+        // re-apply the blocklist before doing anything else. This is what
+        // makes "10 minutes after unlock, things re-lock" work even when
+        // iOS drops intervalDidEnd.
+        try {
+          maybeRestoreShields();
+        } catch (err) {
+          logDebug('App.AppState', 'maybeRestoreShields FAILED', String(err));
+        }
+
         const dtBg = lastBackgroundTime === 0 ? -1 : Date.now() - lastBackgroundTime;
         const blockingNow = isBlocking();
         const pending = consumePendingShieldAction();
@@ -282,7 +304,6 @@ export default function RootLayout() {
         });
 
         if (pending) {
-          navigatedToChallenge.current = true;
           logDebug('App.AppState', 'shield-action marker → /challenge', pending);
           router.replace({
             pathname: '/challenge',
@@ -296,6 +317,7 @@ export default function RootLayout() {
       cleanupNotifications?.();
       cleanupWidgetListener?.();
       screenTimeSub?.remove();
+      monitorEventSub?.remove();
     };
   }, []);
 
@@ -349,7 +371,6 @@ export default function RootLayout() {
       }
     } else if (deepLink.type === 'challenge') {
       logDebug('App.deepLink', 'challenge → router.replace', deepLink.params);
-      navigatedToChallenge.current = true;
       router.replace({
         pathname: '/challenge',
         params: {

@@ -291,8 +291,9 @@ export default function SettingsScreen() {
           <DeviceActivitySelectionSheetView
             style={{ width: 1, height: 1, position: 'absolute' }}
             familyActivitySelection={blocklistJson ?? ''}
+            includeEntireCategory={true}
             headerText="Blocked apps"
-            footerText="Pick the apps that require vocabulary practice to unlock. Everything you don't pick stays usable."
+            footerText="Pick the apps to block — completing vocabulary practice unlocks them for 10 minutes. Selecting a whole category blocks every app in it."
             onSelectionChange={(event: { nativeEvent: { familyActivitySelection: string | null } }) => {
               handleBlocklistChange(event.nativeEvent.familyActivitySelection ?? null);
             }}
