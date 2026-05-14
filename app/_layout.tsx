@@ -23,7 +23,9 @@ import {
   configureShield,
   consumePendingShieldAction,
   migrateFromBlockAll,
+  applyBlocklist,
 } from '../src/services/screenTimeService';
+import { loadBlocklistJson } from '../src/services/storage';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
 import { DebugLogOverlay } from '../src/components/DebugLogOverlay';
@@ -129,6 +131,7 @@ export default function RootLayout() {
       if (stAvailable) {
         try {
           const migrated = migrateFromBlockAll();
+          logDebug('App.mount', 'migrateFromBlockAll', { migrated });
           if (migrated) {
             saveScreenTimeEnabled(false);
             clearLegacyWhitelistJson();
@@ -151,6 +154,23 @@ export default function RootLayout() {
         } catch (err) {
           logDebug('App.mount', 'configureShield FAILED', String(err));
           console.warn('[App] configureShield on launch failed:', err);
+        }
+
+        // Self-heal: build #5 shipped applyBlocklist with the wrong library
+        // input key, so users got the toggle ON with no shields applied. On
+        // launch, if the toggle says ON and a blocklist is stored but shields
+        // are absent, re-apply. Safe — if the user later toggles off, this
+        // path doesn't run.
+        if (!isBlocking()) {
+          const blocklistJson = loadBlocklistJson();
+          if (blocklistJson) {
+            logDebug('App.mount', 'self-heal: re-applying blocklist');
+            try {
+              applyBlocklist(blocklistJson);
+            } catch (err) {
+              logDebug('App.mount', 'self-heal applyBlocklist FAILED', String(err));
+            }
+          }
         }
 
         // Cold-start routing — read the pending-shield-action marker written

@@ -23,6 +23,7 @@
  */
 
 import { Platform } from 'react-native';
+import { logDebug } from './debugLog';
 
 const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
 const MONITOR_NAME = 'unlock-timer';
@@ -112,15 +113,18 @@ export function configureShield(): void {
 /**
  * Apply shields to the given FamilyActivitySelection JSON (the picker's output).
  *
- * Two-step:
- *   1. Mirror the selection into the library's FamilyActivitySelection store
- *      under BLOCKLIST_ID so the unlock-window's intervalDidEnd callback can
- *      re-block it later via `{ type: 'blockSelection', familyActivitySelectionId }`.
- *      The library's `executeGenericAction` only accepts a selection ID for
- *      blockSelection — not an inline selection.
- *   2. Apply shields immediately via blockSelection(selection) — this writes
- *      to ManagedSettingsStore.shield.applications, which reliably shields
- *      exactly the picked tokens. No `.all(except:)` weirdness.
+ * Three-step:
+ *   1. resetBlocks — clear `currentBlocklist` so old picks don't accumulate
+ *      when the user changes their selection.
+ *   2. setFamilyActivitySelectionId — mirror the JSON into the library's
+ *      stored selections under BLOCKLIST_ID so intervalDidEnd's re-block via
+ *      `{ type: 'blockSelection', familyActivitySelectionId }` works.
+ *   3. blockSelection({ activitySelectionId: BLOCKLIST_ID }) — apply shields.
+ *      The library's `parseActivitySelectionInput` scans for specific keys
+ *      (`currentBlocklist`, `currentWhitelist`, `activitySelectionId`,
+ *      `activitySelectionToken`) and silently returns an empty selection if
+ *      none match. Build #5 passed `{ familyActivitySelection: json }` —
+ *      not a recognized key — so the parse returned empty and nothing shielded.
  *
  * Pass null/empty to lift all shields.
  */
@@ -129,24 +133,33 @@ export function applyBlocklist(blocklistJson: string | null): void {
     blockSelection,
     resetBlocks,
     setFamilyActivitySelectionId,
+    isShieldActive,
   } = require('react-native-device-activity');
 
+  resetBlocks('apply-blocklist-clear');
+
   if (!blocklistJson) {
-    resetBlocks('apply-blocklist-empty');
+    logDebug('ScreenTime.applyBlocklist', 'empty → resetBlocks only');
     return;
   }
 
-  // The library accepts the FamilyActivitySelection as either a JSON string or
-  // a parsed object via familyActivitySelection field. We pass the JSON
-  // directly — the bridge handles both forms via parseActivitySelectionInput.
   setFamilyActivitySelectionId({
     id: BLOCKLIST_ID,
     familyActivitySelection: blocklistJson,
   });
   blockSelection(
-    { familyActivitySelection: blocklistJson },
+    { activitySelectionId: BLOCKLIST_ID },
     'apply-blocklist',
   );
+
+  // Log the actual outcome so future bugs of "toggle on but isBlocking=false"
+  // are obvious. parseActivitySelectionInput failing silently was build #5's
+  // root cause; this surface check would have caught it on first device test.
+  const shielded = isShieldActive();
+  logDebug('ScreenTime.applyBlocklist', 'applied', {
+    blocklistLen: blocklistJson.length,
+    isShieldActive: shielded,
+  });
 }
 
 /**
