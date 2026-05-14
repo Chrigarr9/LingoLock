@@ -100,11 +100,15 @@ export function configureShield(): void {
         // URL-encode the placeholder so iOS will route the URL even if the Swift
         // patch isn't applied yet (raw `{` is RFC-unsafe and can fail on some
         // iOS versions). The patched ShieldAction decodes %7B/%7D back to {/}
-        // before substituting the application name. NOTE: the openUrl call in
-        // the library is broken (uses a fresh NSExtensionContext), so this URL
-        // probably won't be delivered — the pending-shield-action marker (also
-        // written by the patch) is the reliable signal we read on foreground.
-        url: 'lingolock://challenge?source=screentime&app=%7BapplicationName%7D',
+        // before substituting. Uses applicationOrDomainDisplayName (added in
+        // the patch) so category shields get a meaningful name — bare
+        // {applicationName} is nil for ActivityCategoryToken shields and
+        // would substitute the literal key string into the URL. NOTE: the
+        // openUrl call itself is broken on iOS (library uses a fresh
+        // NSExtensionContext), so this URL probably won't be delivered — the
+        // pending-shield-action marker is the reliable signal we read on
+        // foreground.
+        url: 'lingolock://challenge?source=screentime&app=%7BapplicationOrDomainDisplayName%7D',
       },
     },
   );

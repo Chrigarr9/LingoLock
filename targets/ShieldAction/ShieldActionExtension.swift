@@ -136,7 +136,10 @@ func handleShieldAction(
     // /challenge as the reliable signal. Restricted to lingolock:// URLs so
     // this patch doesn't interfere with other consumers of openUrl.
     if let actualUrl = url, actualUrl.hasPrefix("lingolock://") {
-      let appName: String = placeholders["applicationName"].flatMap { $0 } ?? ""
+      // Use the unified display name (added above) so category-shielded apps
+      // get a meaningful label instead of "" (the bare applicationName field
+      // is nil when the shield fires for an ActivityCategoryToken).
+      let appName: String = placeholders["applicationOrDomainDisplayName"].flatMap { $0 } ?? ""
       userDefaults?.set(
         [
           "url": actualUrl,
@@ -223,6 +226,22 @@ func handleAction(
       sortByGranularity: true
     ).first
     if let configForSelectedAction = shieldActionConfig[actionButton] as? [String: Any] {
+      // LOCAL PATCH (LingoLock): add applicationOrDomainDisplayName with a
+      // fallback chain app → web domain → category. The library's stock dict
+      // only populates applicationName when the shield fires for a specific
+      // app; if the user picked a whole category in the picker, the shield
+      // fires with categoryToken and applicationName is nil — which makes
+      // replacePlaceholders substitute the literal key string "applicationName".
+      // ShieldConfigurationExtension already uses this same key for its
+      // subtitle placeholder; mirroring it here keeps the URL substitution
+      // working for category shields too.
+      let displayName: String? = applicationToken != nil
+        ? Application(token: applicationToken!).localizedDisplayName
+        : (webdomainToken != nil
+          ? WebDomain(token: webdomainToken!).domain
+          : (categoryToken != nil
+            ? ActivityCategory(token: categoryToken!).localizedDisplayName
+            : nil))
       let placeholders: [String: String?] = [
         "action": actionButton,
         "applicationName": applicationToken != nil
@@ -231,6 +250,7 @@ func handleAction(
           ? WebDomain(
             token: webdomainToken!
           ).domain : nil,
+        "applicationOrDomainDisplayName": displayName,
         "familyActivitySelectionId": familyActivitySelectionId?.id
       ]
 

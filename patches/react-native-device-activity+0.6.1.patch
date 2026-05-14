@@ -250,10 +250,10 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 old mode 100644
 new mode 100755
-index da5121e..6e40e7f
+index da5121e..7a2ed15
 --- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 +++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
-@@ -115,7 +115,41 @@ func handleShieldAction(
+@@ -115,7 +115,44 @@ func handleShieldAction(
        resetBlocks(triggeredBy: "shieldAction")
      }
  
@@ -279,7 +279,10 @@ index da5121e..6e40e7f
 +    // /challenge as the reliable signal. Restricted to lingolock:// URLs so
 +    // this patch doesn't interfere with other consumers of openUrl.
 +    if let actualUrl = url, actualUrl.hasPrefix("lingolock://") {
-+      let appName: String = placeholders["applicationName"].flatMap { $0 } ?? ""
++      // Use the unified display name (added above) so category-shielded apps
++      // get a meaningful label instead of "" (the bare applicationName field
++      // is nil when the shield fires for an ActivityCategoryToken).
++      let appName: String = placeholders["applicationOrDomainDisplayName"].flatMap { $0 } ?? ""
 +      userDefaults?.set(
 +        [
 +          "url": actualUrl,
@@ -296,6 +299,37 @@ index da5121e..6e40e7f
  
      if type == "openUrl" {
        openUrl(urlString: url ?? "device-activity://")
+@@ -189,6 +226,22 @@ func handleAction(
+       sortByGranularity: true
+     ).first
+     if let configForSelectedAction = shieldActionConfig[actionButton] as? [String: Any] {
++      // LOCAL PATCH (LingoLock): add applicationOrDomainDisplayName with a
++      // fallback chain app → web domain → category. The library's stock dict
++      // only populates applicationName when the shield fires for a specific
++      // app; if the user picked a whole category in the picker, the shield
++      // fires with categoryToken and applicationName is nil — which makes
++      // replacePlaceholders substitute the literal key string "applicationName".
++      // ShieldConfigurationExtension already uses this same key for its
++      // subtitle placeholder; mirroring it here keeps the URL substitution
++      // working for category shields too.
++      let displayName: String? = applicationToken != nil
++        ? Application(token: applicationToken!).localizedDisplayName
++        : (webdomainToken != nil
++          ? WebDomain(token: webdomainToken!).domain
++          : (categoryToken != nil
++            ? ActivityCategory(token: categoryToken!).localizedDisplayName
++            : nil))
+       let placeholders: [String: String?] = [
+         "action": actionButton,
+         "applicationName": applicationToken != nil
+@@ -197,6 +250,7 @@ func handleAction(
+           ? WebDomain(
+             token: webdomainToken!
+           ).domain : nil,
++        "applicationOrDomainDisplayName": displayName,
+         "familyActivitySelectionId": familyActivitySelectionId?.id
+       ]
+ 
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/expo-target.config.js b/node_modules/react-native-device-activity/targets/ShieldAction/expo-target.config.js
 old mode 100644
 new mode 100755

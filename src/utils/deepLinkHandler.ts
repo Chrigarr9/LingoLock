@@ -48,12 +48,16 @@ export function parseDeepLink(url: string): DeepLinkParams | null {
     } else if (parsed.hostname === 'challenge') {
       const source = (parsed.queryParams?.source as string) ?? '';
       const app = parsed.queryParams?.app as string | undefined;
-      // Drop placeholder string if the library didn't substitute (handles both
-      // raw {applicationName} and URL-decoded forms iOS may pass through)
+      // Drop literal placeholder strings if the library didn't substitute.
+      // replacePlaceholders falls back to the key NAME (without braces) when
+      // the value is nil — so `app=applicationName` appears for category
+      // shields where applicationToken was nil. Catch both braced and bare
+      // forms, plus the URL-encoded brace variant iOS may pass through.
       const isUnfilled =
-        app === '{applicationName}' ||
-        app === '%7BapplicationName%7D' ||
-        app?.includes('{applicationName}');
+        !app ||
+        app.includes('{') ||
+        app.includes('%7B') ||
+        /^application(Name|OrDomainDisplayName)$/.test(app);
       const cleanApp = app && !isUnfilled ? app : undefined;
       const result: DeepLinkParams = { type: 'challenge', params: { source, app: cleanApp } };
       logDebug('DeepLink.parse', 'OUT challenge', result.params);
