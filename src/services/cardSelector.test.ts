@@ -294,6 +294,27 @@ describe('buildSession', () => {
     expect(sc.answerType).toBe('text');
     expect('choices' in sc).toBe(false);
   });
+
+  test('bypassIntroCap=true ignores loadNewWordsIntroducedToday', () => {
+    // User already introduced 100 new words today — normally would block all
+    // new-word additions. Screen-time sessions must bypass this cap or the
+    // unlock requirement becomes unreachable.
+    mockLoadNewWordsIntroducedToday.mockReturnValue(100);
+    mockLoadCardState.mockReturnValue(null); // all cards are new
+
+    try {
+      const withoutBypass = buildSession(CHAPTERS, 3);
+      expect(withoutBypass).toHaveLength(0); // cap applied → no new cards
+
+      const withBypass = buildSession(CHAPTERS, 3, undefined, true);
+      expect(withBypass).toHaveLength(3); // cap ignored → 3 new cards
+    } finally {
+      // clearAllMocks() in beforeEach drops .mock.calls but preserves
+      // mockReturnValue — restore the suite default explicitly so the next
+      // test's loadNewWordsIntroducedToday() doesn't see 100.
+      mockLoadNewWordsIntroducedToday.mockReturnValue(0);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

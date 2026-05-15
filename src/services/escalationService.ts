@@ -1,42 +1,45 @@
 /**
  * Escalation logic for Screen Time app blocking.
  *
- * Card requirements escalate exponentially per unlock cycle per day:
- *   Unlock 1: 3 cards, Unlock 2: 6, Unlock 3: 12, Unlock 4: 24, ...
- * Once all FSRS due cards are cleared for the day, switches to flat 3 cards.
- * All counters reset at midnight.
+ * Two modes:
+ *   - Default ("free day when due cleared"): unlocks escalate exponentially
+ *     until the FSRS due queue hits 0, at which point shields come off for
+ *     the rest of the day. The caller should never invoke this function once
+ *     dueCleared is true in default mode — but if it does, returns 0 as a
+ *     safe sentinel.
+ *   - Keep-blocking (opt-in setting): same exponential ramp while due > 0,
+ *     then flat 3 cards per unlock after the queue clears. Re-enables the
+ *     pre-build-9 latch as a deliberate user choice.
+ *
+ * Exponential ramp:
+ *   Unlock 1: 3, Unlock 2: 6, 3: 12, 4: 24, 5: 48, 6+: 96 (cap).
+ * Counter resets at midnight.
  */
 
-/** Base number of cards for the first unlock */
 export const BASE_CARDS = 3;
-
-/** Flat rate after all due cards are cleared */
 export const FLAT_RATE_CARDS = 3;
 
-/** Maximum escalation cap (prevents absurd requirements) */
 const MAX_ESCALATION = 96;
+
+export interface RequirementOptions {
+  /** True once any session today brought the FSRS due queue to 0. */
+  dueCleared: boolean;
+  /** User setting: keep requiring practice even after due is cleared. */
+  keepBlocking: boolean;
+}
 
 /**
  * Calculate the number of cards required for the current unlock.
  *
  * @param unlockCount - Number of unlocks completed today (0-indexed)
- * @param dueCardsCleared - Whether all FSRS due cards have been cleared today
- * @returns Number of cards the user must complete
+ * @param options - Day-state context. Omit for the pre-clear exponential ramp.
  */
 export function getRequiredCardCount(
   unlockCount: number,
-  dueCardsCleared: boolean,
+  options: RequirementOptions = { dueCleared: false, keepBlocking: false },
 ): number {
-  if (dueCardsCleared) return FLAT_RATE_CARDS;
+  if (options.dueCleared) {
+    return options.keepBlocking ? FLAT_RATE_CARDS : 0;
+  }
   return Math.min(BASE_CARDS * Math.pow(2, unlockCount), MAX_ESCALATION);
-}
-
-/**
- * Check if the user has cleared all due cards (triggers flat-rate mode).
- *
- * @param totalDueCount - Current total FSRS due card count across all bundles
- * @returns true if flat rate should be used
- */
-export function shouldUseFlatRate(totalDueCount: number): boolean {
-  return totalDueCount === 0;
 }

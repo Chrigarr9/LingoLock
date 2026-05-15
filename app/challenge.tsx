@@ -10,13 +10,21 @@ import { AnswerReveal } from '../src/components/AnswerReveal';
 import { AnswerInput } from '../src/components/AnswerInput';
 import { LetterScramble } from '../src/components/LetterScramble';
 import { MultipleChoiceGrid } from '../src/components/MultipleChoiceGrid';
-import { loadScreenTimeEnabled, loadUnlockCount, loadDueCardsCleared, incrementUnlockCount, saveDueCardsCleared } from '../src/services/storage';
-import { getRequiredCardCount, shouldUseFlatRate } from '../src/services/escalationService';
-import { startUnlockWindow } from '../src/services/screenTimeService';
-import { getTotalDueCount } from '../src/services/statsService';
+import {
+  loadScreenTimeEnabled,
+  loadUnlockCount,
+  incrementUnlockCount,
+  loadScreenTimeSession,
+  saveScreenTimeSession,
+  loadDueCardsCleared,
+  saveDueCardsCleared,
+  loadKeepBlockingAfterDueCleared,
+} from '../src/services/storage';
+import { getRequiredCardCount } from '../src/services/escalationService';
+import { startUnlockWindow, applyBlocklist } from '../src/services/screenTimeService';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
-import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards } from '../src/services/cardSelector';
+import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards, getDueCardIds } from '../src/services/cardSelector';
 import type { SimpleCard } from '../src/types/simpleCard';
 import type { ClozeCard } from '../src/types/vocabulary';
 import { scheduleReview, createNewCardState, demoteAnswerType } from '../src/services/fsrs';
@@ -59,26 +67,47 @@ export default function ChallengeScreen() {
     return config.motivational.encouragement || 'Keep going!';
   }
 
+  const source = params.source ?? '';
+  // Resume any in-progress screen-time session: if user closed mid-unlock
+  // (e.g. tapped back without finishing the requirement), the saved progress
+  // is restored even when they re-enter via "Start Practice" from home rather
+  // than via a shield. Cleared on incrementUnlockCount + at midnight.
+  const screenTimeEnabled = loadScreenTimeEnabled();
+  const savedSession = useMemo(
+    () => (screenTimeEnabled ? loadScreenTimeSession() : { progress: 0, app: null }),
+    [screenTimeEnabled],
+  );
+  const isScreenTime =
+    screenTimeEnabled && (source === 'screentime' || savedSession.progress > 0);
+  const sourceApp = (typeof params.app === 'string' && params.app) || savedSession.app;
+
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalCardCount = useRef(0);   // original session length — used for stats
   const totalCardCount = useRef(0);      // grows when wrong-answer cards are re-inserted
   const retriesUsed = useRef(new Set<string>()); // card IDs that have already been re-inserted once
   const answeredNewCardIds = useRef(new Set<string>()); // card IDs of new cards that were answered
   // Accumulate correct count in a ref to avoid stale closures in setTimeout callbacks
-  const correctCountRef = useRef(0);
+  const correctCountRef = useRef(savedSession.progress);
   // Cache chapter number at session start — avoids O(chapters × cards) scan on every render
   const sessionChapter = useRef(0);
   const hintBlinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const source = params.source ?? '';
-  const isScreenTime = source === 'screentime' && loadScreenTimeEnabled();
-
-  const screenTimeRequirement = useMemo(() => {
+  const escalationRequirement = useMemo(() => {
     if (!isScreenTime) return 0;
-    const unlockCount = loadUnlockCount();
-    const dueCleared = loadDueCardsCleared();
-    return getRequiredCardCount(unlockCount, dueCleared);
+    return getRequiredCardCount(loadUnlockCount(), {
+      dueCleared: loadDueCardsCleared(),
+      keepBlocking: loadKeepBlockingAfterDueCleared(),
+    });
   }, [isScreenTime]);
+  // Capped to actual session length once built — see useEffect below. Until
+  // then the unlock pill won't show, so the uncapped value is harmless.
+  // dueCleared && !keepBlocking → escalationRequirement is 0; the user is in
+  // free-day state and the pill activates immediately on mount.
+  const [screenTimeRequirement, setScreenTimeRequirement] = useState(escalationRequirement);
+  // Tracked in a ref so handleCorrect can short-circuit the per-answer
+  // due-cleared check after the latch fires this session (avoids redundant
+  // getDueCardIds scans on every subsequent correct answer).
+  const dueClearedThisSession = useRef(loadDueCardsCleared());
 
   // --------------------------------------------------------------------------
   // Session state
@@ -89,7 +118,9 @@ export default function ChallengeScreen() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isFuzzy, setIsFuzzy] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
+  // Seeded from saved screen-time progress so a resumed session shows the
+  // correct "X / Y TO UNLOCK" label and pill threshold from the first render.
+  const [correctCount, setCorrectCount] = useState(() => savedSession.progress);
   const [answeredChoice, setAnsweredChoice] = useState<string | null>(null);
   const [showReveal, setShowReveal] = useState(false);
   const [userAnswer, setUserAnswer] = useState<string | null>(null);
@@ -113,17 +144,25 @@ export default function ChallengeScreen() {
     // are enough due cards to meet the requirement, use only those; if not,
     // top up with just enough new cards. Voluntary practice keeps the
     // normal daily new-word budget.
-    let budget: number;
+    let session: SessionCard[];
     if (isScreenTime) {
-      const dueCount = buildSession(chapters, 0, params.source).length;
-      budget = Math.max(0, screenTimeRequirement - dueCount);
+      // Screen-time: target the remaining cards needed for unlock (escalation
+      // requirement minus any saved progress from a resumed session). Bypass
+      // the daily intro cap so an earlier voluntary session can't softlock
+      // the unlock. The displayed "Y TO UNLOCK" is capped below to
+      // savedProgress + session.length so the user can always reach it.
+      const remaining = Math.max(0, escalationRequirement - savedSession.progress);
+      const dueOnly = buildSession(chapters, 0, params.source);
+      const newBudget = Math.max(0, remaining - dueOnly.length);
+      session = buildSession(chapters, newBudget, params.source, true);
+      setScreenTimeRequirement(
+        Math.min(escalationRequirement, savedSession.progress + session.length),
+      );
     } else {
-      budget = loadNewWordsPerDay();
+      session = buildSession(chapters, loadNewWordsPerDay(), params.source);
     }
-    const session = buildSession(chapters, budget, params.source);
 
     if (session.length === 0) {
-      // Check if unlimited budget would yield cards (budget exhausted, not truly done)
       const extra = isScreenTime ? [] : buildSession(chapters, Infinity, params.source);
       setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
@@ -152,6 +191,13 @@ export default function ChallengeScreen() {
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
     };
   }, []);
+
+  // Persist screen-time progress on every correct answer so an early close
+  // (back arrow before requirement met) preserves what the user earned.
+  // incrementUnlockCount clears this entry, so successful unlocks reset cleanly.
+  useEffect(() => {
+    if (isScreenTime) saveScreenTimeSession(correctCount, sourceApp);
+  }, [correctCount, isScreenTime, sourceApp]);
 
   // Reset hint blink on every card advance; fire after 10s of no interaction
   useEffect(() => {
@@ -228,12 +274,6 @@ export default function ChallengeScreen() {
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
         updateWidgetData();
         rescheduleAfterExternalAnswer().catch(e => console.error('[Challenge] Reschedule failed:', e));
-        // Check if due cards are now cleared (for escalation mode switch)
-        if (isScreenTime && !loadDueCardsCleared()) {
-          if (shouldUseFlatRate(getTotalDueCount())) {
-            saveDueCardsCleared();
-          }
-        }
         const extra = buildSession(chapters, Infinity, params.source);
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);
@@ -275,8 +315,27 @@ export default function ChallengeScreen() {
   // --------------------------------------------------------------------------
   // Answer handlers
   // --------------------------------------------------------------------------
+  // Free-day transition: when a correct answer was the last FSRS-due review
+  // card, latch dueCleared. Voluntary AND screen-time paths both "earn the
+  // day" — morning practice that clears the queue is exactly the behavior
+  // we're rewarding. In default mode, drop shields right now so the user
+  // sees the reward immediately rather than waiting for the next
+  // maybeRestoreShields pass. Gated on the ref so we only scan chapters
+  // once per session — once latched, further correct answers no-op.
+  const checkAndApplyDueCleared = useCallback(() => {
+    if (dueClearedThisSession.current) return;
+    const remainingDue = getDueCardIds(chapters);
+    if (remainingDue.size !== 0) return;
+    dueClearedThisSession.current = true;
+    saveDueCardsCleared();
+    if (loadScreenTimeEnabled() && !loadKeepBlockingAfterDueCleared()) {
+      applyBlocklist(null);
+    }
+  }, [chapters]);
+
   const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade, fuzzy = false) => {
     updateCardFSRS(sessionCard, grade);
+    checkAndApplyDueCleared();
     if (sessionCard.isFirstEncounter) answeredNewCardIds.current.add(sessionCard.card.id);
     setIsCorrect(true);
     setShowAnswer(true);
@@ -349,14 +408,25 @@ export default function ChallengeScreen() {
     }
   };
 
+  // Commit the unlock side-effects. In free-day state (dueCleared && default
+  // mode), shields are already permanently down for the day — skip the 10-min
+  // window since there's nothing to re-arm, and skip incrementing the unlock
+  // count since "unlocking" wasn't really the event (queue clearance was).
+  const commitUnlock = useCallback(() => {
+    if (dueClearedThisSession.current && !loadKeepBlockingAfterDueCleared()) {
+      return;
+    }
+    incrementUnlockCount();
+    startUnlockWindow();
+  }, []);
+
   const handleClose = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     if (!isComplete && answeredNewCardIds.current.size > 0) {
       recordNewWordsIntroduced(answeredNewCardIds.current.size);
     }
     if (isScreenTime && correctCountRef.current >= screenTimeRequirement) {
-      incrementUnlockCount();
-      startUnlockWindow();
+      commitUnlock();
     }
     // dismissAll pops modals; router.replace('/') guarantees home even when
     // /challenge is the root (deep-linked from shield via router.replace,
@@ -401,6 +471,7 @@ export default function ChallengeScreen() {
     if (currentCard.isFirstEncounter) answeredNewCardIds.current.add(currentCard.card.id);
     const isPositive = grade !== 'again';
     if (isPositive) {
+      checkAndApplyDueCleared();
       setCorrectCount((c) => {
         const next = c + 1;
         correctCountRef.current = next;
@@ -443,14 +514,18 @@ export default function ChallengeScreen() {
         />
         <View style={styles.headerRight}>
           {showUnlockButton && (() => {
-            const blockedApp = params.app ?? null;
+            const blockedApp = sourceApp;
             const launchScheme = getUrlSchemeForApp(blockedApp);
-            const pillLabel = blockedApp ? `Open ${blockedApp}` : 'Unlock';
+            // "Open Reddit" only when we actually have a scheme to launch.
+            // Category-shielded apps (e.g. "Social Networking") have no
+            // scheme — iOS hides the specific app from the action extension —
+            // so we fall back to the generic "Unlock" label and the user
+            // returns via App Switcher.
+            const pillLabel = blockedApp && launchScheme ? `Open ${blockedApp}` : 'Unlock';
             return (
               <Pressable
                 onPress={() => {
-                  incrementUnlockCount();
-                  startUnlockWindow();
+                  commitUnlock();
                   // dismissAll + replace('/') guarantees the home screen is
                   // the underlying state when iOS jumps to the launched app;
                   // when the user later comes back via App Switcher, they
@@ -728,8 +803,7 @@ export default function ChallengeScreen() {
               onPress={() => {
                 const willUnlock = isScreenTime && correctCountRef.current >= screenTimeRequirement;
                 if (willUnlock) {
-                  incrementUnlockCount();
-                  startUnlockWindow();
+                  commitUnlock();
                 }
                 router.dismissAll();
                 router.replace('/');
@@ -739,7 +813,7 @@ export default function ChallengeScreen() {
                 // swallow the URL. Unknown apps (or category-shielded names
                 // we don't have schemes for) fall through to home.
                 if (willUnlock) {
-                  const launchScheme = getUrlSchemeForApp(params.app ?? null);
+                  const launchScheme = getUrlSchemeForApp(sourceApp);
                   if (launchScheme) {
                     setTimeout(() => {
                       Linking.openURL(launchScheme).catch((err) => {
@@ -755,7 +829,7 @@ export default function ChallengeScreen() {
             >
               <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>
                 {isScreenTime && correctCountRef.current >= screenTimeRequirement
-                  ? (params.app && getUrlSchemeForApp(params.app) ? `Open ${params.app}` : 'Unlock Apps')
+                  ? (sourceApp && getUrlSchemeForApp(sourceApp) ? `Open ${sourceApp}` : 'Unlock Apps')
                   : 'Done'}
               </Text>
             </Pressable>

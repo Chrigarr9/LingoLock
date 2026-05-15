@@ -30,6 +30,8 @@ import {
   loadUnlockWindowEnd,
   saveUnlockWindowEnd,
   clearUnlockWindowEnd,
+  loadDueCardsCleared,
+  loadKeepBlockingAfterDueCleared,
 } from './storage';
 
 const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
@@ -225,6 +227,14 @@ export function maybeRestoreShields(): boolean {
   if (!isScreenTimeAvailable()) return false;
   if (!loadScreenTimeEnabled()) return false;
   if (isBlocking()) return false;
+
+  // Free-day check: in default mode, once the user has cleared the FSRS due
+  // queue today, shields stay off until midnight. The keep-blocking setting
+  // opts out — those users want continued (flat-rate) friction.
+  if (loadDueCardsCleared() && !loadKeepBlockingAfterDueCleared()) {
+    logDebug('ScreenTime.maybeRestore', 'free day — due cleared, shields stay off');
+    return false;
+  }
 
   const unlockEnd = loadUnlockWindowEnd();
   const now = Date.now();

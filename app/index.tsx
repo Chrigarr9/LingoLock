@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Platform, Pressable, Image, TouchableOpacity, AppState } from 'react-native';
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, AppState } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { Stack, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -242,20 +242,6 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </View>
-
-          {/* Tutorial link — hidden on web */}
-          {Platform.OS !== 'web' && (
-            <Pressable
-              onPress={() => router.push('/tutorial')}
-              style={[styles.tutorialLink, cardStyle]}
-            >
-              <Icon source="book-open-variant" size={18} color={theme.custom.brandBlue} />
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', flex: 1 }}>
-                Setup Tutorial
-              </Text>
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>{'\u203A'}</Text>
-            </Pressable>
-          )}
         </View>
       </View>
 
@@ -415,13 +401,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     fontSize: 10,
-  },
-  tutorialLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 20,
-    borderWidth: 1,
   },
 });

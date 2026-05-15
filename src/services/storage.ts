@@ -390,9 +390,13 @@ export function setLastBackupTs(ts: number): void {
 const SCREEN_TIME_ENABLED_KEY = 'screen_time_enabled';
 const SCREEN_TIME_UNLOCK_COUNT_KEY = 'screen_time_unlock_count';
 const SCREEN_TIME_UNLOCK_DATE_KEY = 'screen_time_unlock_date';
+const SCREEN_TIME_UNLOCK_WINDOW_END_KEY = 'screen_time_unlock_window_end';
+const SCREEN_TIME_SESSION_PROGRESS_KEY = 'screen_time_session_progress';
+const SCREEN_TIME_SESSION_APP_KEY = 'screen_time_session_app';
+const SCREEN_TIME_SESSION_DATE_KEY = 'screen_time_session_date';
 const SCREEN_TIME_DUE_CLEARED_KEY = 'screen_time_due_cleared';
 const SCREEN_TIME_DUE_CLEARED_DATE_KEY = 'screen_time_due_cleared_date';
-const SCREEN_TIME_UNLOCK_WINDOW_END_KEY = 'screen_time_unlock_window_end';
+const SCREEN_TIME_KEEP_BLOCKING_KEY = 'screen_time_keep_blocking';
 
 /** Millisecond timestamp when the current unlock window expires; 0 if no window. */
 export function loadUnlockWindowEnd(): number {
@@ -433,30 +437,41 @@ export function loadUnlockCount(): number {
 }
 
 /**
- * Increment today's unlock count after a successful unlock.
+ * Increment today's unlock count after a successful unlock. Also clears any
+ * in-progress session marker — the unlock just happened, so the next shield
+ * tap starts a fresh requirement at the now-escalated level.
  */
 export function incrementUnlockCount(): void {
   const today = new Date().toISOString().slice(0, 10);
   const current = loadUnlockCount();
   statsStorage.set(SCREEN_TIME_UNLOCK_DATE_KEY, today);
   statsStorage.set(SCREEN_TIME_UNLOCK_COUNT_KEY, current + 1);
+  clearScreenTimeSession();
 }
 
 /**
- * Reset today's unlock count and due-cleared state. Used by the
- * "Reset today's unlocks" Settings option so the user can test the
- * escalation flow without waiting for tomorrow.
+ * Reset today's unlock count. Used by the "Reset today's unlocks" Settings
+ * option so the user can test the escalation flow without waiting for midnight.
+ * Also clears the due-cleared latch — otherwise testing the escalation ramp
+ * would always be capped by the latch from earlier in the day.
  */
 export function resetUnlockState(): void {
   statsStorage.remove(SCREEN_TIME_UNLOCK_COUNT_KEY);
   statsStorage.remove(SCREEN_TIME_UNLOCK_DATE_KEY);
   statsStorage.remove(SCREEN_TIME_DUE_CLEARED_KEY);
   statsStorage.remove(SCREEN_TIME_DUE_CLEARED_DATE_KEY);
+  clearScreenTimeSession();
 }
 
 /**
- * Load whether all due cards have been cleared today.
- * Returns false if on a new calendar day or never set.
+ * Has the FSRS due queue been cleared at any point today? One-way latch,
+ * date-keyed so it auto-stales at midnight. Set by challenge.tsx (and the
+ * app-mount belt-and-suspenders) whenever a getCardsDueCount() observation
+ * returns 0.
+ *
+ * Not derived live from `getCardsDueCount()`: FSRS reschedules `again`-answered
+ * cards to 1-minute steps, so live derivation would flicker on/off as cards
+ * drip back into the queue. The latch captures the "earned the day" moment.
  */
 export function loadDueCardsCleared(): boolean {
   const today = new Date().toISOString().slice(0, 10);
@@ -465,14 +480,55 @@ export function loadDueCardsCleared(): boolean {
   return statsStorage.getBoolean(SCREEN_TIME_DUE_CLEARED_KEY) ?? false;
 }
 
-/**
- * Mark that all due cards have been cleared today.
- * Switches escalation from exponential to flat rate for the rest of the day.
- */
 export function saveDueCardsCleared(): void {
   const today = new Date().toISOString().slice(0, 10);
   statsStorage.set(SCREEN_TIME_DUE_CLEARED_DATE_KEY, today);
   statsStorage.set(SCREEN_TIME_DUE_CLEARED_KEY, true);
+}
+
+/**
+ * Setting: keep requiring practice (flat 3 cards) to unlock blocked apps
+ * even after the FSRS due queue is empty. Default off — most users want
+ * a free day once they've earned it.
+ */
+export function loadKeepBlockingAfterDueCleared(): boolean {
+  return statsStorage.getBoolean(SCREEN_TIME_KEEP_BLOCKING_KEY) ?? false;
+}
+
+export function saveKeepBlockingAfterDueCleared(enabled: boolean): void {
+  statsStorage.set(SCREEN_TIME_KEEP_BLOCKING_KEY, enabled);
+}
+
+/**
+ * Load in-progress screen-time session state. Returns `{ progress: 0, app: null }`
+ * if no saved session or the saved session is from a previous day (auto-stale).
+ *
+ * Saved between mount-and-unmount of /challenge so users who close mid-unlock
+ * and re-enter (via shield tap or Start Practice from home) keep their earned
+ * progress.
+ */
+export function loadScreenTimeSession(): { progress: number; app: string | null } {
+  const today = new Date().toISOString().slice(0, 10);
+  const storedDate = statsStorage.getString(SCREEN_TIME_SESSION_DATE_KEY);
+  if (storedDate !== today) return { progress: 0, app: null };
+  return {
+    progress: statsStorage.getNumber(SCREEN_TIME_SESSION_PROGRESS_KEY) ?? 0,
+    app: statsStorage.getString(SCREEN_TIME_SESSION_APP_KEY) ?? null,
+  };
+}
+
+export function saveScreenTimeSession(progress: number, app: string | null): void {
+  const today = new Date().toISOString().slice(0, 10);
+  statsStorage.set(SCREEN_TIME_SESSION_DATE_KEY, today);
+  statsStorage.set(SCREEN_TIME_SESSION_PROGRESS_KEY, progress);
+  if (app) statsStorage.set(SCREEN_TIME_SESSION_APP_KEY, app);
+  else statsStorage.remove(SCREEN_TIME_SESSION_APP_KEY);
+}
+
+export function clearScreenTimeSession(): void {
+  statsStorage.remove(SCREEN_TIME_SESSION_PROGRESS_KEY);
+  statsStorage.remove(SCREEN_TIME_SESSION_APP_KEY);
+  statsStorage.remove(SCREEN_TIME_SESSION_DATE_KEY);
 }
 
 // ---------------------------------------------------------------------------

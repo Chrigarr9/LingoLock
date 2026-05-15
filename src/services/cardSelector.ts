@@ -235,7 +235,12 @@ export function getDueCards(chapters: ChapterData[], excludeIds: Set<string>): S
  * If dailyNewWordBudget is 0, returns reviews only (no new words).
  * If total available cards < session size, returns as many as available.
  */
-export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number, _sourceApp?: string): SessionCard[] {
+export function buildSession(
+  chapters: ChapterData[],
+  dailyNewWordBudget: number,
+  _sourceApp?: string,
+  bypassIntroCap: boolean = false,
+): SessionCard[] {
   const currentChapterNumber = getCurrentChapter(chapters);
   const seenByChapter = getMaxSeenSentenceByChapter();
 
@@ -269,8 +274,12 @@ export function buildSession(chapters: ChapterData[], dailyNewWordBudget: number
   }
 
   // --- Apply daily new-word budget ----------------------------------------
-  // Calculate how many new words can still be introduced today.
-  const remainingBudget = Math.max(0, dailyNewWordBudget - loadNewWordsIntroducedToday());
+  // Screen-time unlock sessions bypass the per-day intro cap: the user can't
+  // unlock if their earlier voluntary practice ate the cap. Voluntary sessions
+  // still subtract today's introductions so users can't binge new content.
+  const remainingBudget = bypassIntroCap
+    ? Math.max(0, dailyNewWordBudget)
+    : Math.max(0, dailyNewWordBudget - loadNewWordsIntroducedToday());
   const selectedNew = newCards.slice(0, remainingBudget);
 
   // Combine: shuffled due reviews first, then new words

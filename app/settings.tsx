@@ -25,6 +25,8 @@ import {
   loadBlocklistJson,
   saveBlocklistJson,
   resetUnlockState,
+  loadKeepBlockingAfterDueCleared,
+  saveKeepBlockingAfterDueCleared,
 } from '../src/services/storage';
 import {
   isScreenTimeAvailable,
@@ -143,6 +145,7 @@ export default function SettingsScreen() {
   const [pendingEnable, setPendingEnable] = useState(false);
   // Bump to force re-evaluation of loadUnlockCount() display after Reset
   const [, setUnlockResetTick] = useState(0);
+  const [keepBlocking, setKeepBlocking] = useState(() => loadKeepBlockingAfterDueCleared());
 
   function handleMuteToggle(value: boolean) {
     setIsMuted(value);
@@ -478,6 +481,29 @@ export default function SettingsScreen() {
                     iconColor={theme.colors.onSurfaceVariant}
                   />
                 </Pressable>
+
+                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
+                <View style={styles.settingRow}>
+                  <View style={styles.settingLabelGroup}>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
+                      Keep blocking after due cleared
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      Off: finishing today’s due cards unblocks apps for the rest of the day. On: still require 3 cards per unlock.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={keepBlocking}
+                    onValueChange={(value) => {
+                      setKeepBlocking(value);
+                      saveKeepBlockingAfterDueCleared(value);
+                    }}
+                    color={theme.custom.brandBlue}
+                  />
+                </View>
 
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
                 <View style={styles.settingRow}>

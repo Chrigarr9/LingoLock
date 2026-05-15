@@ -250,7 +250,7 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 old mode 100644
 new mode 100755
-index da5121e..c5e1b21
+index da5121e..2952007
 --- a/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 +++ b/node_modules/react-native-device-activity/targets/ShieldAction/ShieldActionExtension.swift
 @@ -115,7 +115,55 @@ func handleShieldAction(
@@ -328,24 +328,24 @@ index da5121e..c5e1b21
        sortByGranularity: true
      ).first
      if let configForSelectedAction = shieldActionConfig[actionButton] as? [String: Any] {
-+      // LOCAL PATCH (LingoLock): add applicationOrDomainDisplayName with a
-+      // fallback chain app → web domain. The library's stock dict only
-+      // populates applicationName when the shield fires for a specific app;
-+      // if the user picked a whole category in the picker, the shield fires
-+      // with categoryToken and applicationName is nil — which makes
-+      // replacePlaceholders substitute the literal key string into the URL.
-+      // ShieldConfigurationExtension already uses this same key for its
-+      // subtitle placeholder; mirroring it here keeps URL substitution
-+      // working for app and web shields. Category shields fall through to
-+      // nil — the JS deep-link handler's isUnfilled check drops the literal
-+      // placeholder string. The picker is now configured with
-+      // includeEntireCategory=true so category selections expand into
-+      // individual app tokens, making the category branch effectively dead.
++      // LOCAL PATCH (LingoLock): unified display-name placeholder with the
++      // fallback chain app → web domain → category. Build #8 only filled
++      // app/web — when the shield fires for a categoryToken (which Apple
++      // does for blocked-by-category apps) both fields were nil and the
++      // marker wrote app:"". Notifications then read "Practice to unlock"
++      // with no app name. ActivityCategory(token:).localizedDisplayName
++      // IS available (despite an earlier comment claiming otherwise —
++      // verified against ManagedSettings.swiftinterface in the iOS 16 SDK).
++      // ShieldActionDelegate has no in-category overload, so the category
++      // name is the best we can do for category-blocked apps — iOS hides
++      // the specific app identity from the action extension on purpose.
 +      let displayName: String? = applicationToken != nil
 +        ? Application(token: applicationToken!).localizedDisplayName
 +        : (webdomainToken != nil
 +          ? WebDomain(token: webdomainToken!).domain
-+          : nil)
++          : (categoryToken != nil
++            ? ActivityCategory(token: categoryToken!).localizedDisplayName
++            : nil))
        let placeholders: [String: String?] = [
          "action": actionButton,
          "applicationName": applicationToken != nil

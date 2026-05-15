@@ -448,17 +448,11 @@ export default function RootLayout() {
       <Stack.Screen
         name="challenge"
         options={{
-          presentation: 'fullScreenModal',
-          animation: 'fade',
+          // Default push/pop slide matches vocabulary→home; the previous
+          // fullScreenModal+fade produced a white-flash transition the user
+          // disliked. gestureEnabled stays off so a stray swipe can't
+          // abandon mid-card progress.
           gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="tutorial"
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          title: 'Setup Tutorial',
         }}
       />
       <Stack.Screen
