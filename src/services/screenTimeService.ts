@@ -8,10 +8,12 @@
  * lazily), which the user observed firsthand with YouTube/Reddit/Strava/Garmin.
  *
  * Unlock cycle: tap shield → routed to /challenge → complete cards →
- * resetBlocks() lifts shields for 10 min → intervalDidEnd re-applies the
- * blocklist via blockSelection(BLOCKLIST_ID). The blocklist's selection ID is
- * mirrored to the library's selection store via setFamilyActivitySelectionId
- * so the monitor callback can reference it by ID.
+ * resetBlocks() lifts shields and arms a usage monitor. When LingoLock
+ * backgrounds, DeviceActivity starts counting actual use of the selected apps.
+ * eventDidReachThreshold re-applies the blocklist after UNLOCK_MINUTES of
+ * usage; intervalDidEnd is a midnight cleanup fallback. The blocklist's
+ * selection ID is mirrored to the library's selection store via
+ * setFamilyActivitySelectionId so monitor callbacks can reference it by ID.
  *
  * Shield handoff: the library's openUrl uses a freshly-constructed
  * NSExtensionContext() that silently no-ops on iOS — so the shield's deep link
@@ -28,7 +30,6 @@ import {
   loadBlocklistJson,
   loadScreenTimeEnabled,
   loadUnlockWindowEnd,
-  saveUnlockWindowEnd,
   clearUnlockWindowEnd,
   loadUnlockTimerArmed,
   saveUnlockTimerArmed,
@@ -38,11 +39,11 @@ import {
 } from './storage';
 
 const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
-const MONITOR_NAME = 'unlock-timer';
+const MONITOR_NAME = 'unlock-usage-monitor';
+const USAGE_LIMIT_EVENT_NAME = 'unlock_usage_limit_reached';
 const UNLOCK_MINUTES = 10;
 const SHIELD_ACTION_MARKER_KEY = 'lingolock.pendingShieldAction';
 const SHIELD_ACTION_TTL_MS = 60_000;
-let foregroundReshieldTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Brand colors matching LingoLock's dark splash screen.
 const BRAND_BLUE = { red: 122, green: 173, blue: 216 }; // #7AADD8
@@ -183,14 +184,12 @@ export function applyBlocklist(blocklistJson: string | null): void {
   resetBlocks('apply-blocklist-clear');
 
   if (!blocklistJson) {
-    clearForegroundReshieldTimer();
     clearUnlockWindowEnd();
     clearUnlockTimerArmed();
     logDebug('ScreenTime.applyBlocklist', 'empty → resetBlocks only');
     return;
   }
 
-  clearForegroundReshieldTimer();
   clearUnlockWindowEnd();
   clearUnlockTimerArmed();
 
@@ -225,13 +224,11 @@ export function applyBlocklist(blocklistJson: string | null): void {
 }
 
 /**
- * Foreground-time safety net: re-apply shields if the unlock window has
- * expired (or never existed) and the toggle is ON but nothing is currently
- * shielded. Apple's DeviceActivityMonitor.intervalDidEnd is best-effort —
- * under memory pressure or scheduling edge cases it can be delayed or
- * skipped, leaving the user permanently unlocked. This is the JS-side
- * guarantee that "10 minutes after unlock, things lock again on next launch
- * or foreground" even if the native callback never fires.
+ * Foreground-time safety net: re-apply shields if the toggle is ON but nothing
+ * is currently shielded and no usage monitor is armed. The usage-threshold
+ * DeviceActivity monitor is the primary reblock path after unlock; this JS-side
+ * guard handles stale pre-monitor unlock windows and any edge case where native
+ * callbacks fail to put shields back.
  *
  * Returns true if shields were re-applied.
  */
@@ -287,31 +284,7 @@ export function maybeRestoreShields(): boolean {
   return false;
 }
 
-function clearForegroundReshieldTimer(): void {
-  if (!foregroundReshieldTimer) return;
-  clearTimeout(foregroundReshieldTimer);
-  foregroundReshieldTimer = null;
-}
-
-function scheduleForegroundReshield(windowEndMs: number): void {
-  clearForegroundReshieldTimer();
-  const delayMs = Math.max(0, windowEndMs - Date.now() + 250);
-  logDebug('ScreenTime.foregroundReshield', 'timer scheduled', {
-    delayMs,
-    windowEndTs: windowEndMs,
-  });
-  foregroundReshieldTimer = setTimeout(() => {
-    foregroundReshieldTimer = null;
-    try {
-      const restored = maybeRestoreShields();
-      logDebug('ScreenTime.foregroundReshield', 'timer fired', { restored });
-    } catch (err) {
-      logDebug('ScreenTime.foregroundReshield', 'timer failed', String(err));
-    }
-  }, delayMs);
-}
-
-function scheduleReblockWindowFromNow(triggeredBy: string): void {
+function scheduleUsageReblockMonitor(triggeredBy: string): void {
   const {
     startMonitoring,
     configureActions,
@@ -320,25 +293,26 @@ function scheduleReblockWindowFromNow(triggeredBy: string): void {
 
   stopMonitoring([MONITOR_NAME]);
 
+  const reblockAction = { type: 'blockSelection', familyActivitySelectionId: BLOCKLIST_ID };
+
+  configureActions({
+    activityName: MONITOR_NAME,
+    callbackName: 'eventDidReachThreshold',
+    eventName: USAGE_LIMIT_EVENT_NAME,
+    actions: [reblockAction],
+  });
   configureActions({
     activityName: MONITOR_NAME,
     callbackName: 'intervalDidEnd',
-    actions: [
-      { type: 'blockSelection', familyActivitySelectionId: BLOCKLIST_ID },
-    ],
+    actions: [reblockAction],
   });
 
   const nowMs = Date.now();
   const startMs = nowMs + 5_000;
-  const intendedEndMs = startMs + UNLOCK_MINUTES * 60 * 1000;
   const start = new Date(startMs);
-  const intended = new Date(intendedEndMs);
-  const crossesMidnight = intended.getDate() !== start.getDate();
-  const end = crossesMidnight
-    ? new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59)
-    : intended;
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59);
 
-  saveUnlockWindowEnd(end.getTime());
+  clearUnlockWindowEnd();
   clearUnlockTimerArmed();
 
   const schedule = {
@@ -354,21 +328,36 @@ function scheduleReblockWindowFromNow(triggeredBy: string): void {
     },
     repeats: false,
   };
+  const blocklistJson = loadBlocklistJson();
+  if (!blocklistJson) {
+    logDebug('ScreenTime.usageMonitor', 'cannot start — no blocklist', { triggeredBy });
+    return;
+  }
+  const events = [
+    {
+      eventName: USAGE_LIMIT_EVENT_NAME,
+      familyActivitySelection: blocklistJson,
+      threshold: { minute: UNLOCK_MINUTES },
+      includesPastActivity: false,
+    },
+  ];
 
-  Promise.resolve(startMonitoring(MONITOR_NAME, schedule, [])).catch((err) => {
-    logDebug('ScreenTime.reblockTimer', 'native monitor schedule FAILED', {
+  Promise.resolve(startMonitoring(MONITOR_NAME, schedule, events)).catch((err) => {
+    logDebug('ScreenTime.usageMonitor', 'native monitor schedule FAILED', {
       triggeredBy,
       error: String(err),
     });
-    console.warn('[ScreenTime] Failed to schedule unlock timer:', err);
+    console.warn('[ScreenTime] Failed to schedule usage reblock monitor:', err);
   });
-  scheduleForegroundReshield(end.getTime());
-  logDebug('ScreenTime.reblockTimer', 'started', {
+  logDebug('ScreenTime.usageMonitor', 'started', {
     triggeredBy,
+    activityName: MONITOR_NAME,
+    eventName: USAGE_LIMIT_EVENT_NAME,
     intervalStart: schedule.intervalStart,
     intervalEnd: schedule.intervalEnd,
-    windowEndTs: end.getTime(),
-    minutesUntilEnd: Math.round((end.getTime() - nowMs) / 60000),
+    threshold: events[0].threshold,
+    includesPastActivity: events[0].includesPastActivity,
+    blocklistLen: blocklistJson.length,
   });
 }
 
@@ -390,7 +379,6 @@ export function startUnlockWindow(): void {
   resetBlocks('unlock-window');
   clearUnlockWindowEnd();
   saveUnlockTimerArmed(true);
-  clearForegroundReshieldTimer();
   logDebug('ScreenTime.unlock', 'shields lifted; timer armed for app exit', {
     isShieldActive: isBlocking(),
     snapshot: getScreenTimeDebugState(),
@@ -403,12 +391,12 @@ export function startUnlockTimerIfArmed(triggeredBy: string): boolean {
     return false;
   }
 
-  logDebug('ScreenTime.reblockTimer', 'arming from app exit', {
+  logDebug('ScreenTime.usageMonitor', 'arming from app exit', {
     triggeredBy,
     isShieldActive: isBlocking(),
     snapshot: getScreenTimeDebugState(),
   });
-  scheduleReblockWindowFromNow(triggeredBy);
+  scheduleUsageReblockMonitor(triggeredBy);
   return true;
 }
 
@@ -438,7 +426,9 @@ export function getScreenTimeDebugState(): Record<string, unknown> {
     unlockWindowEnd,
     msUntilWindowEnd: unlockWindowEnd > 0 ? unlockWindowEnd - now : null,
     hasBlocklist: !!loadBlocklistJson(),
-    foregroundTimerScheduled: foregroundReshieldTimer != null,
+    usageMonitorName: MONITOR_NAME,
+    usageLimitEventName: USAGE_LIMIT_EVENT_NAME,
+    usageLimitMinutes: UNLOCK_MINUTES,
   };
 }
 
@@ -446,8 +436,8 @@ export function getScreenTimeDebugState(): Record<string, unknown> {
  * Fully disable Screen Time blocking. Master toggle OFF.
  *
  * Order matters:
- *   1. stopMonitoring — kill the unlock-timer callback so it can't re-arm
- *      shields in the background after we lift them.
+ *   1. stopMonitoring — kill the usage monitor so it can't re-arm shields
+ *      after the user explicitly turns blocking off.
  *   2. disableBlockAllMode — defensively clear the IS_BLOCKING_ALL flag in
  *      shared UserDefaults. Legacy from the block-all era; for upgrade users
  *      this is what undoes their previous setup.
@@ -471,7 +461,6 @@ export function disableBlocking(): void {
   clearAllManagedSettingsStoreSettings();
   clearUnlockWindowEnd();
   clearUnlockTimerArmed();
-  clearForegroundReshieldTimer();
 }
 
 /**

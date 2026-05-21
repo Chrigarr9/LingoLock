@@ -162,10 +162,9 @@ export default function RootLayout() {
           console.warn('[App] configureShield on launch failed:', err);
         }
 
-        // Safety net: if the unlock window has expired (or never existed) and
-        // shields are absent, re-apply the saved blocklist. Covers both the
-        // build #5 inert-shield bug and the case where iOS dropped the
-        // DeviceActivityMonitor.intervalDidEnd callback. No-op if the user is
+        // Safety net: if shields are absent and no usage monitor is armed,
+        // re-apply the saved blocklist. Covers both the build #5 inert-shield
+        // bug and stale pre-monitor unlock windows. No-op while the user is
         // mid-unlock or shields are already up.
         try {
           maybeRestoreShields();
@@ -194,20 +193,17 @@ export default function RootLayout() {
         }
       }
 
-      // Subscribe to native DeviceActivityMonitor events (intervalDidStart,
-      // intervalDidEnd, etc.). This gives us:
-      //   1. Visibility into whether Apple is actually firing intervalDidEnd
-      //      at the 10-min mark — if the debug log shows the event, the
-      //      native re-block path is working; if not, only the JS safety
-      //      net + bg task carry the load.
-      //   2. A defensive re-apply: when intervalDidEnd fires, we call
-      //      maybeRestoreShields ourselves regardless of whether the native
-      //      action succeeded. Idempotent (no-op if shields already up).
+      // Subscribe to native DeviceActivityMonitor events. This gives us:
+      //   1. Visibility into whether Apple fires eventDidReachThreshold after
+      //      UNLOCK_MINUTES of actual blocked-app usage.
+      //   2. A defensive re-apply: when the threshold or interval end fires,
+      //      call maybeRestoreShields regardless of whether the native action
+      //      succeeded. Idempotent (no-op if shields already up).
       try {
         const { onDeviceActivityMonitorEvent } = require('react-native-device-activity');
         monitorEventSub = onDeviceActivityMonitorEvent((event: { callbackName?: string; activityName?: string }) => {
           logDebug('App.DeviceActivity', 'native event', event);
-          if (event.callbackName === 'intervalDidEnd') {
+          if (event.callbackName === 'eventDidReachThreshold' || event.callbackName === 'intervalDidEnd') {
             (async () => {
               const { maybeRestoreShields } = await import('../src/services/screenTimeService');
               try {
@@ -300,10 +296,8 @@ export default function RootLayout() {
         if (state !== 'active') return;
         if (!loadScreenTimeEnabled() || !isScreenTimeAvailable()) return;
 
-        // Safety net first — if the unlock window expired during background,
-        // re-apply the blocklist before doing anything else. This is what
-        // makes "10 minutes after unlock, things re-lock" work even when
-        // iOS drops intervalDidEnd.
+        // Safety net first — if shields are absent and no usage monitor is
+        // armed, re-apply the blocklist before doing anything else.
         try {
           maybeRestoreShields();
         } catch (err) {
