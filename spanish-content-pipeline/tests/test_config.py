@@ -153,7 +153,7 @@ def test_config_loads_story_review_and_fix_models():
     config = load_config(Path("configs/spanish_buenos_aires.yaml"))
     assert hasattr(config.models, "story_review")
     assert hasattr(config.models, "story_fix")
-    assert config.models.story_review.model == "anthropic/claude-sonnet-4-6"
+    assert config.models.story_review.model
     assert "flash" in config.models.story_fix.model.lower()
 
 

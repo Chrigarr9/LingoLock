@@ -1,0 +1,99 @@
+deck:
+  name: "How I Met Your Mother S01"
+  id: himym-s01-es
+  type: subtitle
+
+languages:
+  target: Spanish
+  target_code: es
+  native: German
+  native_code: de
+  dialect: ""  # Latin American Spanish (lirondos subtitles)
+
+show:
+  title: "How I Met Your Mother"
+  season: 1
+  subtitle_url_base: "https://raw.githubusercontent.com/lirondos/subtitles/master/txt/HIMYM"
+  art_style: "graphic novel panels, vibrant colors, bold outlines, semi-realistic cartoon"
+  setting: "New York City, 2005, young adults, MacLaren's bar and shared apartment"
+  characters:
+    - name: Ted
+      image_tag: "lean young man, medium-length wavy brown hair, warm brown eyes, button-up shirt or casual blazer, open friendly expression"
+      visual_tag: "ted_mosby"
+    - name: Marshall
+      image_tag: "very tall lanky young man, sandy blond hair, layered casual plaid shirt, broad friendly smile"
+      visual_tag: "marshall_eriksen"
+    - name: Lily
+      image_tag: "petite woman, dyed auburn-red hair in loose waves, colourful vintage-style dress, expressive wide eyes"
+      visual_tag: "lily_aldrin"
+    - name: Robin
+      image_tag: "tall woman, long straight dark-brown hair, confident upright posture, neat blazer or smart-casual top"
+      visual_tag: "robin_scherbatsky"
+    - name: Barney
+      image_tag: "trim build, neatly slicked dark hair, always wearing a sharp suit and tie, mischievous grin"
+      visual_tag: "barney_stinson"
+
+subtitle_processing:
+  quality_score_min: 3
+  backfill_episode_threshold: 10
+  chapter_size: 50
+  weight_a_start: 3.0
+  weight_a_end: 0.5
+  weight_b_start: 0.5
+  weight_b_end: 3.0
+
+models:
+  translation:
+    provider: openrouter
+    model: google/gemini-3.1-flash-lite-preview
+    temperature: 0.3
+    max_retries: 3
+  enrichment:
+    provider: openrouter
+    model: google/gemini-3.1-flash-lite-preview
+    temperature: 0.3
+    max_retries: 3
+
+image_generation:
+  enabled: true
+  provider: fal
+  model: fal-ai/z-image/turbo
+  cheap_model: fal-ai/z-image/turbo
+  style: "photorealistic, cinematic, warm natural light, clean simple background, no text"
+  style_preset: photorealistic
+  width: 512
+  height: 384
+  max_retries: 5
+
+prior_decks: []
+
+audio_generation:
+  enabled: true
+  provider: openai
+  model: gpt-4o-mini-tts
+  voice_name: onyx
+  speaking_rate: 1.0
+
+episodes:
+  - {episode: 1,  title: "Pilot",                          file: "How.I.Met.Your.Mother.S01E01.Pilot.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 2,  title: "Purple Giraffe",                 file: "How.I.Met.Your.Mother.S01E02.Purple.Giraffe.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 3,  title: "Sweet Taste of Liberty",         file: "How.I.Met.Your.Mother.S01E03.Sweet.Taste.of.Liberty.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 4,  title: "Return of the Shirt",            file: "How.I.Met.Your.Mother.S01E04.Return.of.the.Shirt.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 5,  title: "Okay Awesome",                   file: "How.I.Met.Your.Mother.S01E05.Okay.Awesome.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 6,  title: "Slutty Pumpkin",                 file: "How.I.Met.Your.Mother.S01E06.Slutty.Pumpkin.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 7,  title: "Matchmaker",                     file: "How.I.Met.Your.Mother.S01E07.Matchmaker.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 8,  title: "The Duel",                       file: "How.I.Met.Your.Mother.S01E08.The.Duel.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 9,  title: "Belly Full of Turkey",           file: "How.I.Met.Your.Mother.S01E09.Belly.Full.Of.Turkey.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 10, title: "The Pineapple Incident",         file: "How.I.Met.Your.Mother.S01E10.The.Pineapple.Incident.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 11, title: "The Limo",                       file: "How.I.Met.Your.Mother.S01E11.The.Limo.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 12, title: "The Wedding",                    file: "How.I.Met.Your.Mother.S01E12.The.Wedding.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 13, title: "Drumroll, Please",               file: "How.I.Met.Your.Mother.S01E13.Drumroll,.Please.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 14, title: "Zip, Zip, Zip",                  file: "How.I.Met.Your.Mother.S01E14.Zip,.Zip,.Zip.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 15, title: "Game Night",                     file: "How.I.Met.Your.Mother.S01E15.Game.Night.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 16, title: "Cupcake",                        file: "How.I.Met.Your.Mother.S01E16.Cupcake.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 17, title: "Life Among the Gorillas",        file: "How.I.Met.Your.Mother.S01E17.Life.Among.The.Gorilla.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 18, title: "Nothing Good Happens After 2 AM",file: "How.I.Met.Your.Mother.S01E18.Nothing.Good.Happens.After.2.AM.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 19, title: "Mary the Paralegal",             file: "How.I.Met.Your.Mother.S01E19.Mary.The.Paralegal.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 20, title: "Best Prom Ever",                 file: "How.I.Met.Your.Mother.S01E20.Best.Prom.Ever.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 21, title: "Milk",                           file: "How.I.Met.Your.Mother.S01E21.Milk.DVDRip.XviD-TOPAZ.txt"}
+  - {episode: 22, title: "Come On",                        file: "How.I.Met.Your.Mother.S01E22.Come.On.DVDRip.XviD-TOPAZ.txt"}

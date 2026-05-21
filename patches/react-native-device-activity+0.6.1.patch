@@ -103,6 +103,22 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts
 old mode 100644
 new mode 100755
+index 414d011..b1869a2
+--- a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts
++++ b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts
+@@ -28,6 +28,12 @@ export type DeviceActivitySelectionViewProps = PropsWithChildren<{
+     familyActivitySelection?: string | null;
+     headerText?: string | null;
+     footerText?: string | null;
++    /**
++     * When selecting a category, include all apps/web domains in that category
++     * instead of saving only the category token.
++     * @link https://developer.apple.com/documentation/familycontrols/familyactivityselection/includeentirecategory
++     */
++    includeEntireCategory?: boolean;
+ }>;
+ export type DeviceActivitySelectionSheetViewProps = DeviceActivitySelectionViewProps & {
+     /**
 diff --git a/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts.map b/node_modules/react-native-device-activity/build/ReactNativeDeviceActivity.types.d.ts.map
 old mode 100644
 new mode 100755
@@ -187,9 +203,64 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
 old mode 100644
 new mode 100755
+index 8aee1f2..3657e47
+--- a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
++++ b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
+@@ -861,7 +861,18 @@ public class ReactNativeDeviceActivityModule: Module {
+       Prop("familyActivitySelection") { (view: ReactNativeDeviceActivityView, prop: String) in
+         let selection = deserializeFamilyActivitySelection(familyActivitySelectionStr: prop)
+ 
+-        view.model.activitySelection = selection
++        view.model.activitySelection = view.selectionWithCurrentIncludeEntireCategory(
++          selection: selection
++        )
++      }
++
++      // note: this property will only have an effect on new category selections
++      // and on restored selections passed through familyActivitySelection.
++      Prop("includeEntireCategory") { (view: ReactNativeDeviceActivityView, prop: Bool?) in
++        view.model.includeEntireCategory = prop
++        view.model.activitySelection = view.selectionWithCurrentIncludeEntireCategory(
++          selection: view.model.activitySelection
++        )
+       }
+ 
+       Prop("footerText") { (view: ReactNativeDeviceActivityView, prop: String?) in
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
 old mode 100644
 new mode 100755
+index 897a322..1b4a96a
+--- a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
++++ b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
+@@ -83,6 +83,18 @@ class ReactNativeDeviceActivityView: ExpoView {
+ 
+   var previousSelection: FamilyActivitySelection?
+ 
++  func selectionWithCurrentIncludeEntireCategory(selection: FamilyActivitySelection) -> FamilyActivitySelection {
++    guard let includeEntireCategory = model.includeEntireCategory else {
++      return selection
++    }
++
++    var updatedSelection = FamilyActivitySelection(includeEntireCategory: includeEntireCategory)
++    updatedSelection.applicationTokens = selection.applicationTokens
++    updatedSelection.categoryTokens = selection.categoryTokens
++    updatedSelection.webDomainTokens = selection.webDomainTokens
++    return updatedSelection
++  }
++
+   func updateSelection(selection: FamilyActivitySelection) {
+     let isSelectionEmpty =
+       selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty
+@@ -96,7 +108,8 @@ class ReactNativeDeviceActivityView: ExpoView {
+       "familyActivitySelection": (isSelectionEmpty ? nil : familyActivitySelectionString) as Any,
+       "applicationCount": selection.applicationTokens.count,
+       "categoryCount": selection.categoryTokens.count,
+-      "webDomainCount": selection.webDomainTokens.count
++      "webDomainCount": selection.webDomainTokens.count,
++      "includeEntireCategory": selection.includeEntireCategory
+     ])
+   }
+ }
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift
 old mode 100644
 new mode 100755
@@ -226,6 +297,22 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts
 old mode 100644
 new mode 100755
+index da7edd3..c44cbaa
+--- a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts
++++ b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivity.types.ts
+@@ -44,6 +44,12 @@ export type DeviceActivitySelectionViewProps = PropsWithChildren<{
+   familyActivitySelection?: string | null;
+   headerText?: string | null;
+   footerText?: string | null;
++  /**
++   * When selecting a category, include all apps/web domains in that category
++   * instead of saving only the category token.
++   * @link https://developer.apple.com/documentation/familycontrols/familyactivityselection/includeentirecategory
++   */
++  includeEntireCategory?: boolean;
+ }>;
+ 
+ export type DeviceActivitySelectionSheetViewProps = DeviceActivitySelectionViewProps & {
 diff --git a/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ios.ts b/node_modules/react-native-device-activity/src/ReactNativeDeviceActivityModule.ios.ts
 old mode 100644
 new mode 100755

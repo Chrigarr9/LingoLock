@@ -59,12 +59,20 @@ class TogetherImageClient:
 
     def _post_with_retry(self, url: str, payload: dict,
                          headers: dict) -> httpx.Response:
-        """HTTP POST with retry on 5xx and 422."""
+        """HTTP POST with retry on 5xx, 422, and 429 (rate limit)."""
         last_error = None
         for attempt in range(self._max_retries):
             response = self._client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
                 return response
+            if response.status_code == 429:
+                last_error = response
+                if attempt < self._max_retries - 1:
+                    retry_after = int(response.headers.get("retry-after", 10 * (attempt + 1)))
+                    print(f"\n      Rate limited — waiting {retry_after}s...",
+                          end="", flush=True)
+                    time.sleep(retry_after)
+                continue
             if response.status_code >= 500 or response.status_code == 422:
                 last_error = response
                 if attempt < self._max_retries - 1:

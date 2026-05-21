@@ -30,6 +30,9 @@ import {
   loadUnlockWindowEnd,
   saveUnlockWindowEnd,
   clearUnlockWindowEnd,
+  loadUnlockTimerArmed,
+  saveUnlockTimerArmed,
+  clearUnlockTimerArmed,
   loadDueCardsCleared,
   loadKeepBlockingAfterDueCleared,
 } from './storage';
@@ -39,11 +42,13 @@ const MONITOR_NAME = 'unlock-timer';
 const UNLOCK_MINUTES = 10;
 const SHIELD_ACTION_MARKER_KEY = 'lingolock.pendingShieldAction';
 const SHIELD_ACTION_TTL_MS = 60_000;
+let foregroundReshieldTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Brand colors matching LingoLock theme (brand blue #5B8EC4)
-const BRAND_BLUE = { red: 91, green: 142, blue: 196 };  // #5B8EC4
-const DEEP_NAVY = { red: 15, green: 25, blue: 41 };     // #0F1929 (dark mode bg)
+// Brand colors matching LingoLock's dark splash screen.
+const BRAND_BLUE = { red: 122, green: 173, blue: 216 }; // #7AADD8
+const SPLASH_NAVY = { red: 28, green: 46, blue: 74 };   // #1C2E4A
 const LIGHT_TEXT = { red: 255, green: 255, blue: 255 };
+const SOFT_TEXT = { red: 220, green: 232, blue: 244 };  // #DCE8F4
 
 /**
  * Check if Screen Time API is available on this device.
@@ -109,15 +114,15 @@ export function configureShield(): void {
 
   updateShield(
     {
-      title: 'Practice to unlock',
+      title: 'LingoLock',
       titleColor: LIGHT_TEXT,
-      subtitle: 'Complete a few vocabulary cards to keep using {applicationOrDomainDisplayName}',
-      subtitleColor: { ...LIGHT_TEXT, alpha: 0.85 },
-      backgroundColor: DEEP_NAVY,
+      subtitle: 'Complete a few cards to keep using {applicationOrDomainDisplayName}',
+      subtitleColor: { ...SOFT_TEXT, alpha: 0.92 },
+      backgroundColor: SPLASH_NAVY,
       primaryButtonLabel: 'Practice now',
-      primaryButtonLabelColor: LIGHT_TEXT,
+      primaryButtonLabelColor: SPLASH_NAVY,
       primaryButtonBackgroundColor: BRAND_BLUE,
-      iconSystemName: 'graduationcap.fill',
+      iconSystemName: 'lock.shield.fill',
       iconTint: LIGHT_TEXT,
     },
     {
@@ -178,9 +183,16 @@ export function applyBlocklist(blocklistJson: string | null): void {
   resetBlocks('apply-blocklist-clear');
 
   if (!blocklistJson) {
+    clearForegroundReshieldTimer();
+    clearUnlockWindowEnd();
+    clearUnlockTimerArmed();
     logDebug('ScreenTime.applyBlocklist', 'empty → resetBlocks only');
     return;
   }
+
+  clearForegroundReshieldTimer();
+  clearUnlockWindowEnd();
+  clearUnlockTimerArmed();
 
   setFamilyActivitySelectionId({
     id: BLOCKLIST_ID,
@@ -228,6 +240,11 @@ export function maybeRestoreShields(): boolean {
   if (!loadScreenTimeEnabled()) return false;
   if (isBlocking()) return false;
 
+  if (loadUnlockTimerArmed()) {
+    logDebug('ScreenTime.maybeRestore', 'timer armed — shields intentionally down until app exit');
+    return false;
+  }
+
   // Free-day check: in default mode, once the user has cleared the FSRS due
   // queue today, shields stay off until midnight. The keep-blocking setting
   // opts out — those users want continued (flat-rate) friction.
@@ -246,7 +263,10 @@ export function maybeRestoreShields(): boolean {
   }
 
   const blocklistJson = loadBlocklistJson();
-  if (!blocklistJson) return false;
+  if (!blocklistJson) {
+    logDebug('ScreenTime.maybeRestore', 'no blocklist saved');
+    return false;
+  }
 
   logDebug('ScreenTime.maybeRestore', 'reblocking (window expired or none)', {
     unlockEnd,
@@ -267,14 +287,32 @@ export function maybeRestoreShields(): boolean {
   return false;
 }
 
-/**
- * Lift shields temporarily and start a 10-minute unlock timer.
- * When the timer expires, the DeviceActivityMonitor re-applies the blocklist
- * via the BLOCKLIST_ID stored selection.
- */
-export function startUnlockWindow(): void {
+function clearForegroundReshieldTimer(): void {
+  if (!foregroundReshieldTimer) return;
+  clearTimeout(foregroundReshieldTimer);
+  foregroundReshieldTimer = null;
+}
+
+function scheduleForegroundReshield(windowEndMs: number): void {
+  clearForegroundReshieldTimer();
+  const delayMs = Math.max(0, windowEndMs - Date.now() + 250);
+  logDebug('ScreenTime.foregroundReshield', 'timer scheduled', {
+    delayMs,
+    windowEndTs: windowEndMs,
+  });
+  foregroundReshieldTimer = setTimeout(() => {
+    foregroundReshieldTimer = null;
+    try {
+      const restored = maybeRestoreShields();
+      logDebug('ScreenTime.foregroundReshield', 'timer fired', { restored });
+    } catch (err) {
+      logDebug('ScreenTime.foregroundReshield', 'timer failed', String(err));
+    }
+  }, delayMs);
+}
+
+function scheduleReblockWindowFromNow(triggeredBy: string): void {
   const {
-    resetBlocks,
     startMonitoring,
     configureActions,
     stopMonitoring,
@@ -282,8 +320,6 @@ export function startUnlockWindow(): void {
 
   stopMonitoring([MONITOR_NAME]);
 
-  // Re-block action for when the timer expires. References the stored
-  // selection by ID (set in applyBlocklist).
   configureActions({
     activityName: MONITOR_NAME,
     callbackName: 'intervalDidEnd',
@@ -292,24 +328,6 @@ export function startUnlockWindow(): void {
     ],
   });
 
-  // Lift shields. resetBlocks clears currentBlocklist and re-evaluates the
-  // shield — with block-all mode gone, this leaves shields empty until
-  // intervalDidEnd fires. The user's persisted selection (BLOCKLIST_ID) is
-  // separate from currentBlocklist, so it survives.
-  resetBlocks('unlock-window');
-
-  // DeviceActivityMonitor takes wall-clock time-of-day components, not
-  // absolute dates. Push intervalStart 5 seconds into the future (per the
-  // library README's testSchedule pattern). iOS needs a small window to
-  // register the schedule; if intervalStart is exactly `now` or in the past,
-  // iOS may treat the schedule as already-passed and skip firing
-  // intervalDidEnd. The 5s delay is harmless since shields are already
-  // lifted via resetBlocks above.
-  //
-  // Midnight straddle: clamp intervalEnd to 23:59:59 today rather than wrap
-  // into tomorrow. iOS's straddle-midnight semantics for `repeats: false`
-  // are ambiguous across versions. Users who unlock right before midnight
-  // get a shorter window.
   const nowMs = Date.now();
   const startMs = nowMs + 5_000;
   const intendedEndMs = startMs + UNLOCK_MINUTES * 60 * 1000;
@@ -320,11 +338,8 @@ export function startUnlockWindow(): void {
     ? new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59)
     : intended;
 
-  // Record the window end timestamp so the JS-side foreground safety net and
-  // the background task can re-apply shields if intervalDidEnd is dropped by
-  // iOS (memory pressure, scheduling quirks). Without this, a missed
-  // callback = permanent unlock.
   saveUnlockWindowEnd(end.getTime());
+  clearUnlockTimerArmed();
 
   const schedule = {
     intervalStart: {
@@ -339,8 +354,17 @@ export function startUnlockWindow(): void {
     },
     repeats: false,
   };
-  startMonitoring(MONITOR_NAME, schedule, []);
-  logDebug('ScreenTime.startUnlockWindow', 'monitor scheduled', {
+
+  Promise.resolve(startMonitoring(MONITOR_NAME, schedule, [])).catch((err) => {
+    logDebug('ScreenTime.reblockTimer', 'native monitor schedule FAILED', {
+      triggeredBy,
+      error: String(err),
+    });
+    console.warn('[ScreenTime] Failed to schedule unlock timer:', err);
+  });
+  scheduleForegroundReshield(end.getTime());
+  logDebug('ScreenTime.reblockTimer', 'started', {
+    triggeredBy,
     intervalStart: schedule.intervalStart,
     intervalEnd: schedule.intervalEnd,
     windowEndTs: end.getTime(),
@@ -349,11 +373,73 @@ export function startUnlockWindow(): void {
 }
 
 /**
+ * Lift shields and arm the unlock timer. The 10-minute countdown starts when
+ * LingoLock backgrounds, via startUnlockTimerIfArmed().
+ */
+export function startUnlockWindow(): void {
+  const {
+    resetBlocks,
+    stopMonitoring,
+  } = require('react-native-device-activity');
+
+  stopMonitoring([MONITOR_NAME]);
+
+  // Lift shields. resetBlocks clears currentBlocklist and re-evaluates the
+  // shield. The timer is only started when the user leaves LingoLock, so the
+  // 10-minute window is spent in the target app, not while practicing.
+  resetBlocks('unlock-window');
+  clearUnlockWindowEnd();
+  saveUnlockTimerArmed(true);
+  clearForegroundReshieldTimer();
+  logDebug('ScreenTime.unlock', 'shields lifted; timer armed for app exit', {
+    isShieldActive: isBlocking(),
+    snapshot: getScreenTimeDebugState(),
+  });
+}
+
+export function startUnlockTimerIfArmed(triggeredBy: string): boolean {
+  if (!loadUnlockTimerArmed()) {
+    logDebug('ScreenTime.reblockTimer', 'not armed', { triggeredBy });
+    return false;
+  }
+
+  logDebug('ScreenTime.reblockTimer', 'arming from app exit', {
+    triggeredBy,
+    isShieldActive: isBlocking(),
+    snapshot: getScreenTimeDebugState(),
+  });
+  scheduleReblockWindowFromNow(triggeredBy);
+  return true;
+}
+
+/**
  * Check if any shield/block is currently active.
  */
 export function isBlocking(): boolean {
   const { isShieldActive } = require('react-native-device-activity');
   return isShieldActive();
+}
+
+export function getScreenTimeDebugState(): Record<string, unknown> {
+  const unlockWindowEnd = loadUnlockWindowEnd();
+  const now = Date.now();
+  let blocking: boolean | string = false;
+  try {
+    blocking = isScreenTimeAvailable() ? isBlocking() : false;
+  } catch (err) {
+    blocking = `error:${String(err)}`;
+  }
+
+  return {
+    available: isScreenTimeAvailable(),
+    enabled: loadScreenTimeEnabled(),
+    blocking,
+    timerArmed: loadUnlockTimerArmed(),
+    unlockWindowEnd,
+    msUntilWindowEnd: unlockWindowEnd > 0 ? unlockWindowEnd - now : null,
+    hasBlocklist: !!loadBlocklistJson(),
+    foregroundTimerScheduled: foregroundReshieldTimer != null,
+  };
 }
 
 /**
@@ -384,6 +470,8 @@ export function disableBlocking(): void {
   resetBlocks('user-toggle-off');
   clearAllManagedSettingsStoreSettings();
   clearUnlockWindowEnd();
+  clearUnlockTimerArmed();
+  clearForegroundReshieldTimer();
 }
 
 /**

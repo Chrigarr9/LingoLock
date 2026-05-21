@@ -25,6 +25,8 @@ import {
   consumePendingShieldAction,
   migrateFromBlockAll,
   maybeRestoreShields,
+  startUnlockTimerIfArmed,
+  getScreenTimeDebugState,
 } from '../src/services/screenTimeService';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
@@ -278,7 +280,21 @@ export default function RootLayout() {
       screenTimeSub = AppState.addEventListener('change', (state: AppStateStatus) => {
         if (state === 'background') {
           lastBackgroundTime = Date.now();
-          logDebug('App.AppState', 'background', { ts: lastBackgroundTime });
+          logDebug('App.AppState', 'background', {
+            ts: lastBackgroundTime,
+            screenTime: getScreenTimeDebugState(),
+          });
+          if (loadScreenTimeEnabled() && isScreenTimeAvailable()) {
+            try {
+              const started = startUnlockTimerIfArmed('app-background');
+              logDebug('App.AppState', 'startUnlockTimerIfArmed', {
+                started,
+                screenTime: getScreenTimeDebugState(),
+              });
+            } catch (err) {
+              logDebug('App.AppState', 'startUnlockTimerIfArmed FAILED', String(err));
+            }
+          }
           return;
         }
         if (state !== 'active') return;
@@ -300,6 +316,7 @@ export default function RootLayout() {
         logDebug('App.AppState', 'active', {
           dtBg,
           blocking: blockingNow,
+          screenTime: getScreenTimeDebugState(),
           pendingMarker: pending ? { app: pending.app, ageMs: Date.now() - pending.ts } : null,
         });
 

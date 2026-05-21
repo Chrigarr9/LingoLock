@@ -25,17 +25,24 @@ const URL_SCHEMES: Record<string, string> = {
   x: 'twitter://',
   snapchat: 'snapchat://',
   tiktok: 'tiktok://',
+  bereal: 'bereal://',
   bluesky: 'bluesky://',
   mastodon: 'mastodon://',
   linkedin: 'linkedin://',
   pinterest: 'pinterest://',
+  tumblr: 'tumblr://',
   discord: 'discord://',
   // Video / streaming
   youtube: 'youtube://',
+  'youtube music': 'ytmusic://',
   netflix: 'nflx://',
+  'disney+': 'disneyplus://',
+  'disney plus': 'disneyplus://',
   'prime video': 'aiv://',
   twitch: 'twitch://',
   spotify: 'spotify://',
+  music: 'music://',
+  soundcloud: 'soundcloud://',
   // Reddit & forums
   reddit: 'reddit://',
   apollo: 'apollo://',
@@ -44,6 +51,19 @@ const URL_SCHEMES: Record<string, string> = {
   ebay: 'ebay://',
   // News
   'apple news': 'applenews://',
+  // Browser / productivity
+  chrome: 'googlechrome://',
+  gmail: 'googlegmail://',
+  'google maps': 'comgooglemaps://',
+  maps: 'maps://',
+  photos: 'photos-redirect://',
+  messages: 'sms://',
+  notes: 'mobilenotes://',
+  calendar: 'calshow://',
+  reminders: 'x-apple-reminder://',
+  // Games
+  roblox: 'robloxmobile://',
+  'clash royale': 'clashroyale://',
   // Fitness / sports
   strava: 'strava://',
   // Garmin Connect intentionally not mapped — none of the commonly-cited

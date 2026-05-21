@@ -201,3 +201,87 @@ def load_travel_config(path: Path) -> TravelDeckConfig:
     with open(path) as f:
         raw = yaml.safe_load(f)
     return TravelDeckConfig(**raw)
+
+
+# ── Subtitle deck config ──────────────────────────────────────────────────
+
+class CharacterConfig(BaseModel):
+    name: str
+    image_tag: str       # Physical description for image generation
+    visual_tag: str = "" # Short tag for style references
+
+
+class ShowConfig(BaseModel):
+    title: str
+    season: int
+    subtitle_url_base: str  # Base URL prefix; each episode appends its file name
+    art_style: str
+    setting: str
+    characters: list[CharacterConfig] = []
+
+
+class SubtitleProcessingConfig(BaseModel):
+    quality_score_min: int = 3
+    backfill_episode_threshold: int = 10  # df >= N → Pool B (globally common)
+    chapter_size: int = 50
+    weight_a_start: float = 3.0           # Episode-specific weight at episode 1
+    weight_a_end: float = 0.5             # Episode-specific weight at last episode
+    weight_b_start: float = 0.5           # Backfill weight at episode 1
+    weight_b_end: float = 3.0             # Backfill weight at last episode
+
+
+class EpisodeConfig(BaseModel):
+    episode: int
+    title: str
+    file: str  # Exact filename appended to subtitle_url_base
+
+
+class SubtitleModelsConfig(BaseModel):
+    translation: ModelConfig
+    enrichment: ModelConfig
+
+
+class SubtitleDeckConfig(BaseModel):
+    deck: DeckInfo
+    languages: Languages
+    show: ShowConfig
+    subtitle_processing: SubtitleProcessingConfig = SubtitleProcessingConfig()
+    episodes: list[EpisodeConfig]
+    models: SubtitleModelsConfig
+    image_generation: ImageGenerationConfig | None = None
+    audio_generation: AudioGenerationConfig | None = None
+    prior_decks: list[str] = []  # Deck IDs whose lemmas are already known (cross-season dedup)
+
+    def to_deck_config_stub(self) -> "DeckConfig":
+        """Build a minimal DeckConfig so existing generators (SentenceTranslator,
+        ImageGenerator, AudioGenerator) can be reused without modification."""
+        return DeckConfig(
+            deck=self.deck,
+            languages=self.languages,
+            protagonist=Protagonist(
+                name=self.show.title,
+                gender="neutral",
+                origin_country="US",
+            ),
+            destination=Destination(country="US", city="New York"),
+            story=StoryConfig(
+                cefr_level="B1",
+                sentences_per_chapter=[self.subtitle_processing.chapter_size] * len(self.episodes),
+                chapters=[],
+            ),
+            models=ModelsConfig(
+                story_generation=self.models.translation,
+                translation=self.models.translation,
+                word_extraction=self.models.enrichment,
+            ),
+            image_generation=self.image_generation,
+            audio_generation=self.audio_generation,
+        )
+
+
+def load_subtitle_config(path: Path) -> SubtitleDeckConfig:
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with open(path) as f:
+        raw = yaml.safe_load(f)
+    return SubtitleDeckConfig(**raw)

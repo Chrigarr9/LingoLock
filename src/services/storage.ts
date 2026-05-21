@@ -391,6 +391,7 @@ const SCREEN_TIME_ENABLED_KEY = 'screen_time_enabled';
 const SCREEN_TIME_UNLOCK_COUNT_KEY = 'screen_time_unlock_count';
 const SCREEN_TIME_UNLOCK_DATE_KEY = 'screen_time_unlock_date';
 const SCREEN_TIME_UNLOCK_WINDOW_END_KEY = 'screen_time_unlock_window_end';
+const SCREEN_TIME_UNLOCK_TIMER_ARMED_KEY = 'screen_time_unlock_timer_armed';
 const SCREEN_TIME_SESSION_PROGRESS_KEY = 'screen_time_session_progress';
 const SCREEN_TIME_SESSION_APP_KEY = 'screen_time_session_app';
 const SCREEN_TIME_SESSION_DATE_KEY = 'screen_time_session_date';
@@ -409,6 +410,19 @@ export function saveUnlockWindowEnd(ts: number): void {
 
 export function clearUnlockWindowEnd(): void {
   statsStorage.remove(SCREEN_TIME_UNLOCK_WINDOW_END_KEY);
+}
+
+/** True after shields are lifted but before the 10-minute timer has started. */
+export function loadUnlockTimerArmed(): boolean {
+  return statsStorage.getBoolean(SCREEN_TIME_UNLOCK_TIMER_ARMED_KEY) ?? false;
+}
+
+export function saveUnlockTimerArmed(armed: boolean): void {
+  statsStorage.set(SCREEN_TIME_UNLOCK_TIMER_ARMED_KEY, armed);
+}
+
+export function clearUnlockTimerArmed(): void {
+  statsStorage.remove(SCREEN_TIME_UNLOCK_TIMER_ARMED_KEY);
 }
 
 /**

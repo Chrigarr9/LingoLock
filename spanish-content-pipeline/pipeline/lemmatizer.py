@@ -91,6 +91,31 @@ def lemmatize_text(text: str, lang: str) -> list[TokenInfo]:
     return tokens
 
 
+def lemmatize_texts(texts: list[str], lang: str) -> list[list[TokenInfo]]:
+    """Batch tokenize multiple texts via nlp.pipe() — much faster than looping lemmatize_text()."""
+    nlp = _get_model(lang)
+    cleaned = [_DIALOGUE_MARKERS.sub("", t) for t in texts]
+    results: list[list[TokenInfo]] = []
+    for doc in nlp.pipe(cleaned):
+        tokens: list[TokenInfo] = []
+        for sent_idx, sent in enumerate(doc.sents):
+            for token in sent:
+                pos = token.pos_
+                if pos in ("PUNCT", "SPACE", "X", "SYM"):
+                    continue
+                if not pos and token.text.strip() and not token.text[0].isalpha():
+                    continue
+                tokens.append(TokenInfo(
+                    text=token.text,
+                    lemma=token.lemma_.lower() if token.lemma_ else token.text.lower(),
+                    pos=pos or "UNKNOWN",
+                    morph=str(token.morph),
+                    sentence_index=sent_idx,
+                ))
+        results.append(tokens)
+    return results
+
+
 def lemmatize_word(word: str, lang: str) -> str:
     """Lemmatize a single word without sentence context.
 

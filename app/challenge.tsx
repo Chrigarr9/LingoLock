@@ -88,6 +88,7 @@ export default function ChallengeScreen() {
   const answeredNewCardIds = useRef(new Set<string>()); // card IDs of new cards that were answered
   // Accumulate correct count in a ref to avoid stale closures in setTimeout callbacks
   const correctCountRef = useRef(savedSession.progress);
+  const unlockCommitted = useRef(false);
   // Cache chapter number at session start — avoids O(chapters × cards) scan on every render
   const sessionChapter = useRef(0);
   const hintBlinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -333,6 +334,25 @@ export default function ChallengeScreen() {
     }
   }, [chapters]);
 
+  // Commit the unlock side-effects. In free-day state (dueCleared && default
+  // mode), shields are already permanently down for the day — skip the 10-min
+  // window since there's nothing to re-arm, and skip incrementing the unlock
+  // count since "unlocking" wasn't really the event (queue clearance was).
+  const commitUnlock = useCallback(() => {
+    if (unlockCommitted.current) return;
+    unlockCommitted.current = true;
+    if (dueClearedThisSession.current && !loadKeepBlockingAfterDueCleared()) {
+      return;
+    }
+    incrementUnlockCount();
+    startUnlockWindow();
+  }, []);
+
+  const maybeCommitUnlockAtProgress = useCallback((progress: number) => {
+    if (!isScreenTime || progress < screenTimeRequirement) return;
+    commitUnlock();
+  }, [commitUnlock, isScreenTime, screenTimeRequirement]);
+
   const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade, fuzzy = false) => {
     updateCardFSRS(sessionCard, grade);
     checkAndApplyDueCleared();
@@ -343,6 +363,7 @@ export default function ChallengeScreen() {
     setCorrectCount((c) => {
       const next = c + 1;
       correctCountRef.current = next;
+      maybeCommitUnlockAtProgress(next);
       return next;
     });
     // Don't auto-advance on fuzzy matches — user should see the typo feedback
@@ -408,18 +429,6 @@ export default function ChallengeScreen() {
     }
   };
 
-  // Commit the unlock side-effects. In free-day state (dueCleared && default
-  // mode), shields are already permanently down for the day — skip the 10-min
-  // window since there's nothing to re-arm, and skip incrementing the unlock
-  // count since "unlocking" wasn't really the event (queue clearance was).
-  const commitUnlock = useCallback(() => {
-    if (dueClearedThisSession.current && !loadKeepBlockingAfterDueCleared()) {
-      return;
-    }
-    incrementUnlockCount();
-    startUnlockWindow();
-  }, []);
-
   const handleClose = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     if (!isComplete && answeredNewCardIds.current.size > 0) {
@@ -457,6 +466,7 @@ export default function ChallengeScreen() {
     setHasMoreCards(false);
     setCorrectCount(0);
     correctCountRef.current = 0;
+    if (!isScreenTime) unlockCommitted.current = false;
   };
 
   const handleAlreadyKnow = () => {
@@ -475,6 +485,7 @@ export default function ChallengeScreen() {
       setCorrectCount((c) => {
         const next = c + 1;
         correctCountRef.current = next;
+        maybeCommitUnlockAtProgress(next);
         return next;
       });
     }
@@ -483,11 +494,31 @@ export default function ChallengeScreen() {
   };
 
   const glassStyle = getGlassStyle(theme);
+  const isUnlocked = isScreenTime && correctCount >= screenTimeRequirement;
 
-  // --------------------------------------------------------------------------
-  // Screen Time: inline "Unlock" button after requirement met
-  // --------------------------------------------------------------------------
-  const showUnlockButton = isScreenTime && correctCount >= screenTimeRequirement;
+  useEffect(() => {
+    maybeCommitUnlockAtProgress(correctCountRef.current);
+  }, [maybeCommitUnlockAtProgress]);
+
+  const finishScreenTimeUnlock = useCallback((willUnlock: boolean) => {
+    if (willUnlock) {
+      commitUnlock();
+    }
+
+    const launchScheme = willUnlock ? getUrlSchemeForApp(sourceApp) : null;
+    router.dismissAll();
+    router.replace('/');
+
+    if (!launchScheme) return;
+
+    // Keep LingoLock's own stack on home, then hand the user back to the
+    // source app when iOS exposes a URL scheme for it.
+    setTimeout(() => {
+      Linking.openURL(launchScheme).catch((err) => {
+        console.warn('[Challenge] Failed to open app:', launchScheme, err);
+      });
+    }, 150);
+  }, [commitUnlock, router, sourceApp]);
 
   // --------------------------------------------------------------------------
   // Celebration data (computed when complete)
@@ -513,47 +544,14 @@ export default function ChallengeScreen() {
           accessibilityLabel="Close challenge"
         />
         <View style={styles.headerRight}>
-          {showUnlockButton && (() => {
-            const blockedApp = sourceApp;
-            const launchScheme = getUrlSchemeForApp(blockedApp);
-            // "Open Reddit" only when we actually have a scheme to launch.
-            // Category-shielded apps (e.g. "Social Networking") have no
-            // scheme — iOS hides the specific app from the action extension —
-            // so we fall back to the generic "Unlock" label and the user
-            // returns via App Switcher.
-            const pillLabel = blockedApp && launchScheme ? `Open ${blockedApp}` : 'Unlock';
-            return (
-              <Pressable
-                onPress={() => {
-                  commitUnlock();
-                  // dismissAll + replace('/') guarantees the home screen is
-                  // the underlying state when iOS jumps to the launched app;
-                  // when the user later comes back via App Switcher, they
-                  // land on home (not stuck on /challenge).
-                  router.dismissAll();
-                  router.replace('/');
-                  if (launchScheme) {
-                    // Delay so dismissAll completes — otherwise the navigation race can
-                    // swallow the URL open. iOS will still bring the user's previous
-                    // app forward if openURL fails.
-                    setTimeout(() => {
-                      Linking.openURL(launchScheme).catch((err) => {
-                        console.warn('[Challenge] Failed to open app:', launchScheme, err);
-                      });
-                    }, 150);
-                  }
-                }}
-                style={[styles.headerContinue, { backgroundColor: theme.colors.surfaceVariant }]}
-                accessibilityLabel={blockedApp ? `Open ${blockedApp}` : 'Unlock apps'}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.headerContinueText, { color: theme.colors.onSurfaceVariant }]}>
-                  {pillLabel}
-                </Text>
-                <Icon source="lock-open-outline" size={12} color={theme.colors.onSurfaceVariant} />
-              </Pressable>
-            );
-          })()}
+          {isUnlocked && (
+            <View style={[styles.unlockedPill, { backgroundColor: theme.colors.primaryContainer }]}>
+              <Icon source="lock-open-outline" size={13} color={theme.custom.brandBlue} />
+              <Text style={[styles.unlockedPillText, { color: theme.custom.brandBlue }]}>
+                Unlocked
+              </Text>
+            </View>
+          )}
           <IconButton
             icon={isMuted ? 'volume-off' : 'volume-high'}
             size={22}
@@ -579,9 +577,9 @@ export default function ChallengeScreen() {
               style={[labelOverlineStyle.label, { color: theme.custom.brandBlue, letterSpacing: 0.5 }]}
             >
               {isScreenTime
-                ? (correctCount >= screenTimeRequirement
-                    ? '✓ READY TO UNLOCK'
-                    : `${Math.min(correctCount, screenTimeRequirement)} / ${screenTimeRequirement} TO UNLOCK`)
+                ? (isUnlocked
+                    ? 'UNLOCKED FOR 10 MIN'
+                    : `${Math.min(correctCount, screenTimeRequirement)} / ${screenTimeRequirement} CARDS TO UNLOCK`)
                 : `${correctCount} correct`}
             </Text>
           </View>
@@ -802,26 +800,7 @@ export default function ChallengeScreen() {
             <Pressable
               onPress={() => {
                 const willUnlock = isScreenTime && correctCountRef.current >= screenTimeRequirement;
-                if (willUnlock) {
-                  commitUnlock();
-                }
-                router.dismissAll();
-                router.replace('/');
-                // If we came from a known blocked app, hop straight back to it
-                // after dismissing. Same flow as the inline unlock pill — the
-                // 150ms delay lets dismissAll complete first so iOS doesn't
-                // swallow the URL. Unknown apps (or category-shielded names
-                // we don't have schemes for) fall through to home.
-                if (willUnlock) {
-                  const launchScheme = getUrlSchemeForApp(sourceApp);
-                  if (launchScheme) {
-                    setTimeout(() => {
-                      Linking.openURL(launchScheme).catch((err) => {
-                        console.warn('[Challenge] Failed to open app:', launchScheme, err);
-                      });
-                    }, 150);
-                  }
-                }
+                finishScreenTimeUnlock(willUnlock);
               }}
               style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
               accessibilityLabel="Done"
@@ -856,7 +835,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  headerContinue: {
+  unlockedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -864,9 +843,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 14,
   },
-  headerContinueText: {
+  unlockedPillText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   progressArea: {
     paddingHorizontal: 24,
