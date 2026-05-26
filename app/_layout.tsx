@@ -27,6 +27,7 @@ import {
   maybeRestoreShields,
   startUnlockTimerIfArmed,
   getScreenTimeDebugState,
+  shouldRequireScreenTimeGate,
 } from '../src/services/screenTimeService';
 import { shouldPromptRestore, checkForBackup, restoreFromBackup, dismissRestore, shouldBackup, createBackup } from '../src/services/backupService';
 import { RestorePrompt } from '../src/components/RestorePrompt';
@@ -184,12 +185,14 @@ export default function RootLayout() {
           blocking: blockingNow,
           marker: pending ? { app: pending.app, ageMs: Date.now() - pending.ts } : null,
         });
-        if (pending) {
+        if (pending && shouldRequireScreenTimeGate()) {
           logDebug('App.mount', 'shield-action marker → /challenge', pending);
           router.replace({
             pathname: '/challenge',
             params: { source: 'screentime', ...(pending.app ? { app: pending.app } : {}) },
           });
+        } else if (pending) {
+          logDebug('App.mount', 'shield-action marker ignored — gate inactive', pending);
         }
       }
 
@@ -314,12 +317,14 @@ export default function RootLayout() {
           pendingMarker: pending ? { app: pending.app, ageMs: Date.now() - pending.ts } : null,
         });
 
-        if (pending) {
+        if (pending && shouldRequireScreenTimeGate()) {
           logDebug('App.AppState', 'shield-action marker → /challenge', pending);
           router.replace({
             pathname: '/challenge',
             params: { source: 'screentime', ...(pending.app ? { app: pending.app } : {}) },
           });
+        } else if (pending) {
+          logDebug('App.AppState', 'shield-action marker ignored — gate inactive', pending);
         }
       });
     }

@@ -108,6 +108,7 @@ interface WordCard {
   sentence: string;
   sentence_translation: string;
   german_hint: string;
+  german_hint_general?: string;
   english_gloss: string;
   pos: string;
   context_note: string;
@@ -203,6 +204,7 @@ for (const epNum of sortedEpisodes) {
     const hasAudio = audioFileKey ? audioKeys.has(audioFileKey) : false;
 
     const optionalFields: string[] = [];
+    if (card.german_hint_general) optionalFields.push(`      germanHintGeneral: ${JSON.stringify(card.german_hint_general)},`);
     if (hasImage) optionalFields.push(`      image: ${JSON.stringify(card.id)},`);
     if (hasAudio) optionalFields.push(`      audio: ${JSON.stringify(card.id)},`);
 

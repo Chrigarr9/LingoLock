@@ -203,7 +203,7 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
 old mode 100644
 new mode 100755
-index 8aee1f2..3657e47
+index 8aee1f2..4399c31
 --- a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
 +++ b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityModule.swift
 @@ -861,7 +861,18 @@ public class ReactNativeDeviceActivityModule: Module {
@@ -226,10 +226,28 @@ index 8aee1f2..3657e47
        }
  
        Prop("footerText") { (view: ReactNativeDeviceActivityView, prop: String?) in
+@@ -903,7 +914,7 @@ public class ReactNativeDeviceActivityViewPersistedModule: Module {
+           let selection =
+             getFamilyActivitySelectionById(
+               id: prop
+-            ) ?? FamilyActivitySelection(includeEntireCategory: includeEntireCategory)
++            ) ?? makeFamilyActivitySelection(includeEntireCategory: includeEntireCategory)
+ 
+           view.model.activitySelection = selection
+ 
+@@ -918,7 +929,7 @@ public class ReactNativeDeviceActivityViewPersistedModule: Module {
+             getFamilyActivitySelectionById(
+               id: activitySelectionId
+             )
+-            ?? FamilyActivitySelection(
++            ?? makeFamilyActivitySelection(
+               includeEntireCategory: prop ?? false
+             )
+ 
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
 old mode 100644
 new mode 100755
-index 897a322..1b4a96a
+index 897a322..358ee40
 --- a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
 +++ b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityView.swift
 @@ -83,6 +83,18 @@ class ReactNativeDeviceActivityView: ExpoView {
@@ -241,7 +259,7 @@ index 897a322..1b4a96a
 +      return selection
 +    }
 +
-+    var updatedSelection = FamilyActivitySelection(includeEntireCategory: includeEntireCategory)
++    var updatedSelection = makeFamilyActivitySelection(includeEntireCategory: includeEntireCategory)
 +    updatedSelection.applicationTokens = selection.applicationTokens
 +    updatedSelection.categoryTokens = selection.categoryTokens
 +    updatedSelection.webDomainTokens = selection.webDomainTokens
@@ -251,14 +269,22 @@ index 897a322..1b4a96a
    func updateSelection(selection: FamilyActivitySelection) {
      let isSelectionEmpty =
        selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty
-@@ -96,7 +108,8 @@ class ReactNativeDeviceActivityView: ExpoView {
+@@ -92,11 +104,15 @@ class ReactNativeDeviceActivityView: ExpoView {
+       selection: selection
+     )
+ 
+-    onSelectionChange([
++    var event: [String: Any] = [
        "familyActivitySelection": (isSelectionEmpty ? nil : familyActivitySelectionString) as Any,
        "applicationCount": selection.applicationTokens.count,
        "categoryCount": selection.categoryTokens.count,
--      "webDomainCount": selection.webDomainTokens.count
-+      "webDomainCount": selection.webDomainTokens.count,
-+      "includeEntireCategory": selection.includeEntireCategory
-     ])
+       "webDomainCount": selection.webDomainTokens.count
+-    ])
++    ]
++    if #available(iOS 15.2, *) {
++      event["includeEntireCategory"] = selection.includeEntireCategory
++    }
++    onSelectionChange(event)
    }
  }
 diff --git a/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift b/node_modules/react-native-device-activity/ios/ReactNativeDeviceActivityViewPersisted.swift
@@ -270,6 +296,108 @@ new mode 100755
 diff --git a/node_modules/react-native-device-activity/ios/Shared.swift b/node_modules/react-native-device-activity/ios/Shared.swift
 old mode 100644
 new mode 100755
+index 4839430..0d35ac6
+--- a/node_modules/react-native-device-activity/ios/Shared.swift
++++ b/node_modules/react-native-device-activity/ios/Shared.swift
+@@ -1122,6 +1122,15 @@ func setsIncludesEntireCategory(
+   return false
+ }
+ 
++@available(iOS 15.0, *)
++func makeFamilyActivitySelection(includeEntireCategory: Bool) -> FamilyActivitySelection {
++  if #available(iOS 15.2, *) {
++    return FamilyActivitySelection(includeEntireCategory: includeEntireCategory)
++  }
++
++  return FamilyActivitySelection()
++}
++
+ @available(iOS 15.0, *)
+ func intersection(_ selection1: FamilyActivitySelection, _ selection2: FamilyActivitySelection)
+   -> FamilyActivitySelection {
+@@ -1142,7 +1151,7 @@ func intersection(_ selection1: FamilyActivitySelection, _ selection2: FamilyAct
+     selection2
+   )
+ 
+-  var selection = FamilyActivitySelection(
++  var selection = makeFamilyActivitySelection(
+     includeEntireCategory: includeEntireCategory
+   )
+ 
+@@ -1174,7 +1183,7 @@ func symmetricDifference(
+     selection2
+   )
+ 
+-  var selection = FamilyActivitySelection(
++  var selection = makeFamilyActivitySelection(
+     includeEntireCategory: includeEntireCategory
+   )
+ 
+@@ -1205,7 +1214,7 @@ func difference(_ selection1: FamilyActivitySelection, _ selection2: FamilyActiv
+     selection2
+   )
+ 
+-  var selection = FamilyActivitySelection(
++  var selection = makeFamilyActivitySelection(
+     includeEntireCategory: includeEntireCategory
+   )
+ 
+@@ -1236,7 +1245,7 @@ func union(_ selection1: FamilyActivitySelection, _ selection2: FamilyActivitySe
+     selection2
+   )
+ 
+-  var selection = FamilyActivitySelection(
++  var selection = makeFamilyActivitySelection(
+     includeEntireCategory: includeEntireCategory
+   )
+ 
+@@ -1348,6 +1357,18 @@ func isBlockingAllModeEnabled() -> Bool {
+   return isBlockingAll
+ }
+ 
++@available(iOS 15.0, *)
++func isBroadCategoryOnlySelection(_ selection: FamilyActivitySelection) -> Bool {
++  if #available(iOS 15.2, *) {
++    return selection.includeEntireCategory
++      && selection.categoryTokens.count > 1
++      && selection.applicationTokens.isEmpty
++      && selection.webDomainTokens.isEmpty
++  }
++
++  return false
++}
++
+ @available(iOS 15.0, *)
+ func saveCurrentBlocklist(blocklist: FamilyActivitySelection) {
+   userDefaults?
+@@ -1469,14 +1490,19 @@ func updateBlockInternal(
+   store.shield.webDomains = blocklistWithoutWhiteListOverlap.webDomainTokens
+ 
+   if blocklistWithoutWhiteListOverlap.categoryTokens.count > 0 {
+-    store.shield.applicationCategories = .specific(
+-      blocklistWithoutWhiteListOverlap.categoryTokens,
+-      except: currentWhitelist.applicationTokens
+-    )
+-    store.shield.webDomainCategories = .specific(
+-      blocklistWithoutWhiteListOverlap.categoryTokens,
+-      except: currentWhitelist.webDomainTokens
+-    )
++    if isBroadCategoryOnlySelection(blocklistWithoutWhiteListOverlap) {
++      store.shield.applicationCategories = .all(except: currentWhitelist.applicationTokens)
++      store.shield.webDomainCategories = .all(except: currentWhitelist.webDomainTokens)
++    } else {
++      store.shield.applicationCategories = .specific(
++        blocklistWithoutWhiteListOverlap.categoryTokens,
++        except: currentWhitelist.applicationTokens
++      )
++      store.shield.webDomainCategories = .specific(
++        blocklistWithoutWhiteListOverlap.categoryTokens,
++        except: currentWhitelist.webDomainTokens
++      )
++    }
+   } else {
+     store.shield.applicationCategories = nil
+     store.shield.webDomainCategories = nil
 diff --git a/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.ios.tsx b/node_modules/react-native-device-activity/src/DeviceActivitySelectionSheetView.ios.tsx
 old mode 100644
 new mode 100755

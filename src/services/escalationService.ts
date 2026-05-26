@@ -1,15 +1,9 @@
 /**
  * Escalation logic for Screen Time app blocking.
  *
- * Two modes:
- *   - Default ("free day when due cleared"): unlocks escalate exponentially
- *     until the FSRS due queue hits 0, at which point shields come off for
- *     the rest of the day. The caller should never invoke this function once
- *     dueCleared is true in default mode — but if it does, returns 0 as a
- *     safe sentinel.
- *   - Keep-blocking (opt-in setting): same exponential ramp while due > 0,
- *     then flat 3 cards per unlock after the queue clears. Re-enables the
- *     pre-build-9 latch as a deliberate user choice.
+ * Screen Time unlocks escalate while reviews are due. Once the FSRS due queue
+ * is cleared, blocking stops for the day unless the user opted into continued
+ * new-card prompts.
  *
  * Exponential ramp:
  *   Unlock 1: 3, Unlock 2: 6, 3: 12, 4: 24, 5: 48, 6+: 96 (cap).
@@ -24,7 +18,7 @@ const MAX_ESCALATION = 96;
 export interface RequirementOptions {
   /** True once any session today brought the FSRS due queue to 0. */
   dueCleared: boolean;
-  /** User setting: keep requiring practice even after due is cleared. */
+  /** User setting: keep prompting after due reviews are cleared. */
   keepBlocking: boolean;
 }
 
@@ -38,8 +32,6 @@ export function getRequiredCardCount(
   unlockCount: number,
   options: RequirementOptions = { dueCleared: false, keepBlocking: false },
 ): number {
-  if (options.dueCleared) {
-    return options.keepBlocking ? FLAT_RATE_CARDS : 0;
-  }
+  if (options.dueCleared) return options.keepBlocking ? FLAT_RATE_CARDS : 0;
   return Math.min(BASE_CARDS * Math.pow(2, unlockCount), MAX_ESCALATION);
 }

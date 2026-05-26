@@ -25,9 +25,11 @@ class FakeEnrichmentLLM:
                 enrichments.append({
                     "lemma": lemma,
                     "german_hint": german,
+                    "german_hint_general": "moegen" if lemma == "querer" else "",
                     "english_gloss": english,
                     "context_note": pos,
                     "cefr_level": "A1",
+                    "image_prompt": "a small cozy house on a quiet street, no text" if lemma == "casa" else "",
                 })
 
         class Response:
@@ -200,3 +202,8 @@ def test_word_extraction_uses_only_generation_episode_subset():
     assert {card["lemma"] for card in cards} == {"querer", "casa", "bonito"}
     assert all(card["sentence_translation"] == "Ich moechte ein schoenes Haus." for card in cards)
     assert all("_____" in card["sentence"] for card in cards)
+    querer = next(card for card in cards if card["lemma"] == "querer")
+    casa = next(card for card in cards if card["lemma"] == "casa")
+    assert querer["german_hint"] == "wollen"
+    assert querer["german_hint_general"] == "moegen"
+    assert casa["image_prompt"] == "a small cozy house on a quiet street, no text"

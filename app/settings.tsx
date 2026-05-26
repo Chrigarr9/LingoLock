@@ -299,7 +299,7 @@ export default function SettingsScreen() {
             familyActivitySelection={blocklistJson ?? ''}
             includeEntireCategory={true}
             headerText="Blocked apps"
-            footerText="Pick the apps to block — completing vocabulary practice unlocks them for 10 minutes. Selecting a whole category blocks every app in it."
+            footerText="Pick the apps to block. Selecting a whole category blocks every app in it."
             onSelectionChange={(event: { nativeEvent: { familyActivitySelection: string | null } }) => {
               handleBlocklistChange(event.nativeEvent.familyActivitySelection ?? null);
             }}
@@ -447,7 +447,7 @@ export default function SettingsScreen() {
                   variant="bodySmall"
                   style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  Complete vocabulary cards to unlock apps for 10 minutes
+                  Complete vocabulary cards to unlock blocked apps
                 </Text>
               </View>
               <Switch
@@ -485,14 +485,12 @@ export default function SettingsScreen() {
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
                 <View style={styles.settingRow}>
                   <View style={styles.settingLabelGroup}>
-                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>
-                      Keep blocking after due cleared
-                    </Text>
+                    <Text variant="bodyLarge" style={[styles.settingLabel, { color: theme.colors.onSurface }]}>Prompt after reviews cleared</Text>
                     <Text
                       variant="bodySmall"
                       style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}
                     >
-                      Off: finishing today’s due cards unblocks apps for the rest of the day. On: still require 3 cards per unlock.
+                      Off: apps stay unblocked after today’s reviews are done. On: still ask for 3 new-word cards.
                     </Text>
                   </View>
                   <Switch
@@ -500,16 +498,10 @@ export default function SettingsScreen() {
                     onValueChange={(value) => {
                       setKeepBlocking(value);
                       saveKeepBlockingAfterDueCleared(value);
+                      if (screenTimeEnabled && blocklistJson) applyBlocklist(blocklistJson);
                     }}
                     color={theme.custom.brandBlue}
                   />
-                </View>
-
-                <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />
-                <View style={styles.settingRow}>
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Unlock duration: 10 minutes
-                  </Text>
                 </View>
 
                 <View style={[styles.separator, { backgroundColor: theme.custom.separator }]} />

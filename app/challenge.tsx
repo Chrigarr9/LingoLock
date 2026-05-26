@@ -16,12 +16,13 @@ import {
   incrementUnlockCount,
   loadScreenTimeSession,
   saveScreenTimeSession,
+  clearScreenTimeSession,
   loadDueCardsCleared,
   saveDueCardsCleared,
   loadKeepBlockingAfterDueCleared,
 } from '../src/services/storage';
 import { getRequiredCardCount } from '../src/services/escalationService';
-import { startUnlockWindow, applyBlocklist } from '../src/services/screenTimeService';
+import { startUnlockWindow, releaseScreenTimeGate } from '../src/services/screenTimeService';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
 import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards, getDueCardIds } from '../src/services/cardSelector';
@@ -102,8 +103,7 @@ export default function ChallengeScreen() {
   }, [isScreenTime]);
   // Capped to actual session length once built — see useEffect below. Until
   // then the unlock pill won't show, so the uncapped value is harmless.
-  // dueCleared && !keepBlocking → escalationRequirement is 0; the user is in
-  // free-day state and the pill activates immediately on mount.
+  // dueCleared + prompting off means there should not be a Screen Time gate.
   const [screenTimeRequirement, setScreenTimeRequirement] = useState(escalationRequirement);
   // Tracked in a ref so handleCorrect can short-circuit the per-answer
   // due-cleared check after the latch fires this session (avoids redundant
@@ -132,6 +132,7 @@ export default function ChallengeScreen() {
   const [demotedMode, setDemotedMode] = useState<'mc4' | 'scramble' | 'text' | null>(null);
   const [hasMoreCards, setHasMoreCards] = useState(false);
   const [hintShouldBlink, setHintShouldBlink] = useState(false);
+  const [screenTimeUnlocked, setScreenTimeUnlocked] = useState(false);
   const keyboard = useKeyboard();
 
   // --------------------------------------------------------------------------
@@ -147,6 +148,13 @@ export default function ChallengeScreen() {
     // normal daily new-word budget.
     let session: SessionCard[];
     if (isScreenTime) {
+      if (escalationRequirement === 0) {
+        releaseScreenTimeGate('challenge-no-gate');
+        clearScreenTimeSession();
+        router.replace('/');
+        return;
+      }
+
       // Screen-time: target the remaining cards needed for unlock (escalation
       // requirement minus any saved progress from a resumed session). Bypass
       // the daily intro cap so an earlier voluntary session can't softlock
@@ -317,31 +325,27 @@ export default function ChallengeScreen() {
   // Answer handlers
   // --------------------------------------------------------------------------
   // Free-day transition: when a correct answer was the last FSRS-due review
-  // card, latch dueCleared. Voluntary AND screen-time paths both "earn the
-  // day" — morning practice that clears the queue is exactly the behavior
-  // we're rewarding. In default mode, drop shields right now so the user
-  // sees the reward immediately rather than waiting for the next
-  // maybeRestoreShields pass. Gated on the ref so we only scan chapters
-  // once per session — once latched, further correct answers no-op.
+  // When the due queue reaches zero, latch that state for today's requirement
+  // calculation. If post-clear prompting is off, the current unlock succeeds
+  // immediately and shields stay down for the rest of the day.
   const checkAndApplyDueCleared = useCallback(() => {
-    if (dueClearedThisSession.current) return;
+    if (dueClearedThisSession.current) return false;
     const remainingDue = getDueCardIds(chapters);
-    if (remainingDue.size !== 0) return;
+    if (remainingDue.size !== 0) return false;
     dueClearedThisSession.current = true;
     saveDueCardsCleared();
-    if (loadScreenTimeEnabled() && !loadKeepBlockingAfterDueCleared()) {
-      applyBlocklist(null);
-    }
+    return true;
   }, [chapters]);
 
-  // Commit the unlock side-effects. In free-day state (dueCleared && default
-  // mode), shields are already permanently down for the day — skip the 10-min
-  // window since there's nothing to re-arm, and skip incrementing the unlock
-  // count since "unlocking" wasn't really the event (queue clearance was).
+  // Commit the unlock side-effects once the user has completed the current
+  // Screen Time requirement.
   const commitUnlock = useCallback(() => {
     if (unlockCommitted.current) return;
     unlockCommitted.current = true;
+    setScreenTimeUnlocked(true);
     if (dueClearedThisSession.current && !loadKeepBlockingAfterDueCleared()) {
+      clearScreenTimeSession();
+      releaseScreenTimeGate('due-cleared');
       return;
     }
     incrementUnlockCount();
@@ -349,13 +353,13 @@ export default function ChallengeScreen() {
   }, []);
 
   const maybeCommitUnlockAtProgress = useCallback((progress: number) => {
-    if (!isScreenTime || progress < screenTimeRequirement) return;
+    if (!isScreenTime || screenTimeRequirement <= 0 || progress < screenTimeRequirement) return;
     commitUnlock();
   }, [commitUnlock, isScreenTime, screenTimeRequirement]);
 
   const handleCorrect = (sessionCard: SessionCard, grade: ReviewGrade, fuzzy = false) => {
     updateCardFSRS(sessionCard, grade);
-    checkAndApplyDueCleared();
+    const dueClearedNow = checkAndApplyDueCleared();
     if (sessionCard.isFirstEncounter) answeredNewCardIds.current.add(sessionCard.card.id);
     setIsCorrect(true);
     setShowAnswer(true);
@@ -366,6 +370,9 @@ export default function ChallengeScreen() {
       maybeCommitUnlockAtProgress(next);
       return next;
     });
+    if (dueClearedNow && isScreenTime && !loadKeepBlockingAfterDueCleared()) {
+      commitUnlock();
+    }
     // Don't auto-advance on fuzzy matches — user should see the typo feedback
     if (!fuzzy) {
       const hasAudio = !!sessionCard.card.audio && !isMuted;
@@ -481,20 +488,26 @@ export default function ChallengeScreen() {
     if (currentCard.isFirstEncounter) answeredNewCardIds.current.add(currentCard.card.id);
     const isPositive = grade !== 'again';
     if (isPositive) {
-      checkAndApplyDueCleared();
+      const dueClearedNow = checkAndApplyDueCleared();
       setCorrectCount((c) => {
         const next = c + 1;
         correctCountRef.current = next;
         maybeCommitUnlockAtProgress(next);
         return next;
       });
+      if (dueClearedNow && isScreenTime && !loadKeepBlockingAfterDueCleared()) {
+        commitUnlock();
+      }
     }
     setShowAnswer(true);
     advanceToNext();
   };
 
   const glassStyle = getGlassStyle(theme);
-  const isUnlocked = isScreenTime && correctCount >= screenTimeRequirement;
+  const isUnlocked = isScreenTime && (
+    screenTimeUnlocked
+    || (screenTimeRequirement > 0 && correctCount >= screenTimeRequirement)
+  );
 
   useEffect(() => {
     maybeCommitUnlockAtProgress(correctCountRef.current);
@@ -547,9 +560,7 @@ export default function ChallengeScreen() {
           {isUnlocked && (
             <View style={[styles.unlockedPill, { backgroundColor: theme.colors.primaryContainer }]}>
               <Icon source="lock-open-outline" size={13} color={theme.custom.brandBlue} />
-              <Text style={[styles.unlockedPillText, { color: theme.custom.brandBlue }]}>
-                Unlocked
-              </Text>
+              <Text style={[styles.unlockedPillText, { color: theme.custom.brandBlue }]}>Unlocked</Text>
             </View>
           )}
           <IconButton
@@ -578,7 +589,7 @@ export default function ChallengeScreen() {
             >
               {isScreenTime
                 ? (isUnlocked
-                    ? 'UNLOCKED FOR 10 MIN'
+                    ? ''
                     : `${Math.min(correctCount, screenTimeRequirement)} / ${screenTimeRequirement} CARDS TO UNLOCK`)
                 : `${correctCount} correct`}
             </Text>
@@ -799,7 +810,7 @@ export default function ChallengeScreen() {
 
             <Pressable
               onPress={() => {
-                const willUnlock = isScreenTime && correctCountRef.current >= screenTimeRequirement;
+                const willUnlock = isScreenTime && isUnlocked;
                 finishScreenTimeUnlock(willUnlock);
               }}
               style={[styles.doneButton, { backgroundColor: theme.colors.primary }]}
@@ -807,7 +818,7 @@ export default function ChallengeScreen() {
               accessibilityRole="button"
             >
               <Text style={[styles.doneButtonText, { color: theme.colors.onPrimary }]}>
-                {isScreenTime && correctCountRef.current >= screenTimeRequirement
+                {isScreenTime && isUnlocked
                   ? (sourceApp && getUrlSchemeForApp(sourceApp) ? `Open ${sourceApp}` : 'Unlock Apps')
                   : 'Done'}
               </Text>

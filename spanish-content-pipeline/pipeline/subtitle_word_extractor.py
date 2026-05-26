@@ -37,11 +37,13 @@ Lemmas:
 For each lemma return:
 - "lemma": exactly as provided
 - "german_hint": concise German translation IN CONTEXT (1-3 words, e.g. "Ehemann")
+- "german_hint_general": the most common dictionary translation of the LEMMA — the meaning a learner should know first. This must be the general, broadly useful translation, NOT the sentence-specific one. If it would be identical to "german_hint", set "german_hint_general" to "".
 - "english_gloss": concise English dictionary gloss for image generation (1-2 words, e.g. "husband")
 - "context_note": brief grammar note, e.g. "masculine noun" / "3rd person singular present"
 - "cefr_level": estimated CEFR level, one of A1 A2 B1 B2 C1 C2
+- "image_prompt": a concrete English image prompt that teaches the lemma visually without any written text. Use the sentence context to choose the right sense, but do not include the Spanish word, German translation, letters, numbers, signs, captions, labels, logos, handwriting, or UI. Prefer one clear real-world object/action/scene. Avoid generic portraits unless the lemma is a person or relationship.
 
-Return a JSON object: {{"enrichments": [{{"lemma": ..., "german_hint": ..., "english_gloss": ..., "context_note": ..., "cefr_level": ...}}, ...]}}
+Return a JSON object: {{"enrichments": [{{"lemma": ..., "german_hint": ..., "german_hint_general": ..., "english_gloss": ..., "context_note": ..., "cefr_level": ..., "image_prompt": ...}}, ...]}}
 """
 
 
@@ -104,9 +106,11 @@ def _call_enrichment(
         if lemma:
             result[lemma] = {
                 "german_hint": str(entry.get("german_hint", lemma)).strip(),
+                "german_hint_general": str(entry.get("german_hint_general", "")).strip(),
                 "english_gloss": str(entry.get("english_gloss", lemma)).strip(),
                 "context_note": str(entry.get("context_note", "")).strip(),
                 "cefr_level": str(entry.get("cefr_level", "B1")).strip(),
+                "image_prompt": str(entry.get("image_prompt", "")).strip(),
             }
     return result
 
@@ -325,9 +329,11 @@ def extract_word_cards(
         enrichment = enrichment_cache.get(lemma, {})
 
         german_hint = enrichment.get("german_hint", lemma)
+        german_hint_general = enrichment.get("german_hint_general", "")
         english_gloss = enrichment.get("english_gloss", lemma)
         context_note = enrichment.get("context_note", "")
         cefr_level = enrichment.get("cefr_level", None)
+        image_prompt = enrichment.get("image_prompt", "")
 
         cloze_sentence = _make_cloze(ps.text, surface) if surface else ps.text.replace(lemma, '_____', 1)
 
@@ -350,13 +356,14 @@ def extract_word_cards(
             "sentence": cloze_sentence,
             "sentence_translation": sentence_translation,
             "german_hint": german_hint,
+            "german_hint_general": german_hint_general,
             "english_gloss": english_gloss,
             "pos": pos,
             "context_note": context_note,
             "cefr_level": cefr_level,
             "episode": episode,
             "sentence_file_key": fk,
-            "image_prompt": _build_image_prompt(
+            "image_prompt": image_prompt or _build_image_prompt(
                 word_in_context=surface or lemma,
                 english_gloss=english_gloss,
                 sentence=ps.text,

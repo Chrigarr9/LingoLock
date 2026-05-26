@@ -3,15 +3,15 @@
  *
  * Block model: USER-PICKS-BLOCKED-APPS. The user explicitly selects which apps
  * should be shielded via the Family Activity Picker; we apply shields to that
- * exact set. We do NOT use Apple's `.all(except:)` policy — it silently misses
- * apps not enumerated under a known category (e.g. third-party apps that load
- * lazily), which the user observed firsthand with YouTube/Reddit/Strava/Garmin.
+ * exact set. Broad category-only selections fall back to Apple's full category
+ * shield because `.specific(categoryTokens)` can miss apps like WhatsApp/Spotify.
  *
  * Unlock cycle: tap shield → routed to /challenge → complete cards →
  * resetBlocks() lifts shields and arms a usage monitor. When LingoLock
  * backgrounds, DeviceActivity starts counting actual use of the selected apps.
  * eventDidReachThreshold re-applies the blocklist after UNLOCK_MINUTES of
- * usage; intervalDidEnd is a midnight cleanup fallback. The blocklist's
+ * usage while the gate is still active. If reviews are cleared and the user
+ * did not opt into continued prompts, shields stay down. The blocklist's
  * selection ID is mirrored to the library's selection store via
  * setFamilyActivitySelectionId so monitor callbacks can reference it by ID.
  *
@@ -49,7 +49,6 @@ const SHIELD_ACTION_TTL_MS = 60_000;
 const BRAND_BLUE = { red: 122, green: 173, blue: 216 }; // #7AADD8
 const SPLASH_NAVY = { red: 28, green: 46, blue: 74 };   // #1C2E4A
 const LIGHT_TEXT = { red: 255, green: 255, blue: 255 };
-const SOFT_TEXT = { red: 220, green: 232, blue: 244 };  // #DCE8F4
 
 /**
  * Check if Screen Time API is available on this device.
@@ -118,13 +117,13 @@ export function configureShield(): void {
       title: 'LingoLock',
       titleColor: LIGHT_TEXT,
       subtitle: 'Complete a few cards to keep using {applicationOrDomainDisplayName}',
-      subtitleColor: { ...SOFT_TEXT, alpha: 0.92 },
+      subtitleColor: LIGHT_TEXT,
       backgroundColor: SPLASH_NAVY,
       primaryButtonLabel: 'Practice now',
       primaryButtonLabelColor: SPLASH_NAVY,
-      primaryButtonBackgroundColor: BRAND_BLUE,
+      primaryButtonBackgroundColor: LIGHT_TEXT,
       iconSystemName: 'lock.shield.fill',
-      iconTint: LIGHT_TEXT,
+      iconTint: BRAND_BLUE,
     },
     {
       primary: {
@@ -137,8 +136,8 @@ export function configureShield(): void {
         behavior: 'defer',
         type: 'sendNotification',
         payload: {
-          title: 'Practice to unlock {applicationOrDomainDisplayName}',
-          body: 'Tap to complete a few cards — unlocks the app for 10 minutes.',
+          title: 'Practice to unlock',
+          body: 'Tap to complete a few cards and return to the app.',
           sound: 'default',
           // timeSensitive lets the notification interrupt during Focus modes
           // — the user explicitly opted into blocking, so interruption is
@@ -180,6 +179,12 @@ export function applyBlocklist(blocklistJson: string | null): void {
     setFamilyActivitySelectionId,
     isShieldActive,
   } = require('react-native-device-activity');
+
+  if (!shouldRequireScreenTimeGate()) {
+    releaseScreenTimeGate('apply-blocklist-no-gate');
+    logDebug('ScreenTime.applyBlocklist', 'gate inactive; shields lifted');
+    return;
+  }
 
   resetBlocks('apply-blocklist-clear');
 
@@ -235,18 +240,19 @@ export function applyBlocklist(blocklistJson: string | null): void {
 export function maybeRestoreShields(): boolean {
   if (!isScreenTimeAvailable()) return false;
   if (!loadScreenTimeEnabled()) return false;
+
+  if (!shouldRequireScreenTimeGate()) {
+    if (isBlocking() || loadUnlockTimerArmed() || loadUnlockWindowEnd() > 0) {
+      releaseScreenTimeGate('no-gate-active');
+      logDebug('ScreenTime.maybeRestore', 'gate inactive; shields lifted');
+    }
+    return false;
+  }
+
   if (isBlocking()) return false;
 
   if (loadUnlockTimerArmed()) {
     logDebug('ScreenTime.maybeRestore', 'timer armed — shields intentionally down until app exit');
-    return false;
-  }
-
-  // Free-day check: in default mode, once the user has cleared the FSRS due
-  // queue today, shields stay off until midnight. The keep-blocking setting
-  // opts out — those users want continued (flat-rate) friction.
-  if (loadDueCardsCleared() && !loadKeepBlockingAfterDueCleared()) {
-    logDebug('ScreenTime.maybeRestore', 'free day — due cleared, shields stay off');
     return false;
   }
 
@@ -366,6 +372,11 @@ function scheduleUsageReblockMonitor(triggeredBy: string): void {
  * LingoLock backgrounds, via startUnlockTimerIfArmed().
  */
 export function startUnlockWindow(): void {
+  if (!shouldRequireScreenTimeGate()) {
+    releaseScreenTimeGate('unlock-no-gate');
+    return;
+  }
+
   const {
     resetBlocks,
     stopMonitoring,
@@ -385,7 +396,28 @@ export function startUnlockWindow(): void {
   });
 }
 
+export function shouldRequireScreenTimeGate(): boolean {
+  return !loadDueCardsCleared() || loadKeepBlockingAfterDueCleared();
+}
+
+export function releaseScreenTimeGate(triggeredBy: string): void {
+  const {
+    resetBlocks,
+    stopMonitoring,
+  } = require('react-native-device-activity');
+
+  stopMonitoring([MONITOR_NAME]);
+  resetBlocks(triggeredBy);
+  clearUnlockWindowEnd();
+  clearUnlockTimerArmed();
+}
+
 export function startUnlockTimerIfArmed(triggeredBy: string): boolean {
+  if (!shouldRequireScreenTimeGate()) {
+    releaseScreenTimeGate(`${triggeredBy}-no-gate`);
+    return false;
+  }
+
   if (!loadUnlockTimerArmed()) {
     logDebug('ScreenTime.reblockTimer', 'not armed', { triggeredBy });
     return false;

@@ -37,17 +37,15 @@ describe('escalationService', () => {
     });
   });
 
-  describe('getRequiredCardCount — due cleared (free day, default mode)', () => {
-    it('returns 0 in default mode regardless of unlock count', () => {
+  describe('getRequiredCardCount — due cleared', () => {
+    it('returns 0 when post-clear prompting is off', () => {
       const opts = { dueCleared: true, keepBlocking: false };
       expect(getRequiredCardCount(0, opts)).toBe(0);
       expect(getRequiredCardCount(3, opts)).toBe(0);
       expect(getRequiredCardCount(10, opts)).toBe(0);
     });
-  });
 
-  describe('getRequiredCardCount — due cleared + keep-blocking setting', () => {
-    it('returns flat 3 cards regardless of unlock count', () => {
+    it('returns flat 3 cards when post-clear prompting is on', () => {
       const opts = { dueCleared: true, keepBlocking: true };
       expect(getRequiredCardCount(0, opts)).toBe(FLAT_RATE_CARDS);
       expect(getRequiredCardCount(2, opts)).toBe(FLAT_RATE_CARDS);

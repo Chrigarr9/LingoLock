@@ -16,6 +16,7 @@
         "tinted": "./assets/icon-tinted.png"
       },
       "supportsTablet": true,
+      "appleTeamId": "Q9Z4G2KF2S",
       "bundleIdentifier": "com.lingolock.app",
       "entitlements": {
         "com.apple.security.application-groups": [

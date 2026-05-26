@@ -1123,6 +1123,15 @@ func setsIncludesEntireCategory(
 }
 
 @available(iOS 15.0, *)
+func makeFamilyActivitySelection(includeEntireCategory: Bool) -> FamilyActivitySelection {
+  if #available(iOS 15.2, *) {
+    return FamilyActivitySelection(includeEntireCategory: includeEntireCategory)
+  }
+
+  return FamilyActivitySelection()
+}
+
+@available(iOS 15.0, *)
 func intersection(_ selection1: FamilyActivitySelection, _ selection2: FamilyActivitySelection)
   -> FamilyActivitySelection {
   let applicationTokens = selection1.applicationTokens.intersection(
@@ -1142,7 +1151,7 @@ func intersection(_ selection1: FamilyActivitySelection, _ selection2: FamilyAct
     selection2
   )
 
-  var selection = FamilyActivitySelection(
+  var selection = makeFamilyActivitySelection(
     includeEntireCategory: includeEntireCategory
   )
 
@@ -1174,7 +1183,7 @@ func symmetricDifference(
     selection2
   )
 
-  var selection = FamilyActivitySelection(
+  var selection = makeFamilyActivitySelection(
     includeEntireCategory: includeEntireCategory
   )
 
@@ -1205,7 +1214,7 @@ func difference(_ selection1: FamilyActivitySelection, _ selection2: FamilyActiv
     selection2
   )
 
-  var selection = FamilyActivitySelection(
+  var selection = makeFamilyActivitySelection(
     includeEntireCategory: includeEntireCategory
   )
 
@@ -1236,7 +1245,7 @@ func union(_ selection1: FamilyActivitySelection, _ selection2: FamilyActivitySe
     selection2
   )
 
-  var selection = FamilyActivitySelection(
+  var selection = makeFamilyActivitySelection(
     includeEntireCategory: includeEntireCategory
   )
 
@@ -1346,6 +1355,18 @@ func isBlockingAllModeEnabled() -> Bool {
   let isBlockingAll = userDefaults?.bool(forKey: IS_BLOCKING_ALL) ?? false
 
   return isBlockingAll
+}
+
+@available(iOS 15.0, *)
+func isBroadCategoryOnlySelection(_ selection: FamilyActivitySelection) -> Bool {
+  if #available(iOS 15.2, *) {
+    return selection.includeEntireCategory
+      && selection.categoryTokens.count > 1
+      && selection.applicationTokens.isEmpty
+      && selection.webDomainTokens.isEmpty
+  }
+
+  return false
 }
 
 @available(iOS 15.0, *)
@@ -1469,14 +1490,19 @@ func updateBlockInternal(
   store.shield.webDomains = blocklistWithoutWhiteListOverlap.webDomainTokens
 
   if blocklistWithoutWhiteListOverlap.categoryTokens.count > 0 {
-    store.shield.applicationCategories = .specific(
-      blocklistWithoutWhiteListOverlap.categoryTokens,
-      except: currentWhitelist.applicationTokens
-    )
-    store.shield.webDomainCategories = .specific(
-      blocklistWithoutWhiteListOverlap.categoryTokens,
-      except: currentWhitelist.webDomainTokens
-    )
+    if isBroadCategoryOnlySelection(blocklistWithoutWhiteListOverlap) {
+      store.shield.applicationCategories = .all(except: currentWhitelist.applicationTokens)
+      store.shield.webDomainCategories = .all(except: currentWhitelist.webDomainTokens)
+    } else {
+      store.shield.applicationCategories = .specific(
+        blocklistWithoutWhiteListOverlap.categoryTokens,
+        except: currentWhitelist.applicationTokens
+      )
+      store.shield.webDomainCategories = .specific(
+        blocklistWithoutWhiteListOverlap.categoryTokens,
+        except: currentWhitelist.webDomainTokens
+      )
+    }
   } else {
     store.shield.applicationCategories = nil
     store.shield.webDomainCategories = nil
