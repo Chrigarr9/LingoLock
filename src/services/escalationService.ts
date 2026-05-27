@@ -22,6 +22,11 @@ export interface RequirementOptions {
   keepBlocking: boolean;
 }
 
+export interface SessionProgressPersistenceOptions {
+  isScreenTime: boolean;
+  screenTimeUnlocked: boolean;
+}
+
 /**
  * Calculate the number of cards required for the current unlock.
  *
@@ -34,4 +39,11 @@ export function getRequiredCardCount(
 ): number {
   if (options.dueCleared) return options.keepBlocking ? FLAT_RATE_CARDS : 0;
   return Math.min(BASE_CARDS * Math.pow(2, unlockCount), MAX_ESCALATION);
+}
+
+export function shouldPersistScreenTimeSessionProgress({
+  isScreenTime,
+  screenTimeUnlocked,
+}: SessionProgressPersistenceOptions): boolean {
+  return isScreenTime && !screenTimeUnlocked;
 }

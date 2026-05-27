@@ -21,7 +21,7 @@ import {
   saveDueCardsCleared,
   loadKeepBlockingAfterDueCleared,
 } from '../src/services/storage';
-import { getRequiredCardCount } from '../src/services/escalationService';
+import { getRequiredCardCount, shouldPersistScreenTimeSessionProgress } from '../src/services/escalationService';
 import { startUnlockWindow, releaseScreenTimeGate } from '../src/services/screenTimeService';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
@@ -205,8 +205,10 @@ export default function ChallengeScreen() {
   // (back arrow before requirement met) preserves what the user earned.
   // incrementUnlockCount clears this entry, so successful unlocks reset cleanly.
   useEffect(() => {
-    if (isScreenTime) saveScreenTimeSession(correctCount, sourceApp);
-  }, [correctCount, isScreenTime, sourceApp]);
+    if (shouldPersistScreenTimeSessionProgress({ isScreenTime, screenTimeUnlocked })) {
+      saveScreenTimeSession(correctCount, sourceApp);
+    }
+  }, [correctCount, isScreenTime, screenTimeUnlocked, sourceApp]);
 
   // Reset hint blink on every card advance; fire after 10s of no interaction
   useEffect(() => {

@@ -1,5 +1,6 @@
 import {
   getRequiredCardCount,
+  shouldPersistScreenTimeSessionProgress,
   BASE_CARDS,
   FLAT_RATE_CARDS,
 } from '../src/services/escalationService';
@@ -56,6 +57,29 @@ describe('escalationService', () => {
       const opts = { dueCleared: false, keepBlocking: true };
       expect(getRequiredCardCount(1, opts)).toBe(6);
       expect(getRequiredCardCount(3, opts)).toBe(24);
+    });
+  });
+
+  describe('shouldPersistScreenTimeSessionProgress', () => {
+    it('does not persist progress after the unlock requirement has been completed', () => {
+      expect(shouldPersistScreenTimeSessionProgress({
+        isScreenTime: true,
+        screenTimeUnlocked: true,
+      })).toBe(false);
+    });
+
+    it('persists progress for an unfinished screen-time unlock', () => {
+      expect(shouldPersistScreenTimeSessionProgress({
+        isScreenTime: true,
+        screenTimeUnlocked: false,
+      })).toBe(true);
+    });
+
+    it('does not persist progress for regular practice', () => {
+      expect(shouldPersistScreenTimeSessionProgress({
+        isScreenTime: false,
+        screenTimeUnlocked: false,
+      })).toBe(false);
     });
   });
 });

@@ -307,11 +307,6 @@ function scheduleUsageReblockMonitor(triggeredBy: string): void {
     eventName: USAGE_LIMIT_EVENT_NAME,
     actions: [reblockAction],
   });
-  configureActions({
-    activityName: MONITOR_NAME,
-    callbackName: 'intervalDidEnd',
-    actions: [reblockAction],
-  });
 
   const nowMs = Date.now();
   const startMs = nowMs + 5_000;
