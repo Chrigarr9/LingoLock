@@ -1,7 +1,7 @@
 /**
  * FSRS spaced repetition scheduler for LingoLock
  * Wraps ts-fsrs library with app-specific logic:
- * - Answer type graduation based on stability (mc4 → text)
+ * - Answer type graduation based on stability (mc4 → scramble → text)
  * - 4-grade rating system (Again / Hard / Good / Easy)
  * - Progressive hint levels for text mode
  * - Card mastery definition for chapter unlock
@@ -113,11 +113,11 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
  *
  * Progression: mc4 → scramble → text
  *   - New cards (null state) or stability < 1.0 → mc4 (recognition)
- *   - stability 1.0–2.49 → scramble (letter rearrangement, guided recall)
- *   - stability >= 2.5 → text (free recall)
+ *   - stability 1.0–1.99 → scramble (letter rearrangement, guided recall)
+ *   - stability >= 2.0 → text (free recall)
  *
  * After the first Good answer stability jumps to ~2.3, landing on the scramble/text
- * boundary. After a few more successful reviews, stability crosses 2.5 into text mode.
+ * range. After the first successful scramble review, stability reaches text mode.
  * Lapses drop stability — below 1.0 falls all the way back to mc4.
  *
  * State is intentionally NOT checked: a lapse puts the card into Relearning
@@ -127,7 +127,7 @@ export function scheduleReview(cardState: CardState, grade: ReviewGrade): CardSt
  */
 export function getAnswerType(cardState: CardState | null): 'mc4' | 'scramble' | 'text' {
   if (cardState === null) return 'mc4';
-  if (cardState.stability >= 2.5) return 'text';
+  if (cardState.stability >= 2.0) return 'text';
   if (cardState.stability >= 1.0) return 'scramble';
   return 'mc4';
 }
@@ -201,9 +201,9 @@ export const PROGRESS_LEVELS = 5;
  * Returns a card's learning progress level (0-5) based on FSRS stability.
  *
  *   0 = never seen (null state)                          → mc4
- *   1 = fragile / learning / relearning (stability < 2.0) → scramble
- *   2 = early recall (stability 2.0–2.49)                 → scramble
- *   3 = building recall (stability 2.5–10)                → text (full hints)
+ *   1 = fragile / learning / relearning (stability < 1.0) → mc4
+ *   2 = early recall (stability 1.0–1.99)                 → scramble
+ *   3 = building recall (stability 2.0–10)                → text (full hints)
  *   4 = familiar (stability 10–21)
  *   5 = mastered (stability >= 21)
  *
@@ -212,8 +212,8 @@ export const PROGRESS_LEVELS = 5;
 export function getCardProgressLevel(cardState: CardState | null): number {
   if (cardState === null) return 0;
   const { stability } = cardState;
-  if (stability < 2.0) return 1;
-  if (stability < 2.5) return 2;
+  if (stability < 1.0) return 1;
+  if (stability < 2.0) return 2;
   if (stability < 10) return 3;
   if (stability < 21) return 4;
   return 5;

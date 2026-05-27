@@ -32,12 +32,12 @@ describe('getAnswerType', () => {
     expect(getAnswerType(makeState(1.0))).toBe('scramble');
   });
 
-  it('returns scramble when stability is 2.4', () => {
-    expect(getAnswerType(makeState(2.4))).toBe('scramble');
+  it('returns scramble when stability is 1.9', () => {
+    expect(getAnswerType(makeState(1.9))).toBe('scramble');
   });
 
-  it('returns text when stability is exactly 2.5', () => {
-    expect(getAnswerType(makeState(2.5))).toBe('text');
+  it('returns text when stability is exactly 2.0', () => {
+    expect(getAnswerType(makeState(2.0))).toBe('text');
   });
 
   it('returns text when stability is 10.0', () => {
