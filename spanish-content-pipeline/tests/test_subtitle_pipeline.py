@@ -207,3 +207,50 @@ def test_word_extraction_uses_only_generation_episode_subset():
     assert querer["german_hint"] == "wollen"
     assert querer["german_hint_general"] == "moegen"
     assert casa["image_prompt"] == "a small cozy house on a quiet street, no text"
+
+
+def test_word_extraction_orders_cards_by_episode_sentence_and_token_order():
+    ep1 = ProcessedEpisode(episode=1, title="Pilot", sentences=[
+        sentence(
+            1,
+            0,
+            "Quiero una casa bonita.",
+            ["querer", "casa", "bonito"],
+            [
+                tok("Quiero", "querer", "VERB"),
+                tok("casa", "casa", "NOUN"),
+                tok("bonita", "bonito", "ADJ"),
+            ],
+        ),
+        sentence(
+            1,
+            1,
+            "Como una manzana.",
+            ["comer", "manzana"],
+            [
+                tok("Como", "comer", "VERB"),
+                tok("manzana", "manzana", "NOUN"),
+            ],
+        ),
+    ])
+    ep1.sentences[0].score = 1.0
+    ep1.sentences[1].score = 99.0
+
+    cards = extract_word_cards(
+        all_episodes=[ep1],
+        translations={
+            "ch01_s00": "Ich moechte ein schoenes Haus.",
+            "ch01_s01": "Ich esse einen Apfel.",
+        },
+        llm=FakeEnrichmentLLM(),
+        verbose=False,
+    )
+
+    assert [card["lemma"] for card in cards] == ["querer", "casa", "bonito", "comer", "manzana"]
+    assert [card["id"] for card in cards] == [
+        "querer-ch01-s00",
+        "casa-ch01-s01",
+        "bonito-ch01-s02",
+        "comer-ch01-s03",
+        "manzana-ch01-s04",
+    ]

@@ -115,6 +115,14 @@ def _call_enrichment(
     return result
 
 
+def _token_position(ps: ProcessedSentence, lemma: str) -> int:
+    """Return first token index for lemma in a processed sentence."""
+    for i, tok in enumerate(ps.tokens):
+        if tok.lemma.lower() == lemma.lower() or tok.text.lower() == lemma.lower():
+            return i
+    return 9999
+
+
 def _pos_from_tokens(ps: ProcessedSentence, lemma: str) -> str:
     """Return POS tag for lemma from token data; defaults to 'word'."""
     _POS_MAP = {
@@ -281,30 +289,33 @@ def extract_word_cards(
 
     # ── Step 1: Collect best sentence per lemma (dedup) ─────────────────────
 
-    best: dict[str, tuple[float, ProcessedSentence, int]] = {}
-    # lemma → (score, sentence, episode)
+    # lemma → (score, sentence, episode, token_position)
+    best: dict[str, tuple[float, ProcessedSentence, int, int]] = {}
 
     for ep in all_episodes:
         for ps in ep.sentences:
             for lemma in ps.teaches_lemmas:
                 if lemma in prior_lemmas:
                     continue
+                token_position = _token_position(ps, lemma)
                 current = best.get(lemma)
                 if current is None or ps.score > current[0]:
-                    best[lemma] = (ps.score, ps, ep.episode)
+                    best[lemma] = (ps.score, ps, ep.episode, token_position)
 
     if verbose:
         print(f"  {len(best)} unique new lemmas across {len(all_episodes)} episodes")
 
-    # Sort by (episode, score desc) to maintain narrative order
-    ordered = sorted(best.items(), key=lambda kv: (kv[1][2], -kv[1][0]))
+    ordered = sorted(
+        best.items(),
+        key=lambda kv: (kv[1][2], kv[1][1].sentence_index, kv[1][3], kv[0]),
+    )
 
     # ── Step 2: Enrich lemmas via LLM (batched) ──────────────────────────────
 
     enrichment_cache: dict[str, dict] = {}
     batch_input = []
 
-    for lemma, (score, ps, episode) in ordered:
+    for lemma, (score, ps, episode, token_position) in ordered:
         surface = _find_surface_form(ps, lemma)
         cloze_sentence = _make_cloze(ps.text, surface) if surface else ps.text.replace(lemma, '_____', 1)
         pos = _pos_from_tokens(ps, lemma)
@@ -323,7 +334,7 @@ def extract_word_cards(
     partial_cards: list[dict] = []
     ep_counters: dict[int, int] = {}  # episode → card count within that episode
 
-    for lemma, (score, ps, episode) in ordered:
+    for lemma, (score, ps, episode, token_position) in ordered:
         surface = _find_surface_form(ps, lemma)
         pos = _pos_from_tokens(ps, lemma)
         enrichment = enrichment_cache.get(lemma, {})
