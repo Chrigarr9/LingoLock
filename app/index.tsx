@@ -5,7 +5,8 @@ import { Stack, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme, getGlassStyle, getCardStyle, labelOverlineStyle } from '../src/theme';
-import { getStreak, getChapterProgress, getCardsDueCount, getCurrentChapterNumber } from '../src/services/statsService';
+import { getStreak, getChapterProgress, getCurrentChapterNumber } from '../src/services/statsService';
+import { getEnabledDeckPracticeCount } from '../src/services/enabledDeckSession';
 import { useActiveBundle } from '../src/content/activeBundleProvider';
 import { openDebugLog } from '../src/services/debugLog';
 
@@ -31,7 +32,7 @@ export default function HomeScreen() {
     const chapter = getCurrentChapterNumber(chapters);
     setCurrentChapter(chapter);
     setChapterProgress(getChapterProgress(chapters, chapter));
-    setCardsDue(getCardsDueCount(chapters));
+    setCardsDue(getEnabledDeckPracticeCount());
     setGreeting(getGreeting());
   }, [chapters]);
 

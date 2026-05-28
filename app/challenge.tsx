@@ -25,7 +25,8 @@ import { getRequiredCardCount, shouldPersistScreenTimeSessionProgress } from '..
 import { startUnlockWindow, releaseScreenTimeGate } from '../src/services/screenTimeService';
 import { ProgressDots } from '../src/components/ProgressDots';
 import { SelfRatedCard } from '../src/components/SelfRatedCard';
-import { buildSession, handleWrongAnswer, getCurrentChapter, getDueCards, getDueCardIds } from '../src/services/cardSelector';
+import { handleWrongAnswer, getCurrentChapter } from '../src/services/cardSelector';
+import { buildEnabledDeckSession, getNewlyDueEnabledCards, areEnabledDecksClear } from '../src/services/enabledDeckSession';
 import type { SimpleCard } from '../src/types/simpleCard';
 import type { ClozeCard } from '../src/types/vocabulary';
 import { scheduleReview, createNewCardState, demoteAnswerType } from '../src/services/fsrs';
@@ -161,18 +162,28 @@ export default function ChallengeScreen() {
       // the unlock. The displayed "Y TO UNLOCK" is capped below to
       // savedProgress + session.length so the user can always reach it.
       const remaining = Math.max(0, escalationRequirement - savedSession.progress);
-      const dueOnly = buildSession(chapters, 0, params.source);
-      const newBudget = Math.max(0, remaining - dueOnly.length);
-      session = buildSession(chapters, newBudget, params.source, true);
+      session = buildEnabledDeckSession({
+        newWordBudget: remaining,
+        sourceApp: params.source,
+        bypassIntroCap: true,
+        maxCards: remaining,
+      });
       setScreenTimeRequirement(
         Math.min(escalationRequirement, savedSession.progress + session.length),
       );
     } else {
-      session = buildSession(chapters, loadNewWordsPerDay(), params.source);
+      session = buildEnabledDeckSession({
+        newWordBudget: loadNewWordsPerDay(),
+        sourceApp: params.source,
+      });
     }
 
     if (session.length === 0) {
-      const extra = isScreenTime ? [] : buildSession(chapters, Infinity, params.source);
+      const extra = isScreenTime ? [] : buildEnabledDeckSession({
+  newWordBudget: Infinity,
+  sourceApp: params.source,
+  bypassIntroCap: true,
+});
       setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
       setIsComplete(true);
@@ -258,7 +269,7 @@ export default function ChallengeScreen() {
       const pendingIds = new Set(
         prevQueue.slice(nextIndex).map((sc) => sc.card.id),
       );
-      const newlyDue = getDueCards(chapters, pendingIds);
+      const newlyDue = getNewlyDueEnabledCards(pendingIds);
       if (newlyDue.length > 0) {
         const updated = [...prevQueue, ...newlyDue];
         totalCardCount.current = updated.length;
@@ -285,7 +296,11 @@ export default function ChallengeScreen() {
         recordNewWordsIntroduced(answeredNewCardIds.current.size);
         updateWidgetData();
         rescheduleAfterExternalAnswer().catch(e => console.error('[Challenge] Reschedule failed:', e));
-        const extra = buildSession(chapters, Infinity, params.source);
+        const extra = buildEnabledDeckSession({
+  newWordBudget: Infinity,
+  sourceApp: params.source,
+  bypassIntroCap: true,
+});
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);
         return prevIndex;
@@ -332,8 +347,7 @@ export default function ChallengeScreen() {
   // immediately and shields stay down for the rest of the day.
   const checkAndApplyDueCleared = useCallback(() => {
     if (dueClearedThisSession.current) return false;
-    const remainingDue = getDueCardIds(chapters);
-    if (remainingDue.size !== 0) return false;
+    if (!areEnabledDecksClear()) return false;
     dueClearedThisSession.current = true;
     saveDueCardsCleared();
     return true;
@@ -455,7 +469,11 @@ export default function ChallengeScreen() {
   };
 
   const startExtraSession = () => {
-    const extra = buildSession(chapters, Infinity, params.source);
+    const extra = buildEnabledDeckSession({
+  newWordBudget: Infinity,
+  sourceApp: params.source,
+  bypassIntroCap: true,
+});
     if (extra.length === 0) return;
     setQueue(extra);
     originalCardCount.current = extra.length;
