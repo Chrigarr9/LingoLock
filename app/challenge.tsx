@@ -180,10 +180,10 @@ export default function ChallengeScreen() {
 
     if (session.length === 0) {
       const extra = isScreenTime ? [] : buildEnabledDeckSession({
-  newWordBudget: Infinity,
-  sourceApp: params.source,
-  bypassIntroCap: true,
-});
+        newWordBudget: Infinity,
+        sourceApp: params.source,
+        bypassIntroCap: true,
+      });
       setHasMoreCards(extra.length > 0);
       setIsEmpty(true);
       setIsComplete(true);
@@ -297,16 +297,16 @@ export default function ChallengeScreen() {
         updateWidgetData();
         rescheduleAfterExternalAnswer().catch(e => console.error('[Challenge] Reschedule failed:', e));
         const extra = buildEnabledDeckSession({
-  newWordBudget: Infinity,
-  sourceApp: params.source,
-  bypassIntroCap: true,
-});
+          newWordBudget: Infinity,
+          sourceApp: params.source,
+          bypassIntroCap: true,
+        });
         setHasMoreCards(extra.length > 0);
         setIsComplete(true);
         return prevIndex;
       }
     });
-  }, [params.source, chapters, currentIndex]);
+  }, [params.source, currentIndex]);
 
   const scheduleAdvance = useCallback(() => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
@@ -351,7 +351,7 @@ export default function ChallengeScreen() {
     dueClearedThisSession.current = true;
     saveDueCardsCleared();
     return true;
-  }, [chapters]);
+  }, []);
 
   // Commit the unlock side-effects once the user has completed the current
   // Screen Time requirement.
@@ -470,10 +470,10 @@ export default function ChallengeScreen() {
 
   const startExtraSession = () => {
     const extra = buildEnabledDeckSession({
-  newWordBudget: Infinity,
-  sourceApp: params.source,
-  bypassIntroCap: true,
-});
+      newWordBudget: Infinity,
+      sourceApp: params.source,
+      bypassIntroCap: true,
+    });
     if (extra.length === 0) return;
     setQueue(extra);
     originalCardCount.current = extra.length;
