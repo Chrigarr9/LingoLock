@@ -37,6 +37,7 @@ import {
   loadDueCardsCleared,
   loadKeepBlockingAfterDueCleared,
 } from './storage';
+import { areEnabledDecksClear } from './enabledDeckSession';
 
 const BLOCKLIST_ID = 'blocked-apps';        // FamilyActivitySelection ID stored by library
 const MONITOR_NAME = 'unlock-usage-monitor';
@@ -392,7 +393,9 @@ export function startUnlockWindow(): void {
 }
 
 export function shouldRequireScreenTimeGate(): boolean {
-  return !loadDueCardsCleared() || loadKeepBlockingAfterDueCleared();
+  if (loadKeepBlockingAfterDueCleared()) return true;
+  if (loadDueCardsCleared()) return false;
+  return !areEnabledDecksClear();
 }
 
 export function releaseScreenTimeGate(triggeredBy: string): void {
