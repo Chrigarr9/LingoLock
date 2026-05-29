@@ -45,6 +45,12 @@ describe('screenTimeService unlock timer', () => {
     configureActions.mockClear();
     startMonitoring.mockClear();
     stopMonitoring.mockClear();
+    mockLoadDueCardsCleared.mockReset();
+    mockLoadKeepBlockingAfterDueCleared.mockReset();
+    mockAreEnabledDecksClear.mockReset();
+    mockLoadDueCardsCleared.mockReturnValue(false);
+    mockLoadKeepBlockingAfterDueCleared.mockReturnValue(false);
+    mockAreEnabledDecksClear.mockReturnValue(false);
   });
 
   it('reblocks only from the 10-minute usage threshold, not interval end', () => {
@@ -74,6 +80,7 @@ describe('screenTimeService unlock timer', () => {
     mockAreEnabledDecksClear.mockReturnValue(false);
 
     expect(shouldRequireScreenTimeGate()).toBe(true);
+    expect(mockAreEnabledDecksClear).toHaveBeenCalled();
   });
 
   it('does not require the gate when enabled decks are clear and continued blocking is off', () => {
@@ -82,6 +89,7 @@ describe('screenTimeService unlock timer', () => {
     mockAreEnabledDecksClear.mockReturnValue(true);
 
     expect(shouldRequireScreenTimeGate()).toBe(false);
+    expect(mockAreEnabledDecksClear).toHaveBeenCalled();
   });
 
   it('requires the gate after clear when continued blocking is on', () => {
@@ -90,5 +98,15 @@ describe('screenTimeService unlock timer', () => {
     mockAreEnabledDecksClear.mockReturnValue(true);
 
     expect(shouldRequireScreenTimeGate()).toBe(true);
+    expect(mockAreEnabledDecksClear).not.toHaveBeenCalled();
+  });
+
+  it('does not require the gate when due cards are cleared and continued blocking is off', () => {
+    mockLoadDueCardsCleared.mockReturnValue(true);
+    mockLoadKeepBlockingAfterDueCleared.mockReturnValue(false);
+    mockAreEnabledDecksClear.mockReturnValue(false);
+
+    expect(shouldRequireScreenTimeGate()).toBe(false);
+    expect(mockAreEnabledDecksClear).not.toHaveBeenCalled();
   });
 });
