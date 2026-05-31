@@ -46,9 +46,10 @@ const UNLOCK_MINUTES = 10;
 const SHIELD_ACTION_MARKER_KEY = 'lingolock.pendingShieldAction';
 const SHIELD_ACTION_TTL_MS = 60_000;
 
-// Brand colors matching LingoLock's dark splash screen.
-const BRAND_BLUE = { red: 122, green: 173, blue: 216 }; // #7AADD8
-const SPLASH_NAVY = { red: 28, green: 46, blue: 74 };   // #1C2E4A
+// Shield (lock screen) colors. The shield uses a solid brand-blue background
+// with white text and a white icon so it reads as on-brand rather than as a
+// bland system blur. SHIELD_BLUE matches the MD3 theme's brand blue (#5B8EC4).
+const SHIELD_BLUE = { red: 91, green: 142, blue: 196 }; // #5B8EC4
 const LIGHT_TEXT = { red: 255, green: 255, blue: 255 };
 
 /**
@@ -119,12 +120,16 @@ export function configureShield(): void {
       titleColor: LIGHT_TEXT,
       subtitle: 'Complete a few cards to keep using {applicationOrDomainDisplayName}',
       subtitleColor: LIGHT_TEXT,
-      backgroundColor: SPLASH_NAVY,
+      backgroundColor: SHIELD_BLUE,
       primaryButtonLabel: 'Practice now',
-      primaryButtonLabelColor: SPLASH_NAVY,
+      // White button with brand-blue text — a blue label would vanish on the
+      // brand-blue background, so the button inverts the palette for contrast.
+      primaryButtonLabelColor: SHIELD_BLUE,
       primaryButtonBackgroundColor: LIGHT_TEXT,
       iconSystemName: 'lock.shield.fill',
-      iconTint: BRAND_BLUE,
+      // White icon — the previous brand-blue tint disappeared against the now
+      // brand-blue background.
+      iconTint: LIGHT_TEXT,
     },
     {
       primary: {
